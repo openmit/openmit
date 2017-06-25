@@ -27,3 +27,11 @@
 *.exe
 *.out
 *.app
+bin/
+
+# CMake
+build/
+
+# 3rd-party
+third_party/include/
+third_party/lib/

@@ -1,0 +1,15 @@
+[submodule "third_party/rabit"]
+	path = third_party/rabit
+	url = https://github.com/dmlc/rabit.git
+[submodule "third_party/dmlc-core"]
+	path = third_party/dmlc-core
+	url = https://github.com/dmlc/dmlc-core.git
+[submodule "third_party/ps-lite"]
+	path = third_party/ps-lite
+	url = https://github.com/dmlc/ps-lite.git
+[submodule "third_party/liblbfgs"]
+	path = third_party/liblbfgs
+	url = https://github.com/chokkan/liblbfgs.git
+[submodule "third_party/glog"]
+	path = third_party/glog
+	url = https://github.com/google/glog.git
