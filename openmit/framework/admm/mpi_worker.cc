@@ -1,9 +1,6 @@
 #include <cmath>
-
 #include "rabit/rabit.h"
-
 #include "openmit/framework/admm/mpi_worker.h"
-
 
 namespace mit {
 
@@ -23,9 +20,16 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
       << "valid_path should not be empty for train.";
     valid_set_.reset(new mit::DMatrix(
       param_.valid_path, partid, npart, param_.data_format));
+  } else if (param_.task == "predict") {
+    CHECK_NE(param_.test_path, "")
+      << "test path should not be empty for predict task.";
+    test_set_.reset(new mit::DMatrix(
+      param_.test_path, partid, npart, param_.data_format));
+  } else {
+    LOG(ERROR) << "error mpi_worker init.";
   }
-  uint32_t local_dim = std::max(train_set_->NumCol(), valid_set_->NumCol());
-  std::vector<uint32_t> dim(1, local_dim);
+  uint32_t ldim = std::max(train_set_->NumCol(), valid_set_->NumCol());
+  std::vector<uint32_t> dim(1, ldim);
   rabit::Allreduce<rabit::op::Max>(&dim[0], dim.size());
   rabit::Broadcast(dim.data(), sizeof(uint32_t) * dim.size(), 0);
 

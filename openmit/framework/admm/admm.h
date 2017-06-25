@@ -8,10 +8,11 @@
 #ifndef OPENMIT_FRAMEWORK_ADMM_ADMM_H_
 #define OPENMIT_FRAMEWORK_ADMM_ADMM_H_
 
+#include "dmlc/io.h"
 #include "openmit/common/parameter/parameter.h"
 #include "openmit/learner/mi_learner.h"
 #include "openmit/tools/dstruct/sarray.h"
-#include "dmlc/io.h"
+
 /*!
  * \brief
  *
@@ -49,7 +50,7 @@ class Admm : public MILearner {
     virtual ~Admm() {}
     /*! \brief get admm object */
     inline static Admm * Get(const mit::KWArgs & kwargs);
-    /*! running */
+    /*! \brief running */
     void Run() override;
 
   private:

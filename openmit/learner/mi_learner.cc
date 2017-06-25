@@ -9,7 +9,6 @@ DMLC_REGISTER_PARAMETER(MILearnerParam);
 MILearner * MILearner::Create(const mit::KWArgs & kwargs) {
   MILearnerParam param_;
   param_.InitAllowUnknown(kwargs);
-  LOG(INFO) << "computing framework: " << param_.framework;
   if (param_.framework == "admm") {
     return mit::Admm::Get(kwargs);
   } else if (param_.framework == "ps") {

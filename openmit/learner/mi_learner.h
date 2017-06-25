@@ -47,6 +47,7 @@ class MILearner {
       return miparam_.framework;
     }
   protected:
+    /*! \brief learner parameter */
     MILearnerParam miparam_;
 }; // class MIT
 } // namespace mit
