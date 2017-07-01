@@ -47,32 +47,15 @@ struct QuadSearch {
   void assign(const void * data) {
     idx_ = const_idx_pointer(data);
     idx_type bucket_size = *idx_++;   // first element: num_buckets
-    std::cout << "bucket_size; " << bucket_size << std::endl;
     bucket_1_ = bucket_size - 1;
     record_ = const_record_pointer(idx_ + bucket_size + 1);
     size_ = (2 + bucket_size) * idx_size + idx_[bucket_size] * record_size;
-    
-    const_record_pointer first = record_, last = record_ + 15 * record_size;
-    for (; first != last; first += record_size) {
-      uint64_t h2 = *const_key_pointer(first);
-      float value = *const_value_pointer(first + key_size);
-      printf("key: %lu, value: %0.8f\n", h2, value);
-    }
-    std::cout << "size_: " << size_ << std::endl;
-    std::string str = "zhouyong";
-    const_value_pointer zvalue = find(str.c_str(), str.size());
-    if (zvalue == 0) {
-      std::cout << "str: " << str << " not exists. \t zvalue: 0. " << std::endl;
-    } else {
-      std::cout << "str: " << str << " exists. \t zvalue: " << *zvalue << std::endl;
-    }
   }
 
   /*! \brief find value according data and size */
   const_value_pointer find(const void * data, int size) const {
     uint64_t h1, h2;
     hasher_(data, size, &h1, &h2, 0);
-    std::cout << "data: " << data << ", h1: " << h1 << ",\th2: " << h2 << std::endl;
     return search(h1, h2);
   }
 
@@ -84,7 +67,6 @@ struct QuadSearch {
     const_value_pointer search(uint64_t h1, uint64_t h2) const {
       // h1: find index
       uint64_t bucket_index = (h1 & bucket_1_);
-      std::cout << "bucket_index: " << bucket_index << std::endl;
       const_bucket_pointer bucket = 
         const_bucket_pointer(idx_ + bucket_index);
 
