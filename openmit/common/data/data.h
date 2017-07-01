@@ -1,11 +1,11 @@
 /*!
- *  Copyright (c) 2016 by Contributors
+ *  Copyright 2016 by Contributors
  *  \file data.h
  *  \brief stored instance data structure
  *  \author ZhouYong
  */
-#ifndef OPENMIT_COMMON_DATA_H_
-#define OPENMIT_COMMON_DATA_H_
+#ifndef OPENMIT_COMMON_DATA_DATA_H_
+#define OPENMIT_COMMON_DATA_DATA_H_
 
 #include <string>
 
@@ -64,7 +64,6 @@ inline void DMatrix
   dmat_ = dmlc::RowBlockIter<mit_uint>::Create(
       uri.c_str(), partid, npart, data_format.c_str());
 }
-
 } // namespace mit
 
-#endif // OPENMIT_COMMON_DATA_H_
+#endif // OPENMIT_COMMON_DATA_DATA_H_

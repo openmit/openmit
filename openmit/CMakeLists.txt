@@ -14,7 +14,9 @@ aux_source_directory(metric SRCS_METRIC)
 aux_source_directory(models SRCS_MODELS)
 aux_source_directory(optimizer SRCS_OPTIMIZER)
 aux_source_directory(tools/dstruct SRCS_TOOLS_DSTRUCT)
+aux_source_directory(tools/dstore SRCS_TOOLS_DSTORE)
 aux_source_directory(tools/hash SRCS_TOOLS_HASH)
+aux_source_directory(tools/io SRCS_TOOLS_IO)
 aux_source_directory(tools/math SRCS_TOOLS_MATH)
 
 
@@ -33,7 +35,9 @@ set(mit_SRCS
   ${SRCS_MODELS}
   ${SRCS_OPTIMIZER}
   ${SRCS_TOOLS_DSTRUCT}
+  ${SRCS_TOOLS_DSTORE}
   ${SRCS_TOOLS_HASH}
+  ${SRCS_TOOLS_IO}
   ${SRCS_TOOLS_MATH})
 
 # static libraries
@@ -44,7 +48,8 @@ set_target_properties(${static_lib} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${static_lib} dmlc ps rabit)
 
 set(exec_name "openmit")
-add_executable(${exec_name} "cli_main.cc")
+#add_executable(${exec_name} "cli_main.cc")
+add_executable(${exec_name} "bitable_test.cc")
 
 set(openmit_LINKER_LIBS "")
 list(APPEND openmit_LINKER_LIBS ${static_lib})
