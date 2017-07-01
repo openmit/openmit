@@ -112,77 +112,7 @@ struct QuadSearch {
 
 }; // struct QuadSearch
 
-template <typename Value>
-struct ArrayTable {
-  typedef Value value_type;
-  typedef value_type *value_pointer;
-  typedef value_type const *value_const_pointer;
-  typedef int index_type;
-  typedef index_type *index_pointer;
-  typedef index_type const *index_const_pointer;
-  typedef uint64_t off_type;
-
-  static off_type const index_size = sizeof(index_type);
-  static off_type const value_size = sizeof(value_type);
-
-  void assign(void const *data) {
-    size_ = index_size + off_type(*index_const_pointer(data)) * value_size;
-    value_ = value_const_pointer(index_const_pointer(data) + 1);
-  }
-
-  off_type size() const {
-    return size_;
-  }
-
-  value_type get(index_type i) const {
-    return value_[i];
-  }
-
- private:
-  value_const_pointer value_;
-  off_type size_;
-};
-
-template <typename Value>
-struct ModelTable {
-  typedef Value value_type;
-  typedef value_type *value_pointer;
-  typedef value_type const *value_const_pointer;
-  typedef uint64_t off_type;
-
-  static off_type const value_size = sizeof(value_type);
-  
-  void assign(void const *data) {
-    const_coefficient_ = *value_const_pointer(data);
-    std::cout << "const_coefficient_: " << const_coefficient_ << std::endl;
-    data = reinterpret_cast<char const *>(data) + value_size;
-    const_table_.assign(data);
-    data = reinterpret_cast<char const *>(data) + const_table_.size();
-    feature_table_.assign(data);
-    data = reinterpret_cast<char const *>(data) + feature_table_.size();
-  }
-
-  off_type size() const {
-    return value_size + const_table_.size() + feature_table_.size();
-  }
-
-  value_type const_coefficient() const {
-    return const_coefficient_;
-  }
-  
-  value_type get(void const *data, int size, uint16_t tag) const {
-    value_const_pointer val = feature_table_.find(data, size);
-    return 0 != val ? *val : const_table_.get(tag);
-  }
-
- private:
-  value_type const_coefficient_;
-  ArrayTable<value_type> const_table_;
-  QuadSearch<value_type> feature_table_;
-};
-
-
-/*! \brief factorization model value structure. k=4 */
+/*! \brief factorization model value structure. default k=4 */
 struct FMValue {
   float weight;
   float vec[4];
