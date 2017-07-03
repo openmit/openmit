@@ -1,5 +1,11 @@
-#ifndef OPENMIT_COMMON_PARAMETER_PARAMETER_H_
-#define OPENMIT_COMMON_PARAMETER_PARAMETER_H_
+/*!
+ *  Copyright 2016 by Contributors
+ *  \file cli_param.h
+ *  \brief client configure parameter
+ *  \author ZhouYong
+ */
+#ifndef OPENMIT_COMMON_PARAMETER_CLI_PARAM_H_
+#define OPENMIT_COMMON_PARAMETER_CLI_PARAM_H_
 
 #include "dmlc/parameter.h"
 #include "openmit/common/base.h"
@@ -87,7 +93,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(metric).set_default("auc");
       DMLC_DECLARE_FIELD(w_minv).set_default(1e-8);
     }
-}; // class LearnerTrainingParam
+}; // class CliParam
+
 } // namespace mit
 
-#endif // OPENMIT_COMMON_PARAMETER_PARAMETER_H_
+#endif // OPENMIT_COMMON_PARAMETER_CLI_PARAM_H_

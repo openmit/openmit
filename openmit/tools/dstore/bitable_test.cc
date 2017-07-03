@@ -10,8 +10,8 @@ int main(int argc, char * argv[]) {
   if (! is_open) printf("mmap_.open failed!");
   printf("file size: %d\n", (int) mmap_.size());
 
-  mit::dstore::ModelTable<float> model;
-  model.assign(mmap_.data());
+  //mit::dstore::ModelTable<float> model;
+  //model.assign(mmap_.data());
   printf("done");
   return 0;
 }

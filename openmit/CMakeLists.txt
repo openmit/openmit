@@ -48,8 +48,7 @@ set_target_properties(${static_lib} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${static_lib} dmlc ps rabit)
 
 set(exec_name "openmit")
-#add_executable(${exec_name} "cli_main.cc")
-add_executable(${exec_name} "bitable_test.cc")
+add_executable(${exec_name} "cli_main.cc")
 
 set(openmit_LINKER_LIBS "")
 list(APPEND openmit_LINKER_LIBS ${static_lib})

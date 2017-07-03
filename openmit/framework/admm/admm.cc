@@ -5,12 +5,17 @@
 
 namespace mit {
 
-DMLC_REGISTER_PARAMETER(AdmmParam);
-
 Admm::Admm(const mit::KWArgs & kwargs) {
+  Init(kwargs);
+}
+
+void Admm::Init(const mit::KWArgs & kwargs) {
   this->miparam_.InitAllowUnknown(kwargs);
-  param_.InitAllowUnknown(kwargs);
-  LOG(INFO) << "Admm param_.rho: " << param_.rho;
+  admm_param_.InitAllowUnknown(kwargs);
+  cli_param_.InitAllowUnknown(kwargs);
+  LOG(INFO) << "Admm param_.rho: " << admm_param_.rho;
+  mpi_worker_.reset(new MPIWorker(kwargs));
+  mpi_server_.reset(new MPIServer(kwargs, mpi_worker_->Size()));
 }
 
 void Admm::Run() {
@@ -37,6 +42,19 @@ void Admm::Run() {
 
 void Admm::RunTrain() {
   LOG(INFO) << "Admm::RunTrain() ...";
+  for (auto iter = 0u; iter < cli_param_.max_epoch; ++iter) {
+    // learning 
+    LOG(INFO) << "Admm::RunTrain() 1 ...";
+    mpi_worker_->Update(mpi_server_->Data(), mpi_server_->Size());
+    LOG(INFO) << "Admm::RunTrain() 2 ...";
+    mpi_server_->Update();
+    LOG(INFO) << "Admm::RunTrain() 3 ...";
+    mpi_worker_->UpdateDual(mpi_server_->Data(), mpi_server_->Size());
+    LOG(INFO) << "Admm::RunTrain() 4 ...";
+
+    // metric
+  }
+
 }
 
 void Admm::RunPredict() {

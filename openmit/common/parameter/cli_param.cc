@@ -1,4 +1,4 @@
-#include "openmit/common/parameter/parameter.h"
+#include "openmit/common/parameter/cli_param.h"
 
 namespace mit {
 
