@@ -29,6 +29,11 @@ make all DMLC_ENABLE_STD_THREAD=1 USE_HDFS=1 DMLC_USE_REGEX=1 \
   && cp -r include/dmlc $THIRD_PARTY_PATH/include \
   && cp libdmlc.a $THIRD_PARTY_PATH/lib
 
+cd $PROJECT_PATH/third_party/googletest
+cmake . && make \
+  && cp -r googletest/include/gtest $THIRD_PARTY_PATH/include \
+  && cp googlemock/gtest/libgtest* $THIRD_PARTY_PATH/lib 
+
 #cd $PROJECT_PATH/third_party/glog
 #automake --add-missing && ./configure \
 #    && sed -i 's/aclocal-1.14/aclocal/g;s/automake-1.14/automake/g' Makefile \
