@@ -9,6 +9,8 @@ MPIWorker::MPIWorker(const mit::KWArgs & kwargs) {
 }
 
 MPIWorker::~MPIWorker() {
+  weight_.clear(); delete[] weight_.data();
+  dual_.clear(); delete[] dual_.data();
   // TODO
 }
 

@@ -49,6 +49,6 @@ class MILearner {
   protected:
     /*! \brief learner parameter */
     MILearnerParam miparam_;
-}; // class MIT
+}; // class MITLearner
 } // namespace mit
 #endif // OPENMIT_LEARNER_MI_LEARNER_H_

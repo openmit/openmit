@@ -88,6 +88,7 @@ class Worker {
     
     /*! \brief worker processing logic */
     void Run();
+
     /*! model effect evaluation */
     float Metric(mit::DMatrix * data, std::vector<ps::Key> & feat_set);
 

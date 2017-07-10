@@ -1,0 +1,113 @@
+/*!
+ *  Copyright 2016 by Contributors
+ *  \file transaction.h
+ *  \brief monitoring program running transaction state
+ *  \author ZhouYong
+ */
+#ifndef OPENMIT_TOOLS_MINITOR_TRANSACTION_H_
+#define OPENMIT_TOOLS_MINITOR_TRANSACTION_H_
+
+#include <stack>
+#include <stdint.h>
+#include "openmit/tools/util/timer.h"
+
+namespace mit {
+/*!
+ * \brief trace transaction message
+ */
+struct TMessage {
+  /*! \brief trace type. such as 
+   *         "commincation","gradient","predict",
+   *         "ps","admm","worker","epoch" etc. */
+  std::string type;
+  /*! \brief tracke concrete info name */
+  std::string name;
+  /*! 
+   * \breif trace info level. 
+   *        the smaller value, the easier it is to trace. 
+   */
+  uint32_t level;
+  /*! \brief status timestamp */
+  uint64_t timestamp;
+
+  /*! \brief constructor */
+  TMessage() : type(""), name(""), 
+               level(0), timestamp(mit::TimeStamp()) {}
+
+  TMessage(uint32_t level, 
+           std::string type, 
+           std::string name) :
+    type(type), name(name), 
+    level(level), timestamp(mit::TimeStamp()) {}
+}; // struct TMessage
+
+/*! 
+ * \brief transaction status
+ */
+class Transaction {
+  public:
+    /*! \brief default constructor */
+    Transaction() : message_(0, "", "") {}
+    /*! \brief constructor by level, type, name */
+    Transaction(uint32_t level, 
+                std::string type, 
+                std::string name) : 
+      message_(level, type, name) {}
+
+    /*! \brief destructor */
+    ~Transaction() { }
+    
+    /*! \brief static member initialize */
+    static bool Init();
+
+    /*! \brief a transaction */
+    static Transaction * Create(uint32_t level, 
+                                std::string type, 
+                                std::string name);
+
+    /*! \brief create a transaction */
+    static void Create(Transaction * trans);
+    
+    /*! \brief end a transaction */
+    static void End(Transaction * trans);
+
+    /*! \brief stack size */
+    inline static uint32_t Size() { 
+      return trans_info.size(); 
+    }
+    
+    /*! \brief transaction level */
+    inline uint32_t Level() const { 
+      return message_.level; 
+    }
+    
+    /*! \brief transaction type */
+    inline std::string Type() const { 
+      return message_.type; 
+    }
+    
+    /*! \brief transaction name */
+    inline std::string Name() const { 
+      return message_.name; 
+    }
+    
+    /*! \brief transaction timestamp */
+    inline uint64_t TimeStamp() const {
+      return message_.timestamp;
+    }
+
+    /*! \brief transaction all informzation */
+    static std::stack<Transaction *> trans_info;
+    /*! \brief used whether init */
+    static bool _init;
+  private:
+    /*! \brief trace log */
+    void LogTrace(Transaction * trans);
+  private:
+    /*! \brief transaction message unit */
+    TMessage message_;
+}; // class Transaction
+
+} // namespace mit
+
+#endif // OPENMIT_TOOLS_MINITOR_TRANSACTION_H_

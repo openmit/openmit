@@ -1,4 +1,5 @@
 #include "openmit/framework/ps/worker.h"
+#include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
 
@@ -13,6 +14,7 @@ Worker::~Worker() {
 }
 
 void Worker::Init(const mit::KWArgs & kwargs) {
+  mit::Transaction * trans = mit::Transaction::Create(1, "ps-worker", "init");
   // 1. param_
   param_.InitAllowUnknown(kwargs);
   // 2. kv_worker_
@@ -46,13 +48,13 @@ void Worker::Init(const mit::KWArgs & kwargs) {
     //}
     //.insert(valid_fset_.end(), fset.begin(), fset.end());
     //sort(.begin(), valid_fset_.end());
-  }
-  if (param_.task == "predict") {
+  } else if (param_.task == "predict") {
     CHECK_NE(param_.test_path, "")
       << " test_path is empty! need test_path.";
     test_set_.reset(new mit::DMatrix(
           param_.test_path, partid, npart, param_.data_format));
   }
+  mit::Transaction::End(trans);
 }
 
 void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
@@ -70,8 +72,8 @@ void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
 }
 
 void Worker::Run() {
-  CHECK_GT(param_.batch_size, 0) << " error: batch_size <= 0.";
-  
+  mit::Transaction * trans = mit::Transaction::Create(1, "ps-worker", "run");
+  CHECK_GT(param_.batch_size, 0) << " error: batch_size <= 0."; 
   for (auto iter = 0u; iter < param_.max_epoch; ++iter) {
     // training based on epoch
     train_set_->BeforeFirst();
@@ -117,7 +119,8 @@ void Worker::Run() {
   std::vector<int> lens(1,1);
   kv_worker_->Wait(
       kv_worker_->Push(keys, vals, lens, mit::signal::FINISH));
-      */
+  */
+  mit::Transaction::End(trans);
 } 
 
 float Worker::Metric(mit::DMatrix * data, std::vector<ps::Key> & feat_set) {

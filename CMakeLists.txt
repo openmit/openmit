@@ -38,7 +38,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/third_party/ps-lite/deps/include
   ${PROJECT_SOURCE_DIR}/third_party/ps-lite/include
   $ENV{JAVA_HOME}/include)
-#${PROJECT_SOURCE_DIR}/third_party/protobuf/2.5.0/include
 
 link_directories(
   ${PROJECT_SOURCE_DIR}/lib
@@ -46,7 +45,6 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/third_party/hadoop/lib
   ${PROJECT_SOURCE_DIR}/third_party/ps-lite/deps/lib
   $ENV{JAVA_HOME}/jre/lib/amd64/server)
-#${PROJECT_SOURCE_DIR}/third_party/protobuf/2.5.0/lib
 
 set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")

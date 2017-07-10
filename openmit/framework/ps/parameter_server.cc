@@ -13,16 +13,15 @@ PS::PS(const mit::KWArgs & kwargs) {
 }
 
 void PS::Run() {
-  //LOG(INFO) << "PS::Run() beginning";
+  LOG(INFO) << "PS::Run() beginning";
   ps::Start();
   LaunchScheduler();
   LaunchServer();
   LaunchWorker();
   ps::Finalize(true);
-  //LOG(INFO) << "PS::Run finalize!";
+  LOG(INFO) << "PS::Run finalize!";
   // TODO
 }
-
 
 void PS::LaunchScheduler() {
   if (!ps::IsScheduler()) return;

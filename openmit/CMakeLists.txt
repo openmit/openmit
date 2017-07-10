@@ -18,6 +18,7 @@ aux_source_directory(tools/dstore SRCS_TOOLS_DSTORE)
 aux_source_directory(tools/hash SRCS_TOOLS_HASH)
 aux_source_directory(tools/io SRCS_TOOLS_IO)
 aux_source_directory(tools/math SRCS_TOOLS_MATH)
+aux_source_directory(tools/monitor SRCS_TOOLS_MONITOR)
 
 
 set(mit_SRCS
@@ -38,7 +39,8 @@ set(mit_SRCS
   ${SRCS_TOOLS_DSTORE}
   ${SRCS_TOOLS_HASH}
   ${SRCS_TOOLS_IO}
-  ${SRCS_TOOLS_MATH})
+  ${SRCS_TOOLS_MATH}
+  ${SRCS_TOOLS_MONITOR})
 
 # static libraries
 set (static_lib mit)

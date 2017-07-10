@@ -1,5 +1,5 @@
 /*!
- *  Copyright (c) 2016 by Contributors
+ *  Copyright 2016 by Contributors
  *  \file basic_formula.h
  *  \brief basic match formula, such as sigmoid, distance etc.
  *  \author ZhouYong
