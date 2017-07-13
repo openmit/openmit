@@ -13,7 +13,6 @@ void Inner() {
 }
 
 void Test() {
-  //Transaction * trans = new Transaction(1, "worker", "gradient");
   Transaction * trans = Transaction::Create(1, "worker", "gradient");
   std::cout << "Test ..." << std::endl;
   for (int i = 0; i < 10; ++i) {

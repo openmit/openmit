@@ -1,3 +1,4 @@
+#include "dmlc/logging.h"
 #include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
@@ -6,7 +7,8 @@ std::stack<Transaction *> Transaction::trans_info;
 bool Transaction::_init = Transaction::Init();
 
 bool Transaction::Init() {
-  trans_info.push(new Transaction());
+  trans_info.push(new Transaction()); 
+  trans_info.pop();
   return true;
 }
 
@@ -14,9 +16,9 @@ Transaction * Transaction::Create(uint32_t level,
                                   std::string type, 
                                   std::string name) {
   Transaction * trans = new Transaction(level, type, name);
-  std::cout << "transaction: <" << level << ", " 
+  LOG(INFO) << "created transaction: <" << level << ", " 
     << type << ", " 
-    << name << "> create" << std::endl;
+    << name << ">";
   trans_info.push(trans);
   return trans;
 }
@@ -35,12 +37,12 @@ void Transaction::End(Transaction * trans) {
 }
 
 void Transaction::LogTrace(Transaction * trans) {
-  std::cout << "{\"level\":" << trans->Level() 
-    << ",\"type\":" << trans->Type() 
-    << ",\"name\":" << trans->Name() 
-    <<  ",\"timestampe1\":" << this->TimeStamp() 
-    << ",\"timestamp2\":" << trans->TimeStamp() 
-    << ",\"time consuming\":" << trans->TimeStamp() - this->TimeStamp()
-    << "s}" << std::endl;
+  LOG(INFO) << "{\"level\":" << trans->Level() 
+    << ", \"type\":" << trans->Type() 
+    << ", \"name\":" << trans->Name() 
+    << ", \"begin timestamp\":" << this->TimeStamp() 
+    << ", \"end timestamp\":" << trans->TimeStamp() 
+    << ", \"time consuming\":" << trans->TimeStamp() - this->TimeStamp()
+    << "s}";
 }
 } // namespace mit

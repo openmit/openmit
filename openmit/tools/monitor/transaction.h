@@ -2,7 +2,7 @@
  *  Copyright 2016 by Contributors
  *  \file transaction.h
  *  \brief monitoring program running transaction state
- *  \author ZhouYong
+ *  \author ZhouYong, diffm
  */
 #ifndef OPENMIT_TOOLS_MINITOR_TRANSACTION_H_
 #define OPENMIT_TOOLS_MINITOR_TRANSACTION_H_
@@ -18,12 +18,13 @@ namespace mit {
 struct TMessage {
   /*! \brief trace type. such as 
    *         "commincation","gradient","predict",
-   *         "ps","admm","worker","epoch" etc. */
+   *         "ps","admm","worker","epoch" etc. 
+   */
   std::string type;
   /*! \brief tracke concrete info name */
   std::string name;
   /*! 
-   * \breif trace info level. 
+   * \breif trace info level. such as '0','1',...
    *        the smaller value, the easier it is to trace. 
    */
   uint32_t level;
@@ -31,18 +32,19 @@ struct TMessage {
   uint64_t timestamp;
 
   /*! \brief constructor */
-  TMessage() : type(""), name(""), 
-               level(0), timestamp(mit::TimeStamp()) {}
+  TMessage() : type(""), name(""), level(0), 
+               timestamp(mit::TimeStamp()) {}
 
   TMessage(uint32_t level, 
            std::string type, 
            std::string name) :
-    type(type), name(name), 
-    level(level), timestamp(mit::TimeStamp()) {}
+    type(type), name(name), level(level), 
+    timestamp(mit::TimeStamp()) {}
 }; // struct TMessage
 
 /*! 
- * \brief transaction status
+ * \brief transaction status class that be used to 
+ *        record task information at the excution phase
  */
 class Transaction {
   public:
@@ -57,9 +59,6 @@ class Transaction {
     /*! \brief destructor */
     ~Transaction() { }
     
-    /*! \brief static member initialize */
-    static bool Init();
-
     /*! \brief a transaction */
     static Transaction * Create(uint32_t level, 
                                 std::string type, 
@@ -96,11 +95,15 @@ class Transaction {
       return message_.timestamp;
     }
 
-    /*! \brief transaction all informzation */
+    /*! \brief store transaction informzation */
     static std::stack<Transaction *> trans_info;
     /*! \brief used whether init */
     static bool _init;
+
   private:
+    /*! \brief initialize transaction */
+    static bool Init();
+
     /*! \brief trace log */
     void LogTrace(Transaction * trans);
   private:
