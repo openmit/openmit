@@ -117,6 +117,8 @@ inline bool Unit::AllZero() const {
  * index(2, 3) = 1 + (2-1)*4 + 3 = 8
  * last node: index(10,3) = 1 + (10-1)*4 + 3 = 40
  */
+// parameter (server) map type
+typedef std::unordered_map<mit_uint, mit::Unit *> PMAPT;
 
 } // namespace mit
 

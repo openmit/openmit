@@ -5,11 +5,8 @@
 #define OPENMIT_MODELS_MODEL_H_
 
 #include <string>
-#include <unordered_map>
 #include <vector>
-
 #include "dmlc/logging.h"
-
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
@@ -57,21 +54,21 @@ class Model {
 
     /*! \brief prediction based on data block for ps */
     void Predict(const dmlc::RowBlock<mit_uint> & row_block,
-                 std::unordered_map<mit_uint, mit::Unit * > & weight,
+                 mit::PMAPT & weight,
                  std::vector<mit_float> * preds,
                  bool is_norm = true);
-
+    
     /*! \brief gradient based on data block for ps */
-    void Gradient(
-        const dmlc::RowBlock<mit_uint> & row_block,
-        std::vector<mit_float> & preds,
-        std::unordered_map<mit_uint, mit::Unit * > & weight,
-        std::unordered_map<mit_uint, mit::Unit * > * grad);
+    void Gradient(const dmlc::RowBlock<mit_uint> & row_block,
+                  std::vector<mit_float> & preds,
+                  PMAPT & weight, PMAPT * grad);
 
+
+  public:
     /*! \brief prediction based on one instance for ps */
     virtual mit_float Predict(
         const dmlc::Row<mit_uint> & row,
-        std::unordered_map<mit_uint, mit::Unit * > & weight,
+        mit::PMAPT & weight,
         bool is_norm) = 0;
 
     /*! \brief prediction based one instance for mpi */
@@ -81,18 +78,15 @@ class Model {
         bool is_norm) = 0;
 
     /*! \brief calcuate gradient based on one instance for ps */
-    virtual void Gradient(
-        const dmlc::Row<mit_uint> & row,
-        const mit_float & pred,
-        std::unordered_map<mit_uint, mit::Unit * > & weight,
-        std::unordered_map<mit_uint, mit::Unit * > * grad) = 0;
+    virtual void Gradient(const dmlc::Row<mit_uint> & row,
+                          const mit_float & pred,
+                          PMAPT & weight, PMAPT * grad) = 0;
 
     /*! \brief calculate model gradient based one instance for mpi */
-    virtual void Gradient(
-        const dmlc::Row<mit_uint> & row,
-        const mit_float & pred,
-        const mit::SArray<mit_float> & weight,
-        mit::SArray<mit_float> * grad) = 0;
+    virtual void Gradient(const dmlc::Row<mit_uint> & row,
+                          const mit_float & pred,
+                          const mit::SArray<mit_float> & weight,
+                          mit::SArray<mit_float> * grad) = 0;
 
     /*! \brief get model type */
     std::string ModelType() { return param_.model_type; }

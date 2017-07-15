@@ -2,52 +2,42 @@
 
 namespace mit {
 
-mit_float FFM::Predict(
-    const dmlc::Row<mit_uint> & row,
-    const mit::SArray<mit_float> & weight,
-    bool is_norm) {
+mit_float FFM::Predict(const dmlc::Row<mit_uint> & row,
+                       const mit::SArray<mit_float> & weight,
+                       bool is_norm) {
   // TODO
   return 0.0f;
 }
 // TODO is_linear? is_sigmoid?
-mit_float FFM::Predict(
-    const dmlc::Row<mit_uint> & row, 
-    std::unordered_map<mit_uint, mit::Unit * > & weight,
-    bool is_norm) {
-  mit_float predict_raw = PredictRaw(row, weight);
-  if (is_norm) {
-    return mit::math::sigmoid(predict_raw);
-  }
-  return predict_raw;
+mit_float FFM::Predict(const dmlc::Row<mit_uint> & row, 
+                       mit::PMAPT & weight,
+                       bool is_norm) {
+  mit_float raw_score = RawExpr(row, weight);
+  if (is_norm) return mit::math::sigmoid(raw_score);
+  return raw_score;
 } // method Predict
 
-mit_float FFM::PredictRaw(
-    const dmlc::Row<mit_uint> & row, 
-    std::unordered_map<mit_uint, mit::Unit * > & weight) {
-  mit_float linear = 0;
-  if (this->param_.is_linear) {
-    linear = Linear(row, weight);
-  }
+mit_float FFM::RawExpr(const dmlc::Row<mit_uint> & row, 
+                       mit::PMAPT & weight) {
+  mit_float wTx = 0.0;
+  if (this->param_.is_linear) wTx = Linear(row, weight);
   mit_float cross = Cross(row, weight);
-  return linear + cross;
+  return wTx + cross;
 }
 
-mit_float FFM::
-Linear(const dmlc::Row<mit_uint> & row,
-    std::unordered_map<mit_uint, mit::Unit * > & weight) {
-  mit_float linear = 0;
-  linear += weight[0]->Get(0);
+mit_float FFM::Linear(const dmlc::Row<mit_uint> & row,
+                      mit::PMAPT & weight) {
+  mit_float wTx = weight[0]->Get(0);
   // OpenMP ?
   for (auto i = 0u; i < row.length; ++i) {
-    linear += weight[row.index[i]]->Get(0) * row.value[i];
+    wTx += weight[row.index[i]]->Get(0) * row.value[i];
   }
-  return linear;
+  return wTx;
 }
 
-mit_float FFM::
-Cross(const dmlc::Row<mit_uint> & row,
-      std::unordered_map<mit_uint, mit::Unit * > & weight) {
-  mit_float cross = 0;
+mit_float FFM::Cross(const dmlc::Row<mit_uint> & row,
+                     mit::PMAPT & weight) {
+  mit_float cross = 0.0;
   for (auto i = 0u; i < row.length - 1; ++i) {
     auto xi = row.value[i];
     auto feati = row.index[i];
@@ -69,17 +59,13 @@ Cross(const dmlc::Row<mit_uint> & row,
   return cross;
 }
 
-void FFM::Gradient(
-    const dmlc::Row<mit_uint> & row, 
-    const mit_float & pred,
-    std::unordered_map<mit_uint, mit::Unit * > & weight,
-    std::unordered_map<mit_uint, mit::Unit * > * grad) {
-  
-  auto residual = pred - row.get_label();     // for sigmoid
-  
+void FFM::Gradient(const dmlc::Row<mit_uint> & row, 
+                   const mit_float & pred,
+                   mit::PMAPT & weight,
+                   mit::PMAPT * grad) {
+  auto residual = pred - row.get_label();
   if (this->param_.is_linear) {
-    // 0-order bias
-    (*grad)[0]->Set(0, residual * 1);
+    (*grad)[0]->Set(0, residual * 1);   // bias
     // 1-order linear 
     for (auto i = 0u; i < row.length; ++i) {
       mit_uint feati = row.index[i];
@@ -115,11 +101,10 @@ void FFM::Gradient(
   } 
 } // method FFM::Gradient
 
-void FFM::Gradient(
-    const dmlc::Row<mit_uint> & row,
-    const mit_float & pred,
-    const mit::SArray<mit_float> & weight,
-    mit::SArray<mit_float> * grad) {
+void FFM::Gradient(const dmlc::Row<mit_uint> & row,
+                   const mit_float & pred,
+                   const mit::SArray<mit_float> & weight,
+                   mit::SArray<mit_float> * grad) {
   // TODO
 }
 

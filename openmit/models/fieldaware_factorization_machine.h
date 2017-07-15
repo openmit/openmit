@@ -1,3 +1,9 @@
+/*!
+ *  Copyright 2016 by Contributors
+ *  \file fieldaware_factorization_machine.h
+ *  \brief fieldaware factorization machine model
+ *  \author ZhouYong, diffm
+ */
 #ifndef OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
 #define OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
 
@@ -5,7 +11,7 @@
 
 namespace mit {
 /*!
- * \brief the field-aware factorization machine model for worker phase
+ * \brief the field-aware factorization machine model
  */
 class FFM : public Model {
   public:
@@ -28,44 +34,38 @@ class FFM : public Model {
 
     /*! \brief prediction based on one instance */
     mit_float Predict(const dmlc::Row<mit_uint> & row, 
-                      std::unordered_map<mit_uint, mit::Unit * > & weight,
+                      mit::PMAPT & weight,
                       bool is_norm) override;
     
     /*! \brief prediction based one instance for mpi */
-    mit_float Predict(
-        const dmlc::Row<mit_uint> & row,
-        const mit::SArray<mit_float> & weight,
-        bool is_norm) override;
+    mit_float Predict(const dmlc::Row<mit_uint> & row,
+                      const mit::SArray<mit_float> & weight,
+                      bool is_norm) override;
     
     /*! \brief calcuate gradient based on one instance */
-    void Gradient(
-        const dmlc::Row<mit_uint> & row, 
-        const mit_float & pred,
-        std::unordered_map<mit_uint, mit::Unit * > & weight,
-        std::unordered_map<mit_uint, mit::Unit * > * grad) override;
+    void Gradient(const dmlc::Row<mit_uint> & row, 
+                  const mit_float & pred,
+                  mit::PMAPT & weight,
+                  mit::PMAPT * grad) override;
     
     /*! \brief calculate model gradient based one instance for mpi */
-    void Gradient(
-        const dmlc::Row<mit_uint> & row,
-        const mit_float & pred,
-        const mit::SArray<mit_float> & weight,
-        mit::SArray<mit_float> * grad) override;
+    void Gradient(const dmlc::Row<mit_uint> & row,
+                  const mit_float & pred,
+                  const mit::SArray<mit_float> & weight,
+                  mit::SArray<mit_float> * grad) override;
 
   private:
-    /*! \brief ffm function expression. predict raw score*/
-    mit_float PredictRaw(const dmlc::Row<mit_uint> & row, 
-                         std::unordered_map<mit_uint, mit::Unit * > & weight);
+    /*! \brief ffm function expression. predict raw expression */
+    mit_float RawExpr(const dmlc::Row<mit_uint> & row, 
+                      mit::PMAPT & weight);
 
     /*! \brief ffm 1-order linear item */
     mit_float Linear(const dmlc::Row<mit_uint> & row, 
-                     std::unordered_map<mit_uint, mit::Unit * > & weight);
+                     mit::PMAPT & weight);
 
     /*! \brief ffm 2-order cross item */
     mit_float Cross(const dmlc::Row<mit_uint> & row, 
-                    std::unordered_map<mit_uint, mit::Unit * > & weight);
-
+                    mit::PMAPT & weight);
 }; // class FFM 
-
 } // namespace mit
-
 #endif // OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_

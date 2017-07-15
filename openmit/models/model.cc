@@ -1,7 +1,7 @@
-#include "openmit/models/model.h"
 #include "openmit/models/factorization_machine.h"
 #include "openmit/models/fieldaware_factorization_machine.h"
 #include "openmit/models/logistic_regression.h"
+#include "openmit/models/model.h"
 
 namespace mit {
 
@@ -23,9 +23,9 @@ Model * Model::Create(const mit::KWArgs & kwargs) {
   }
 }
 
-// implementation of prediction based on batch instance
+// implementation of prediction based on batch instance for ps
 void Model::Predict(const dmlc::RowBlock<mit_uint> & row_block,
-                    std::unordered_map<mit_uint, mit::Unit * > & weight,
+                    mit::PMAPT & weight,
                     std::vector<mit_float> * preds,
                     bool is_norm) {
   CHECK_EQ(row_block.size, preds->size());
@@ -35,7 +35,7 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & row_block,
   }
 }
 
-// implementation of gradient based on batch instance
+// implementation of gradient based on batch instance for ps
 void Model::Gradient(
     const dmlc::RowBlock<mit_uint> & block,
     std::vector<mit_float> & preds,
