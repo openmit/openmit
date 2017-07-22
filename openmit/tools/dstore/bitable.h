@@ -9,7 +9,6 @@
 
 #include "openmit/tools/hash/murmur3.h"
 #include <string>
-#include <iostream>
 
 namespace mit {
 namespace dstore {
@@ -94,14 +93,6 @@ struct QuadSearch {
 
 }; // struct QuadSearch
 
-/*! \brief factorization model value structure. default k=4 */
-struct FMValue {
-  float weight;
-  float vec[4];
-};
-
 } // namespace dstore
-
 } // namespace mit
-
 #endif // OPENMIT_TOOLS_DSTORE_BITABLE_H_
