@@ -40,7 +40,7 @@ mit_float FM::RawExpr(const dmlc::Row<mit_uint> & row,
 
 mit_float FM::Linear(const dmlc::Row<mit_uint> & row, 
                      mit::PMAPT & weight) {
-  mit_float wTx = weight[0]-Get(0); // bias 
+  mit_float wTx = weight[0]->Get(0); // bias 
   // OpenMP ?
   for (auto i = 0u; i < row.length; ++i) {
     wTx += weight[row.index[i]]->Get(0) * row.value[i];
