@@ -1,6 +1,6 @@
 /*!
  *  Copyright 2016 by Contributors
- *  \file data.h
+ *  \file openmit/tools/io/read.h
  *  \brief io read operate
  *  \author ZhouYong
  */
@@ -10,6 +10,9 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -17,7 +20,33 @@
 #include <unistd.h>
 
 namespace mit {
-/*! \brief mmap read data saved as void *. */
+/*! \brief File IO Read Operator */
+class Read {
+  public:
+    /*! \brief constructor by file and mode */
+    explicit Read(const char * file, 
+                  std::ios_base::openmode mode = std::ios_base::in);
+    /*! \brief destructor */
+    ~Read() { close(); }
+
+    /*! \brief open file road */
+    bool open(const char * file, 
+              std::ios_base::openmode mode = std::ios_base::in);
+    /*! \brief getline saved as string */
+    bool get_line(std::string & line);
+    /*! \brief check if a file is open */
+    inline bool is_open() { return ifs_.is_open(); }
+    /*! \brief close read operator */
+    inline void close() { ifs_.close(); }
+
+  private:
+    std::ifstream ifs_;
+}; // class Read
+
+/*! 
+ * \brief mmap based on memory read operator. 
+ *        read data saved as void *. 
+ */
 class MMap {
   public:
     /*! \brief default constructor */
@@ -25,9 +54,9 @@ class MMap {
     /*! \brief destructor using close method */
     ~MMap() { close(); }
     /*! \brief fetch data to store_ */
-    inline bool load(const char * path);
+    bool load(const char * path);
     /*! \brief close data */
-    inline void close();
+    void close();
     /*! \brief get data content */
     inline void * data() const { return store_; }
     /*! \brief data size */
@@ -41,44 +70,6 @@ class MMap {
 
 }; // class MMap
 
-inline bool MMap::load(const char * path) {
-  int fd = ::open(path, O_RDONLY);
-  if (fd < 0) {
-    ::err(errno, "MMap open failed. file: %s", path);
-    return false;
-  }
-  struct stat sb;
-  if (::fstat(fd, &sb) < 0) { 
-    ::err(errno, "MMap fstst failed. file: %s", path);
-    return false;
-  }
-  size_ = sb.st_size;
-  
-  store_ = ::mmap(NULL, size_, PROT_READ, MAP_PRIVATE, fd, 0);
-  if (store_ == MAP_FAILED) {
-    ::err(errno, "MMap map failed. file: %s", path);
-    return false;
-  }
-  if (::close(fd) < 0) {
-    ::err(errno, "MMap close failed. file: %s", path);
-    return false;
-  }
-  return true;
-}
-
-inline void MMap::close() {
-  if (::munmap(store_, size_) < 0) {
-    ::err(errno, "MMap munmap failed.");
-  }
-  store_ = 0;
-  size_ = 0;
-}
-
-
-/*! \brief IO Read Operator */
-class Read {
-
-}; // Read
 } // namespace mit
 
 #endif // OPENMIT_TOOLS_IO_READ_H_

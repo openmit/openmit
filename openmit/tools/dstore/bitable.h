@@ -13,7 +13,8 @@
 namespace mit {
 namespace dstore {
 /*! 
- * \brief quadratic search model table structure
+ * \brief quadratic search model table structure 
+ *        that be suitable to fixed length value
  */
 template <typename VType, typename Hasher = mit::hash::MMHash128>
 struct QuadSearch {
@@ -30,25 +31,46 @@ struct QuadSearch {
   // record. record data: key|value
   typedef unsigned char record_type;
   typedef const record_type * const_record_pointer;
-  // bucket interval. [first, last] for each bucket range.
+  /*!
+   * \brief bucket interval. 
+   *        [first, last] stores record numbers offset
+   */
   typedef std::pair<idx_type, idx_type> bucket_type;
   typedef const bucket_type * const_bucket_pointer;
-  // offset
-  typedef uint32_t uint;
-  
+  // uint type
+  typedef uint32_t uint_type;
+  typedef const uint_type * const_uint_pointer;
+  // real type
+  typedef float real_type;
+  typedef const real_type * const_real_pointer;
+
   /* initialize constants */
-  static const uint idx_size = sizeof(idx_type);
-  static const uint key_size = sizeof(key_type);
-  static const uint value_size = sizeof(VType);
-  static const uint record_size = key_size + value_size; // record: key|value
+  static const uint_type idx_size = sizeof(idx_type);
+  static const uint_type key_size = sizeof(key_type);
+  uint_type value_size;
+  uint_type record_size;// record: key|value
 
   /*! \brief load model data to bi-model */
   void assign(const void * data) {
-    idx_ = const_idx_pointer(data);
-    idx_type bucket_size = *idx_++;   // first element: num_buckets
+    // 1. coefficient. bias item
+    coefficient_ = *const_real_pointer(data);
+    data = reinterpret_cast<const char *>(data) + sizeof(real_type);
+    // 2. value number
+    value_num_ = *const_uint_pointer(data);
+    value_size = value_num_ * sizeof(value_type);
+    record_size = key_size + value_size;
+    data = reinterpret_cast<const char *>(data) + sizeof(uint_type);
+    // 3. bucket size
+    idx_type bucket_size = *const_idx_pointer(data);
     bucket_1_ = bucket_size - 1;
+    data = reinterpret_cast<const char *>(data) + sizeof(idx_type);
+    // 4. index region
+    idx_ = const_idx_pointer(data);
+    // 5. value region
     record_ = const_record_pointer(idx_ + bucket_size + 1);
-    size_ = (2 + bucket_size) * idx_size + idx_[bucket_size] * record_size;
+    
+    size_ = sizeof(real_type) + sizeof(uint_type) + 
+            (2 + bucket_size) * idx_size + idx_[bucket_size] * record_size;
   }
 
   /*! \brief find value according data and size */
@@ -82,6 +104,10 @@ struct QuadSearch {
   private:
     /*! \brief hash mathod for generate index and key */
     typedef Hasher hasher_;
+    /*! \brief bias item coefficient */
+    float coefficient_;
+    /*! \brief number of value (float) */
+    uint_type value_num_;
     /*! \brief index of buckets upper boundary */
     idx_type bucket_1_;
     /*! \brief index data region */

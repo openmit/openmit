@@ -99,7 +99,7 @@ void Scheduler::MetricInfo(const std::string & data_type,
 
 void Scheduler::UpdateMetric(const ps::SimpleData & recved) {
   std::vector<std::string> metric;
-  mit::Split(recved.body, ',', & metric);
+  mit::string::Split(recved.body, & metric, ',');
   CHECK_EQ(metric.size(), 6);
   MetricInfo("train", 
       metric[0], std::atoi(metric[1].c_str()), std::atof(metric[2].c_str()));
