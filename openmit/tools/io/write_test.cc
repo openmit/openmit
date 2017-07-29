@@ -1,9 +1,3 @@
-/*
- * File Name: rtest.cc
- * Author: zhouyongsdzh@foxmail.com
- * Created Time: 2017-07-29 15:29:07
- */
-
 #include <fstream>
 #include <iostream>
 #include "openmit/tools/io/write.h"
