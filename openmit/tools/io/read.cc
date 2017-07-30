@@ -2,8 +2,15 @@
 
 namespace mit {
 // Read
+Read::Read(const char * file, bool is_binary) {
+  open(file, is_binary);
+}
+
 bool Read::open(const char * file,
-                std::ios_base::openmode mode) {
+                bool is_binary) {
+  is_binary_ = is_binary;
+  std::ios_base::openmode mode = std::ios_base::in;
+  mode = is_binary_ ? std::ios_base::binary | mode : mode;
   ifs_.open(file, mode);
   return is_open() && ifs_.good();
 }

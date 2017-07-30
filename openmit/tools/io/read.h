@@ -25,13 +25,13 @@ class Read {
   public:
     /*! \brief constructor by file and mode */
     explicit Read(const char * file, 
-                  std::ios_base::openmode mode = std::ios_base::in);
+                  bool is_binary = false);
     /*! \brief destructor */
     ~Read() { close(); }
 
     /*! \brief open file road */
     bool open(const char * file, 
-              std::ios_base::openmode mode = std::ios_base::in);
+              bool is_binary = false);
     /*! \brief getline saved as string */
     bool get_line(std::string & line);
     /*! \brief check if a file is open */
@@ -40,7 +40,10 @@ class Read {
     inline void close() { ifs_.close(); }
 
   private:
+    /*! \brief input file stream */
     std::ifstream ifs_;
+    /*! \brief whether binary mode */
+    bool is_binary_;
 }; // class Read
 
 /*! 

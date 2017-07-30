@@ -1,5 +1,5 @@
  /*!
- *  Copyright (c) 2017 by Contributors
+ *  Copyrigh 2017 by Contributors
  *  \file bitable.h
  *  \brief memory-based binary big table structure.
  *  \author ZhouYong
@@ -9,6 +9,7 @@
 
 #include "openmit/tools/hash/murmur3.h"
 #include <string>
+#include <iostream>
 
 namespace mit {
 namespace dstore {
@@ -79,6 +80,15 @@ struct QuadSearch {
     hasher_(data, size, &h1, &h2, 0);
     return search(h1, h2);
   }
+
+  /*! \brief bias coefficient */
+  float coefficient() const { return coefficient_; }
+
+  /*! \brief bucket size */
+  uint_type bucket_size() const { return bucket_1_ + 1; }
+
+  /*! \brief value number */
+  uint_type value_num() const { return value_num_; }
 
   /*! \brief bi-model size */
   uint64_t size() const { return size_; }

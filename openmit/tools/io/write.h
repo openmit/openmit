@@ -19,24 +19,39 @@ class Write {
   public:
     /*! \brief constructor by file and mode */
     explicit Write(const char * file,
+                   bool is_binary = false,
                    bool is_append = false);
+    
     /*! \brief destructor */
     ~Write() { close(); }
+    
     /*! \brief open file road */
     bool open(const char * file, 
               std::ios_base::openmode mode);
-    /*! \brief write line */
+    
+    /*! \brief write text data, add linefeeds */
     bool write_line(const char * content);
-    /*! \brief append write */
+    
+    /*! \brief write text data */
     bool write(const char * content, 
                bool endln = false);
+    
+    /*! \brief write binary data */
+    bool write_binary(const char * content, size_t size);
+
     /*! \brief check if a file is open */
     inline bool is_open() { return ofs_.is_open(); }
+    
     /*! \brief close read operator */
     inline void close() { ofs_.close(); }
 
+    inline bool is_binary() const { return is_binary_; }
+
   private:
+    /*! \brief out file stream */
     std::ofstream ofs_;
+    /*! \brief whether binary output */
+    bool is_binary_;
 }; // class Write
 } // namespace mit
  
