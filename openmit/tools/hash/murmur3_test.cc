@@ -6,7 +6,7 @@
 using namespace mit::hash;
 
 int main(int argc, char * argv[]) {
-  const char * feature_key = "zhouyong";
+  const char * feature_key = "openmit";
   uint32_t size = strlen(feature_key);
 
   uint64_t h3, h4;
