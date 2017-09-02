@@ -10,8 +10,8 @@ int main(int argc, char * argv[]) {
   if (strcmp(argv[1], "none")) parser.ReadFile(argv[1]);
   parser.ReadArgs(argc - 2, argv + 2);
   const mit::KWArgs kwargs = parser.GetKWArgs();
-  
-  mit::Transaction * trans = mit::Transaction::Create(0, "task", "milearner");
+
+  mit::Transaction * trans = mit::Transaction::Create(0, "ml-task", "milearner");
   auto * milearner = mit::MILearner::Create(kwargs);
   milearner->Run();
   mit::Transaction::End(trans);

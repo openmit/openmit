@@ -47,6 +47,7 @@ bool Write::write_binary(const char * content, size_t size) {
     return false;
   }
   ofs_.write(content, size);
+  return true;
 }
 
 } // namespace

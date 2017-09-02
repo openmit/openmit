@@ -15,7 +15,7 @@ Updater::~Updater() {
 }
 
 void Updater::Init(const mit::KWArgs & kwargs) {
-  opt_.reset(mit::Opt::Create(kwargs, param_.optimizer_type));
+  opt_.reset(mit::Opt::Create(kwargs, param_.optimizer));
 }
 
 void Updater::Run(

@@ -14,7 +14,7 @@ namespace mit {
  * \brief unsigned integer type used in mit,
  *        used for feature index, field index and row index.
  */
-typedef uint32_t mit_uint;
+typedef uint64_t mit_uint;
 /*! \brief float used for weight and calculation values. */
 typedef float mit_float;
 } // namemit mit

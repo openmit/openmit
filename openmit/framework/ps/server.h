@@ -7,13 +7,13 @@
 #ifndef OPENMIT_FRAMEWORK_PS_SERVER_H_
 #define OPENMIT_FRAMEWORK_PS_SERVER_H_
 
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <utility>
-#include <functional>
-#include <mutex>
 
 #include "ps/ps.h"
 #include "ps/sarray.h"

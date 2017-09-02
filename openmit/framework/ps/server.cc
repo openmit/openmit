@@ -1,5 +1,3 @@
-#include <functional>
-
 #include "openmit/framework/ps/server.h"
 using namespace mit;
 
@@ -37,8 +35,10 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
   if (req_meta.push) {
     int cmd = req_meta.cmd;
     switch(cmd) {
-      case signal::UPDATE:
-        Run(&req_data);
+      case signal::UPDATE: 
+        { 
+          Run(&req_data); 
+        }
         break;
       case signal::SAVEINFO:
         {

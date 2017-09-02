@@ -19,7 +19,7 @@ namespace mit {
 class UpdaterParam : public dmlc::Parameter<UpdaterParam> {
   public:
     /*! \brief optimizer type */
-    std::string optimizer_type;
+    std::string optimizer;
     /*! \brief number of field */
     mit_uint field_num;
     /*! \brief latent factor length */
@@ -27,7 +27,7 @@ class UpdaterParam : public dmlc::Parameter<UpdaterParam> {
 
     /*! \brief declare parameters */
     DMLC_DECLARE_PARAMETER(UpdaterParam) {
-      DMLC_DECLARE_FIELD(optimizer_type).set_default("ftrl");
+      DMLC_DECLARE_FIELD(optimizer).set_default("ftrl");
       DMLC_DECLARE_FIELD(field_num).set_default(0);
       DMLC_DECLARE_FIELD(k).set_default(0);
     }
@@ -46,7 +46,7 @@ class Updater {
     void Run(const ps::KVPairs<mit_float> * req_data,
              std::unordered_map<ps::Key, mit::Unit * > * weight);
     
-    std::string OptimizerType() { return param_.optimizer_type; }
+    std::string Name() { return param_.optimizer; }
 
     UpdaterParam Param() const { return param_; }
   

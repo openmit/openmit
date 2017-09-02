@@ -43,6 +43,6 @@ void Transaction::LogTrace(Transaction * trans) {
     << ", \"begin timestamp\":" << this->TimeStamp() 
     << ", \"end timestamp\":" << trans->TimeStamp() 
     << ", \"time consuming\":" << trans->TimeStamp() - this->TimeStamp()
-    << "s}";
+    << "s}\n";
 }
 } // namespace mit

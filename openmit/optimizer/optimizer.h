@@ -1,7 +1,7 @@
 /*!
  *  Copyright 2017 by Contributors
  *  \file optimizer.h
- *  \brief basic match formula, such as sigmoid, distance etc.
+ *  \brief optimization algorithm
  *  \author ZhouYong
  */
 #ifndef OPENMIT_OPTIMIZER_OPTIMIZER_H_
@@ -22,20 +22,20 @@ namespace mit {
 class Opt {
   public:
     /*! \brief create a optimization algorithm */
-    static Opt * Create(
-        const mit::KWArgs & kwargs, 
-        std::string & optimizer);
+    static Opt * Create(const mit::KWArgs & kwargs, 
+                        std::string & optimizer);
+    
     /*! \brief destructor */
     virtual ~Opt() {}
+    
     /*! \brief parameter updater for mpi */
-    virtual void Update(
-        const dmlc::Row<mit_uint> & row, 
-        mit_float pred, 
-        mit::SArray<mit_float> & weight_) = 0;
+    virtual void Update(const dmlc::Row<mit_uint> & row, 
+                        mit_float pred, 
+                        mit::SArray<mit_float> & weight_) = 0;
+
     /*! \brief parameter updater for ps */
-    virtual void Update(
-        std::unordered_map<ps::Key, mit::Unit * > & map_grad,
-        std::unordered_map<ps::Key, mit::Unit * > * weight) = 0;
+    virtual void Update(PMAPT & map_grad, PMAPT * weight) = 0;
+
 }; // class Opt
 } // namespace mit
 

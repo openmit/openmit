@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "openmit/framework/ps/parameter_server.h"
 #include "ps/ps.h"
 
@@ -9,17 +10,22 @@ PS::PS(const mit::KWArgs & kwargs) {
   kwargs_ = kwargs;
   this->miparam_.InitAllowUnknown(kwargs);
   param_.InitAllowUnknown(kwargs);
-  //LOG(INFO) << "PS::PS()~ framework: " << param_.framework;
+  // feature max feature dimension
+  uint64_t max_key = param_.max_dimension > 0 
+    ? param_.max_dimension : std::numeric_limits<uint64_t>::max();
+  setenv("DMLC_MAX_DIMENSION", std::to_string(max_key).c_str(), 1);
+  LOG(INFO) << "param_.max_dimension: " << getenv("DMLC_MAX_DIMENSION");
 }
 
 void PS::Run() {
-  LOG(INFO) << "PS::Run() beginning";
+  LOG(INFO) << "PS::Run beginning";
   ps::Start();
   LaunchScheduler();
   LaunchServer();
   LaunchWorker();
-  ps::Finalize(true);
+  ps::Finalize();
   LOG(INFO) << "PS::Run finalize!";
+  LOG(INFO) << "sizeof(ps::Key): " << sizeof(ps::Key);
   // TODO
 }
 

@@ -35,3 +35,7 @@ build/
 # 3rd-party
 third_party/include/
 third_party/lib/
+third_party/mxnet
+
+# tmp file
+test/

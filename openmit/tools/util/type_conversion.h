@@ -20,17 +20,17 @@ namespace mit {
  */
 template <typename Type>
 Type StringToNum(const std::string & str) {
-  istringstream buffer(str);
+  std::istringstream buffer(str);
   Type value; buffer >> value;
   return value;
 }
 
 /*!
- * \brief 
+ * \brief convert numeric type to string type
  */
 template <typename Type>
 std::string NumToString(const Type & value) {
-  ostringstream buffer;
+  std::ostringstream buffer;
   buffer << value;
   return std::string(buffer.str());
 }

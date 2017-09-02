@@ -14,57 +14,6 @@
 namespace mit {
 namespace dstore {
 /*!
- * \brief ffm model unit struture 
- */
-struct FFMEntry {
-  /*! \brief embedding size */
-  uint32_t embedding_size;
-  /*! \brief linear item weight */
-  float w;
-  /*! \brief cross item weight vec by field id */
-  typedef std::unordered_map<uint32_t, float * > MAP_TYPE;
-  MAP_TYPE v;
-  /*! \brief constructor */
-  FFMEntry(uint32_t k = 4) : embedding_size(k) {}
-  /*! \brief destructor */
-  ~FFMEntry() {
-    MAP_TYPE::iterator iter = v.begin();
-    while (iter != v.end()) {
-      delete iter->second; iter->second = nullptr;
-      v.erase(iter++);
-    }
-  }
-
-  /*! \brief fill ffm node info */
-  bool assign(std::pair<uint32_t, const float *> featinfo) {
-    uint32_t count = featinfo.first;      // number of float
-    if (count < 1) return false;
-    w = featinfo.second[0];
-    for (auto i = 1u; i < count; i += (1 + embedding_size)) {
-      uint32_t fieldid = 
-        static_cast<uint32_t>(featinfo.second[i]);
-      std::vector<float> * vec = new std::vector<float>();
-      for (auto j = 0u; j < embedding_size; ++j) {
-        vec->push_back(featinfo.second[i+1+j]);
-      }
-      v[fieldid] = vec->data();
-    }
-    return true;
-  }
-
-  /*! \brief linear item weight */
-  float Weight() const { return w; }
-  /*! \brief judge whether or not exist */
-  bool Find(uint32_t fieldid) {
-    return v.find(fieldid) != v.end() ? true : false;
-  }
-  /*! \brief get cross weight info by fieldid */
-  float * Get(uint32_t fieldid) { 
-    return Find(fieldid) ? v[fieldid] : nullptr;
-  }
-};
-
-/*!
  * \brief ffm model structure
  */
 template <typename VType, typename Hasher = mit::hash::MMHash128>
@@ -138,7 +87,8 @@ struct FFMTable {
         }
         begin += key_size + count_size + count * value_size;
       }
-      return std::make_pair(0, new float[0]);
+      const float * empty = NULL;
+      return std::make_pair(0, empty);
     }
   private:
     /*! \brief bias coefficient */

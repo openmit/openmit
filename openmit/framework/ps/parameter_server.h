@@ -1,6 +1,6 @@
 /*!
  *  Copyright (c) 2016 by Contributors
- *  \file basic_formula.h
+ *  \file parameter_server.h
  *  \brief basic match formula, such as sigmoid, distance etc.
  *  \author ZhouYong
  */
@@ -18,12 +18,15 @@ namespace mit {
  */
 class PSParam : public dmlc::Parameter<PSParam> {
   public:
-    /*! framework */
+    /*! \brief framework */
     std::string framework;
+    /*! \brief max feature dimension (default uint64::max) */
+    uint64_t max_dimension;
 
     /*! declare parameter field */
     DMLC_DECLARE_PARAMETER(PSParam) {
       DMLC_DECLARE_FIELD(framework).set_default("ps");
+      DMLC_DECLARE_FIELD(max_dimension).set_default(0l);
     }
 }; // class PSParam
 
