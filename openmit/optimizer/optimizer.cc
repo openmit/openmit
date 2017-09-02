@@ -1,5 +1,6 @@
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/optimizer/adagrad.h"
+#include "openmit/optimizer/adadelta.h"
 #include "openmit/optimizer/ftrl.h"
 #include "openmit/optimizer/sgd.h"
 
@@ -9,10 +10,10 @@ Opt * Opt::Create(const mit::KWArgs & kwargs,
   if (optimizer == "gd" || optimizer == "sgd") {
     return mit::SGD::Get(kwargs);
   } else if (optimizer == "adagrad") {
-    LOG(INFO) << "optimizer: " << optimizer;
     return mit::AdaGrad::Get(kwargs);
+  } else if (optimizer == "adadelta") {
+    return mit::AdaDelta::Create(kwargs);
   } else if (optimizer == "ftrl") {
-    LOG(INFO) << "optimizer: " << optimizer;
     return mit::Ftrl::Get(kwargs);
   } else {
     LOG(ERROR) << 

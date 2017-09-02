@@ -39,11 +39,10 @@ class AdaGrad : public Opt {
       return new AdaGrad(kwargs);
     }
 
-    /*! \brief updater for mpi */
-    void Update(
-        const dmlc::Row<mit_uint> & row, 
-        mit_float pred, 
-        mit::SArray<mit_float> & weight_) override;
+    /*! \brief update for mpi */
+    void Update(const dmlc::Row<mit_uint> & row, 
+                mit_float pred, 
+                mit::SArray<mit_float> & weight_) override;
 
     /*! \brief updater for parameter server */
     void Update(PMAPT & map_grad, PMAPT * weight) override;
@@ -61,17 +60,15 @@ DMLC_REGISTER_PARAMETER(AdaGradParam);
 
 AdaGrad::AdaGrad(const mit::KWArgs & kwargs) {
   param_.InitAllowUnknown(kwargs);
-  // TODO
 }
 
 AdaGrad::~AdaGrad() {
   // TODO
 }
 
-void AdaGrad::Update(
-    const dmlc::Row<mit_uint> & row, 
-    mit_float pred, 
-    mit::SArray<mit_float> & weight) {
+void AdaGrad::Update(const dmlc::Row<mit_uint> & row, 
+                     mit_float pred, 
+                     mit::SArray<mit_float> & weight) {
   // TODO
 }
 
@@ -90,15 +87,12 @@ void AdaGrad::Update(PMAPT & map_grad, PMAPT * weight) {
     for (auto idx = 0u; idx < size; ++idx) {
       auto w = (*weight)[feati]->Get(idx);
       auto g = map_grad[feati]->Get(idx);
-      // auto nabla_w = g + param_.l1 * 1 + param_.l2 * w;
-      auto nabla_w = g;
-      auto n_w = nm_[feati]->Get(idx) + g * g;
-      nm_[feati]->Set(idx, n_w);
-      auto eta = param_.lrate / std::sqrt(n_w + param_.epsilon);
-      (*weight)[feati]->Set(idx, w - eta * nabla_w);
+      // g += param_.l1 * 1 + param_.l2 * w;
+      auto nabla_w = nm_[feati]->Get(idx) + g * g;
+      nm_[feati]->Set(idx, nabla_w);
+      auto eta = param_.lrate / std::sqrt(nabla_w + param_.epsilon);
+      (*weight)[feati]->Set(idx, w - eta * g);
     }
-
-    LOG(INFO) << "nm_ info feati: " << feati << ",\t unit: " << nm_[feati]->Str();
   }
 }
 

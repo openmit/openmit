@@ -15,7 +15,8 @@ GXX=`which g++`
 #sh ${wk_dir}/message/compile-pb.sh $wk_dir/test
 
 # step2: build openmit by cmake
-if [ "X$is_all_build" != "X1" ] || [ ! -d $wk_dir/build ]; then
+if [ "X$is_all_build" == "X1" ] || [ ! -d $wk_dir/build ]; then
+  echo "all build ..."
   rm -rf $wk_dir/build || true
   mkdir -p $wk_dir/build 
   cd $wk_dir/build

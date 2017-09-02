@@ -123,8 +123,6 @@ void Ftrl::Update(
   }
 }
 
-//void Ftrl::Update(std::unordered_map<ps::Key, mit::Unit * > & grad,
-//                  std::unordered_map<ps::Key, mit::Unit * > * weight) {
 void Ftrl::Update(PMAPT & grad, PMAPT * weight) {
   // update z and n
   for (const auto & kunit : grad) {
