@@ -1,6 +1,7 @@
 #include "openmit/optimizer/optimizer.h"
-#include "openmit/optimizer/adagrad.h"
 #include "openmit/optimizer/adadelta.h"
+#include "openmit/optimizer/adagrad.h"
+#include "openmit/optimizer/adam.h"
 #include "openmit/optimizer/ftrl.h"
 #include "openmit/optimizer/rmsprop.h"
 #include "openmit/optimizer/sgd.h"
@@ -10,17 +11,20 @@ Opt * Opt::Create(const mit::KWArgs & kwargs,
                   std::string & optimizer) {
   if (optimizer == "gd" || optimizer == "sgd") {
     return mit::SGD::Get(kwargs);
-  } else if (optimizer == "adagrad") {
-    return mit::AdaGrad::Get(kwargs);
   } else if (optimizer == "adadelta") {
     return mit::AdaDelta::Create(kwargs);
+  } else if (optimizer == "adagrad") {
+    return mit::AdaGrad::Get(kwargs);
+  } else if (optimizer == "adam") {
+    return mit::Adam::Get(kwargs);
   } else if (optimizer == "ftrl") {
     return mit::Ftrl::Get(kwargs);
   } else if (optimizer == "rmsprop") {
     return mit::RMSProp::Get(kwargs);
   } else {
     LOG(ERROR) << 
-      "optimizer not in [gd, sgd, ftrl, adagrad, lbfgs, als, ...]. " << 
+      "optimizer not in [gd, sgd, adagrad, rmsprop, adadelta, adam, " << 
+      "ftrl lbfgs, als, ...]. " << 
       "aoptimizer: " << optimizer;
     return nullptr;
   }

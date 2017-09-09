@@ -22,20 +22,19 @@ namespace mit {
 class FtrlParam : public dmlc::Parameter<FtrlParam> {
   public:
     /*! \brief alpha per-coordinate parameter to compute learning rate */
-    mit_float alpha;
+    float alpha;
     /*! \brief beta per-coordinate paramater to compute learning rate */
-    mit_float beta;
+    float beta;
     /*! \brief l1 1-norm penalty parameter for lasso */
-    mit_float l1;
+    float l1;
     /*! \brief l2 2-norm penalty parameter for ridge */
-    mit_float l2;
+    float l2;
     /*! \brief dim feature dimension */
     mit_uint dim;
     /*! \brief nsample_rate the rate of negative instance. [0, 1] */
-    mit_float nsample_rate;
-    /*! \brief learning rate for adagrad */
-    mit_float lrate;
-    // declare
+    float nsample_rate;
+    
+    /*! \brief declare field */
     DMLC_DECLARE_PARAMETER(FtrlParam) {
       DMLC_DECLARE_FIELD(alpha).set_default(0.1);
       DMLC_DECLARE_FIELD(beta).set_default(1.0);
@@ -43,7 +42,6 @@ class FtrlParam : public dmlc::Parameter<FtrlParam> {
       DMLC_DECLARE_FIELD(l2).set_default(10);
       DMLC_DECLARE_FIELD(dim).set_default(1e9);
       DMLC_DECLARE_FIELD(nsample_rate).set_default(1.0);
-      DMLC_DECLARE_FIELD(lrate).set_default(0.01);
     }
 }; // class FtrlParam
 /*!

@@ -17,8 +17,8 @@ class SGDParam : public dmlc::Parameter<SGDParam> {
   public:
     /*! \brief optimizer type. gd/adagrad/... */
     std::string optimizer;
-    /*! \brief lrate learning rate */
-    float lrate;
+    /*! \brief lr learning rate */
+    float lr;
     /*! \brief l1 regularation */
     float l1;
     /*! \brief l2 regularation */
@@ -27,7 +27,7 @@ class SGDParam : public dmlc::Parameter<SGDParam> {
     /*! \brief declare parameters */
     DMLC_DECLARE_PARAMETER(SGDParam) {
       DMLC_DECLARE_FIELD(optimizer).set_default("gd");
-      DMLC_DECLARE_FIELD(lrate).set_default(0.01);
+      DMLC_DECLARE_FIELD(lr).set_default(0.01);
       DMLC_DECLARE_FIELD(l1).set_default(0.1);
       DMLC_DECLARE_FIELD(l2).set_default(0.1);
     }
@@ -95,7 +95,7 @@ void SGD::Update(const mit_uint key,
                  const uint32_t size, 
                  const mit_float g, 
                  mit_float & w) {
-  w -= param_.lrate * g;
+  w -= param_.lr * g;
 } // SGD::Update
 
 } // namespace mit

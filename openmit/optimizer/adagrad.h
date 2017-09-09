@@ -14,15 +14,15 @@ class AdaGradParam : public dmlc::Parameter<AdaGradParam> {
     /*! \brief l2 L2 regularization coefficient */
     float l2;
     /*! \brief learning rate initilazation value */
-    float lrate;
-    /*! \brief epsilon for adagrad */
+    float lr;
+    /*! \brief epsilon a smaller value avoid denominator equals to 0 */
     float epsilon;
 
     /*! \brief  */
     DMLC_DECLARE_PARAMETER(AdaGradParam) {
       DMLC_DECLARE_FIELD(l1).set_default(0.1);
       DMLC_DECLARE_FIELD(l2).set_default(1.0);
-      DMLC_DECLARE_FIELD(lrate).set_default(0.1);
+      DMLC_DECLARE_FIELD(lr).set_default(0.1);
       DMLC_DECLARE_FIELD(epsilon).set_default(1e-8);
     }
 }; // class AdaGradParam
@@ -93,7 +93,7 @@ void AdaGrad::Update(const mit_uint key,
   }
   auto nabla_w = nm_[key]->Get(idx) + g * g;
   nm_[key]->Set(idx, nabla_w);
-  auto eta = param_.lrate / std::sqrt(nabla_w + param_.epsilon);
+  auto eta = param_.lr / std::sqrt(nabla_w + param_.epsilon);
   w -= eta * g;
 } // AdaGrad::Update
 

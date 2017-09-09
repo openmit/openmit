@@ -16,15 +16,15 @@ namespace mit {
 class RMSPropParam : public dmlc::Parameter<RMSPropParam> {
   public:
     /*! \brief learning rate initilazation value */
-    float lrate;
-    /*! \brief gamma decay factor */
+    float lr;
+    /*! \brief gamma gradient forgetting factor */
     float gamma;
-    /*! \brief epsilon for adagrad */
+    /*! \brief epsilon avoid denominator equals to 0 */
     float epsilon;
 
     /*! \brief declare member */
     DMLC_DECLARE_PARAMETER(RMSPropParam) {
-      DMLC_DECLARE_FIELD(lrate).set_default(0.1);
+      DMLC_DECLARE_FIELD(lr).set_default(0.1);
       DMLC_DECLARE_FIELD(gamma).set_default(0.99);
       DMLC_DECLARE_FIELD(epsilon).set_default(1e-8);
     }
@@ -49,7 +49,7 @@ class RMSProp : public Opt {
     /*! \brief unit updater for mpi */
     void Update(const dmlc::Row<mit_uint> & row, 
                 mit_float pred, 
-                mit::SArray<mit_float> & weight_) override;
+                mit::SArray<mit_float> & weight) override;
 
     /*! 
      * \brief unit updater for parameter server
@@ -83,7 +83,7 @@ RMSProp::~RMSProp() { }
     
 void RMSProp::Update(const dmlc::Row<mit_uint> & row, 
                      mit_float pred, 
-                     mit::SArray<mit_float> & weight_) {
+                     mit::SArray<mit_float> & weight) {
   // TODO
 }
 
@@ -97,7 +97,7 @@ void RMSProp::Update(const mit_uint key,
   }
   auto vw = param_.gamma * nm_[key]->Get(idx) + (1 - param_.gamma) * g * g;
   nm_[key]->Set(idx, vw);
-  w -= param_.lrate / std::sqrt(vw + param_.epsilon) * g;
+  w -= param_.lr / std::sqrt(vw + param_.epsilon) * g;
 } // RMSProp::Update
 
 } // namespace mit

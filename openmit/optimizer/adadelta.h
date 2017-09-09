@@ -19,7 +19,7 @@ class AdaDeltaParam : public dmlc::Parameter<AdaDeltaParam> {
     float l1;
     /*! \brief l2 */
     float l2;
-    /*! \brief gamma decay factor */
+    /*! \brief gamma gradient forgetting factor */
     float gamma;
     /*! \brief epsilon used to avoiding denominator equals to 0 */
     float epsilon;
