@@ -1,5 +1,5 @@
 /*!
- *  Copyright 2017 by Contributors
+ *  Copyright 2016 by Contributors
  *  \file optimizer.h
  *  \brief optimization algorithm
  *  \author ZhouYong
@@ -34,7 +34,23 @@ class Opt {
                         mit::SArray<mit_float> & weight_) = 0;
 
     /*! \brief parameter updater for ps */
-    virtual void Update(PMAPT & map_grad, PMAPT * weight) = 0;
+    void Run(PMAPT & map_grad, PMAPT * weight);
+  
+  protected:
+    /*! 
+     * \brief model updater for parameter server interface
+     * \param key model feature id
+     * \param idx model unit index
+     * \param size model unit max size
+     * \param g gradient of unit index that computed by worker node
+     * \param w model parameter of unit index
+     */
+    virtual void Update(const mit_uint key, 
+                        const uint32_t idx, 
+                        const uint32_t size, 
+                        const mit_float g, 
+                        mit_float & w) = 0;
+
 
 }; // class Opt
 } // namespace mit

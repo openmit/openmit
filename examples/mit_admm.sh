@@ -9,8 +9,7 @@ else
   num_workers=$1
 fi
 
-#${wk_dir}/tracker/dmlc-submit \
-/home/zhouyongsdzh/workspace/openmit/mit.old/tracker/dmlc-submit \
+${wk_dir}/tracker/dmlc-submit \
   --cluster local \
   --num-workers ${num_workers} \
   ${wk_dir}/bin/openmit examples/mit_admm.conf \

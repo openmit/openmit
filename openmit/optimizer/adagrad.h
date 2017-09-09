@@ -44,8 +44,19 @@ class AdaGrad : public Opt {
                 mit_float pred, 
                 mit::SArray<mit_float> & weight_) override;
 
-    /*! \brief updater for parameter server */
-    void Update(PMAPT & map_grad, PMAPT * weight) override;
+    /*! 
+     * \brief unit updater for parameter server interface
+     * \param key model feature id
+     * \param idx model unit index
+     * \param size model unit max size
+     * \param g gradient of unit index that computed by worker node
+     * \param w model parameter of unit index
+     */
+    void Update(const mit_uint key, 
+                const uint32_t idx, 
+                const uint32_t size, 
+                const mit_float g, 
+                mit_float & w) override;
 
   private:
     /*! \brief parameter for adagrad optimizer */
@@ -72,30 +83,19 @@ void AdaGrad::Update(const dmlc::Row<mit_uint> & row,
   // TODO
 }
 
-void AdaGrad::Update(PMAPT & map_grad, PMAPT * weight) {
-  // OpenMP 
-  for (auto & kunit : map_grad) {
-    auto feati = kunit.first;
-    mit::Unit * unit = kunit.second;
-    auto size = unit->Size();
-    CHECK(size >= 1) << "length of unit should not less than 1.";
-
-    if (nm_.find(feati) == nm_.end()) {
-      nm_.insert(std::make_pair(feati, new mit::Unit(size)));
-    }
-
-    for (auto idx = 0u; idx < size; ++idx) {
-      auto w = (*weight)[feati]->Get(idx);
-      auto g = map_grad[feati]->Get(idx);
-      // g += param_.l1 * 1 + param_.l2 * w;
-      auto nabla_w = nm_[feati]->Get(idx) + g * g;
-      nm_[feati]->Set(idx, nabla_w);
-      auto eta = param_.lrate / std::sqrt(nabla_w + param_.epsilon);
-      (*weight)[feati]->Set(idx, w - eta * g);
-    }
+void AdaGrad::Update(const mit_uint key, 
+                      const uint32_t idx, 
+                      const uint32_t size, 
+                      const mit_float g, 
+                      mit_float & w) {
+  if (nm_.find(key) == nm_.end()) {
+    nm_.insert(std::make_pair(key, new mit::Unit(size)));
   }
-}
+  auto nabla_w = nm_[key]->Get(idx) + g * g;
+  nm_[key]->Set(idx, nabla_w);
+  auto eta = param_.lrate / std::sqrt(nabla_w + param_.epsilon);
+  w -= eta * g;
+} // AdaGrad::Update
 
 } // namespace mit
-
 #endif // OPENMIT_OPTIMIZER_ADAGRAD_H_

@@ -44,16 +44,14 @@ class Updater {
     void Init(const mit::KWArgs & kwargs);
 
     void Run(const ps::KVPairs<mit_float> * req_data,
-             std::unordered_map<ps::Key, mit::Unit * > * weight);
+             PMAPT * weight);
     
     std::string Name() { return param_.optimizer; }
 
     UpdaterParam Param() const { return param_; }
   
   private:
-    void Update(
-        std::unordered_map<ps::Key, mit::Unit * > & map_grad,
-        std::unordered_map<ps::Key, mit::Unit * > * weight);
+    void Update(PMAPT & map_grad, PMAPT * weight);
 
   private:
     /*! \brief optimizer */

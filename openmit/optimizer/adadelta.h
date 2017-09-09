@@ -1,4 +1,9 @@
-
+/*!
+ *  Copyright 2016 by Contributors
+ *  \file adadelta.h
+ *  \brief the AdaDelta optimization algorithm
+ *  \author ZhouYong
+ */
 #ifndef OPENMIT_OPTIMIZER_ADADELETA_H_ 
 #define OPENMIT_OPTIMIZER_ADADELETA_H_
 
@@ -14,8 +19,8 @@ class AdaDeltaParam : public dmlc::Parameter<AdaDeltaParam> {
     float l1;
     /*! \brief l2 */
     float l2;
-    /*! \brief rho decay factor */
-    float rho;
+    /*! \brief gamma decay factor */
+    float gamma;
     /*! \brief epsilon used to avoiding denominator equals to 0 */
     float epsilon;
 
@@ -23,7 +28,7 @@ class AdaDeltaParam : public dmlc::Parameter<AdaDeltaParam> {
     DMLC_DECLARE_PARAMETER(AdaDeltaParam) {
       DMLC_DECLARE_FIELD(l1).set_default(0.1);
       DMLC_DECLARE_FIELD(l2).set_default(1.0);
-      DMLC_DECLARE_FIELD(rho).set_default(0.99);
+      DMLC_DECLARE_FIELD(gamma).set_default(0.99);
       DMLC_DECLARE_FIELD(epsilon).set_default(1e-8);
     }
 }; // class AdaDeltaParam
@@ -49,12 +54,24 @@ class AdaDelta : public Opt {
                 mit_float pred, 
                 mit::SArray<mit_float> & weight_) override;
 
-    /*! \brief update for parameter server */
-    void Update(PMAPT & grad, PMAPT * weight) override;
+    /*! 
+     * \brief unit updater for parameter server interface
+     * \param key model feature id
+     * \param idx model unit index
+     * \param size model unit max size
+     * \param g gradient of unit index that computed by worker node
+     * \param w model parameter of unit index
+     */
+    void Update(const mit_uint key, 
+                const uint32_t idx, 
+                const uint32_t size, 
+                const mit_float g, 
+                mit_float & w) override;
 
   private:
     /*! \brief root mean squared */
     float RMS(float z);
+  
   private:
     /*! \brief parameter for adadelta */
     AdaDeltaParam param_;
@@ -81,36 +98,25 @@ void AdaDelta::Update(const dmlc::Row<mit_uint> & row,
   // TODO
 }
 
-void AdaDelta::Update(PMAPT & grad, PMAPT * weight) {
-  // OpenMP
-  for (auto & kunit : grad) {
-    auto key = kunit.first;
-    mit::Unit * unit = kunit.second;
-    auto size = unit->Size();
-    CHECK(size >= 1) << "length of unit should not less than 1.";
-
-    if (Eg_.find(key) == Eg_.end()) {
-      Eg_.insert(std::make_pair(key, new mit::Unit(size)));
-    }
-
-    if (Edx_.find(key) == Edx_.end()) {
-      Edx_.insert(std::make_pair(key, new mit::Unit(size)));
-    }
-    // OpenMP
-    for (auto idx = 0u; idx < size; ++idx) {
-      auto w = (*weight)[key]->Get(idx);
-      auto g = grad[key]->Get(idx);
-      // g += param_.l1 * 1 + param_.l2 * w;
-      auto eg = param_.rho * Eg_[key]->Get(idx) + (1 - param_.rho) * g * g;
-      Eg_[key]->Set(idx, eg);
-      auto deltax = - g * RMS(Edx_[key]->Get(idx)) / RMS(Eg_[key]->Get(idx));
-      auto edx = param_.rho * Edx_[key]->Get(idx) + (1 - param_.rho) * deltax * deltax;
-      Edx_[key]->Set(idx, edx);
-      (*weight)[key]->Set(idx, w + deltax);
-    }
+void AdaDelta::Update(const mit_uint key, 
+                      const uint32_t idx, 
+                      const uint32_t size, 
+                      const mit_float g, 
+                      mit_float & w) {
+  if (Eg_.find(key) == Eg_.end()) {
+    Eg_.insert(std::make_pair(key, new mit::Unit(size)));
+    Edx_.insert(std::make_pair(key, new mit::Unit(size)));
   }
-}
+  mit::Unit * unitEg = Eg_[key];
+  mit::Unit * unitEdx = Edx_[key];
 
+  auto eg = param_.gamma * unitEg->Get(idx) + (1 - param_.gamma) * g * g;
+  unitEg->Set(idx, eg);
+  auto dx = -g * RMS(unitEdx->Get(idx)) / RMS(Eg_[key]->Get(idx)); // deltax
+  auto edx = param_.gamma * unitEdx->Get(idx) + (1 - param_.gamma) * dx * dx;
+  unitEdx->Set(idx, edx);
+  w += dx;
+}
 
 float AdaDelta::RMS(float z) {
   return std::sqrt(z + param_.epsilon);

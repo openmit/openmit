@@ -56,8 +56,19 @@ class SGD : public Opt {
                 mit_float pred, 
                 mit::SArray<mit_float> & weight_) override;
 
-    /*! \brief parameter updater for ps */
-    void Update(PMAPT & map_grad, PMAPT * weight) override;
+    /*! 
+     * \brief unit updater for parameter server interface
+     * \param key model feature id
+     * \param idx model unit index
+     * \param size model unit max size
+     * \param g gradient of unit index that computed by worker node
+     * \param w model parameter of unit index
+     */
+    void Update(const mit_uint key, 
+                const uint32_t idx, 
+                const uint32_t size, 
+                const mit_float g, 
+                mit_float & w) override;
 
   private:
     /*! \brief gradient descent parameter */
@@ -79,26 +90,13 @@ void SGD::Update(const dmlc::Row<mit_uint> & row,
   // TODO
 }
 
-// w = w - lrate * (grad(loss) + l1 * grad(l1) + l2 * grad(l2))
-void SGD::Update(PMAPT & map_grad, PMAPT * weight) {
-  // OpenMP
-  for (auto & kunit : map_grad) {
-    auto feati = kunit.first;
-    mit::Unit * unit = kunit.second;
-    auto size = unit->Size();
-    CHECK(size >= 1) << "length of unit < 1";
-    
-    for (auto idx = 0u; idx < size; ++idx) {
-      auto w = (*weight)[feati]->Get(idx);
-      auto g = map_grad[feati]->Get(idx);
-      //auto nabla_w = g + param_.l1 * 1 + param_.l2 * w;
-      auto nabla_w = g;
-      auto updated_w = w - param_.lrate * nabla_w;
-      (*weight)[feati]->Set(idx, updated_w);
-    }
-  }
-}
+void SGD::Update(const mit_uint key, 
+                 const uint32_t idx, 
+                 const uint32_t size, 
+                 const mit_float g, 
+                 mit_float & w) {
+  w -= param_.lrate * g;
+} // SGD::Update
 
 } // namespace mit
-
 #endif // OPENMIT_OPTIMIZER_SGD_H_

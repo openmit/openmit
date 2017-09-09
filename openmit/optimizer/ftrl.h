@@ -67,8 +67,19 @@ class Ftrl : public Opt {
                 mit_float pred, 
                 mit::SArray<mit_float> & weight_) override;
 
-    /*! \brief parameter updater for ps */
-    void Update(PMAPT & map_grad, PMAPT * weight) override;
+    /*! 
+     * \brief unit updater for parameter server
+     * \param key model feature id
+     * \param idx model unit index
+     * \param size model unit max size
+     * \param g gradient of unit index that computed by worker node
+     * \param w model parameter of unit index
+     */
+    void Update(const mit_uint key, 
+                const uint32_t idx, 
+                const uint32_t size, 
+                const mit_float g, 
+                mit_float & w) override;
     
   protected:
     /*! \brief parameter for ftrl optimizer */
@@ -123,46 +134,28 @@ void Ftrl::Update(
   }
 }
 
-void Ftrl::Update(PMAPT & grad, PMAPT * weight) {
-  // update z and n
-  for (const auto & kunit : grad) {
-    auto feati = kunit.first;
-    mit::Unit * unit = kunit.second;
-    auto size = unit->Size();
-    CHECK(size >= 1) << "length of unit should not less than 1.";
-    
-    if (nm_.find(feati) == nm_.end()) {
-      nm_.insert(std::make_pair(feati, new mit::Unit(size)));
-    }
-    if (zm_.find(feati) == zm_.end()) {
-      zm_.insert(std::make_pair(feati, new mit::Unit(size)));
-    }
-
-    // not support fm/ffm cross item 
-    for (auto idx = 0u; idx < size; ++idx) {
-      auto g = grad[feati]->Get(idx);
-      auto nm_idx = nm_[feati]->Get(idx);
-      auto zm_idx = zm_[feati]->Get(idx);
-      auto w_idx = (*weight)[feati]->Get(idx);
-
-      auto sigma = (sqrt(nm_idx + g * g) - sqrt(nm_idx)) / param_.alpha;
-      zm_[feati]->Set(idx, zm_idx + g - sigma * w_idx);
-      nm_[feati]->Set(idx, nm_idx + g * g);
-
-      if (idx == 0) {  // update w : ftrl for linear item 
-        auto sign = zm_[feati]->Get(idx) < 0 ? -1.0f : 1.0f;
-        if (sign * zm_[feati]->Get(idx) <= param_.l1) {
-          (*weight)[feati]->Set(idx, 0);
-        } else {
-          auto updated_w = (param_.l1 * sign - zm_[feati]->Get(idx)) / 
-            ((param_.beta + sqrt(nm_[feati]->Get(idx))) / param_.alpha + param_.l2);
-          (*weight)[feati]->Set(idx, updated_w);
-        } 
-      } else {  // update v : adagrad for cross item 
-        (*weight)[feati]->Set(idx, w_idx - param_.lrate * g / sqrt(nm_[feati]->Get(idx)));
-      }
-    }
+void Ftrl::Update(const mit_uint key, 
+                  const uint32_t idx, 
+                  const uint32_t size, 
+                  const mit_float g, 
+                  mit_float & w) {
+  if (nm_.find(key) == nm_.end()) {
+    nm_.insert(std::make_pair(key, new mit::Unit(size)));
+    zm_.insert(std::make_pair(key, new mit::Unit(size)));
+  }
+  auto nm_idx = nm_[key]->Get(idx);
+  auto zm_idx = zm_[key]->Get(idx);
+  auto sigma = (sqrt(nm_idx + g*g) - sqrt(nm_idx)) / param_.alpha;
+  zm_[key]->Set(idx, zm_idx + g - sigma * w);
+  nm_[key]->Set(idx, nm_idx + g*g);
+  auto sign = zm_[key]->Get(idx) < 0 ? -1.0 : 1.0;
+  if (sign * zm_[key]->Get(idx) <= param_.l1) {
+    w = 0.0f;
+  } else {
+    w = (param_.l1 * sign - zm_[key]->Get(idx)) /
+      ((param_.beta + sqrt(nm_[key]->Get(idx))) / param_.alpha + param_.l2);
   }
 } // method Ftrl::Update
+
 } // namespace mit
 #endif // OPENMIT_OPTIMIZER_FTRL_H_
