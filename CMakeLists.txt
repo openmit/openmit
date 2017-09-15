@@ -51,5 +51,3 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
 
 # Add Subdirectory
 add_subdirectory(openmit)
-#add_subdirectory(openmit/tools/dstore)
-add_subdirectory(test)

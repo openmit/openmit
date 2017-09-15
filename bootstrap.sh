@@ -7,7 +7,7 @@ PROJECT_PATH=`pwd`/`dirname $0`
 THIRD_PARTY_PATH=$PROJECT_PATH/third_party
 
 # env conf
-source $PROJECT_PATH/env.conf
+source $PROJECT_PATH/make/config.mk
 export HADOOP_HOME=$HADOOP_HOME
 export HADOOP_HDFS_HOME=$HADOOP_HOME
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native

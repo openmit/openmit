@@ -12,10 +12,11 @@ GCC=`which gcc`
 GXX=`which g++`
 
 # env conf
-source $wk_dir/env.conf
+source $wk_dir/make/config.mk
 export HADOOP_HOME=$HADOOP_HOME
 export HADOOP_HDFS_HOME=$HADOOP_HOME
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+export LIBRARY_PATH=$HADOOP_HOME/lib/native:$LIBRARY_PATH
 export HDFS_INC_PATH=${HADOOP_HOME}/include
 export HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
 
