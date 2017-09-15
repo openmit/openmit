@@ -1,7 +1,7 @@
 /*!
- *  Copyright (c) 2016 by Contributors
+ *  Copyright (c) 2017 by Contributors
  *  \file parameter_server.h
- *  \brief basic match formula, such as sigmoid, distance etc.
+ *  \brief parameter server distributed computation framework
  *  \author ZhouYong
  */
 #ifndef OPENMIT_FRAMEWORK_PS_PARAMETER_SERVER_H_

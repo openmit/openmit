@@ -11,14 +11,6 @@ fi
 GCC=`which gcc`
 GXX=`which g++`
 
-# env conf
-source $wk_dir/env.conf
-export HADOOP_HOME=$HADOOP_HOME
-export HADOOP_HDFS_HOME=$HADOOP_HOME
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native
-export HDFS_INC_PATH=${HADOOP_HOME}/include
-export HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
-
 # step1: compile protobuf
 #sh ${wk_dir}/message/compile-pb.sh $wk_dir/test
 
