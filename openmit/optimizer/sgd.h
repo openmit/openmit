@@ -51,11 +51,18 @@ class SGD : public Opt {
       return new SGD(kwargs);
     }
     
-    /*! \brief parameter updater for mpi */
-    void Update(const dmlc::Row<mit_uint> & row, 
-                mit_float pred, 
-                mit::SArray<mit_float> & weight_) override;
+    void Init(mit_uint dim) override {}
 
+    /*!
+     * \brief parameter updater for mpi
+     * \param idx model index 
+     * \param g gradient of model index 
+     * \param w model index weight
+     */
+    void Update(const mit_uint idx,
+                const mit_float g,
+                mit_float & w) override;
+    
     /*! 
      * \brief unit updater for parameter server interface
      * \param key model feature id
@@ -84,10 +91,10 @@ SGD::SGD(const mit::KWArgs & kwargs) {
 
 SGD::~SGD() {}
 
-void SGD::Update(const dmlc::Row<mit_uint> & row, 
-                 mit_float pred, 
-                 mit::SArray<mit_float> & weight_) {
-  // TODO
+void SGD::Update(const mit_uint idx, 
+                 const mit_float g, 
+                 mit_float & w) {
+  w -= param_.lr * g;
 }
 
 void SGD::Update(const mit_uint key, 

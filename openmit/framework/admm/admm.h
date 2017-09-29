@@ -40,22 +40,12 @@ class Admm : public MILearner {
     void RunPredict();
 
   private:
-    /*! \brief save model */
-    void SaveModel(dmlc::Stream * fo, mit::SArray<mit_float> * data);
     /*! \brief load model */
     void LoadModel(dmlc::Stream * fi);
     /*! \brief save predict result. [label, predict] */
     void SavePredict(dmlc::Stream * fo,
                      std::vector<std::tuple<float, float> > & preds);
 
-//  private:
-//    /*! \brief model */
-//    mit::Model model_;
-//    /*! \brief optimizer */
-//    mit::Optimizer opt_;
-//    /*! \brief metric. need to support logloss/auc metric */
-//    mit::Metric * metric_;
-//  
   private:
     /*! \brief admm related parameter */
     mit::AdmmParam admm_param_;

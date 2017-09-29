@@ -103,7 +103,6 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
 
 void FFM::Gradient(const dmlc::Row<mit_uint> & row,
                    const mit_float & pred,
-                   const mit::SArray<mit_float> & weight,
                    mit::SArray<mit_float> * grad) {
   // TODO
 }

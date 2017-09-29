@@ -12,9 +12,9 @@ fi
 ${wk_dir}/tracker/dmlc-submit \
   --cluster local \
   --num-workers ${num_workers} \
-  ${wk_dir}/bin/openmit examples/mit_admm.conf \
+  ${wk_dir}/bin/openmit $wk_dir/examples/mit_admm.conf \
   train_path = examples/data/libsvm/train \
   valid_path = examples/data/libsvm/agaricus.txt.test \
   test_path = examples/data/libsvm/agaricus.txt.test \
-  model_out = examples/data/model_out
+  model_dump = examples/data/model_dump.admm
 

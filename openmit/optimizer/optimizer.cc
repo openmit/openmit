@@ -7,6 +7,7 @@
 #include "openmit/optimizer/sgd.h"
 
 namespace mit {
+
 Opt * Opt::Create(const mit::KWArgs & kwargs, 
                   std::string & optimizer) {
   if (optimizer == "gd" || optimizer == "sgd") {
@@ -47,4 +48,13 @@ void Opt::Run(PMAPT & grad, PMAPT * weight) {
     }
   }
 } // Opt::Run 
+
+void Opt::Run(mit::SArray<mit_float> & grad, 
+              mit::SArray<mit_float> * weight) {
+  // TODO OpenMP?
+  for (auto i = 0u; i < weight->size(); ++i) {
+    Update(i, grad[i], (*weight)[i]);
+  }
+} // Opt::Run
+
 } // namespace mit

@@ -32,14 +32,19 @@ class FFM : public Model {
       return new FFM(kwargs); 
     }
 
-    /*! \brief prediction based on one instance */
-    mit_float Predict(const dmlc::Row<mit_uint> & row, 
-                      mit::PMAPT & weight,
-                      bool is_norm) override;
-    
     /*! \brief prediction based one instance for mpi */
     mit_float Predict(const dmlc::Row<mit_uint> & row,
                       const mit::SArray<mit_float> & weight,
+                      bool is_norm) override;
+ 
+    /*! \brief calculate model gradient based one instance for mpi */
+    void Gradient(const dmlc::Row<mit_uint> & row,
+                  const mit_float & pred,
+                  mit::SArray<mit_float> * grad) override;
+
+    /*! \brief prediction based on one instance */
+    mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                      mit::PMAPT & weight,
                       bool is_norm) override;
     
     /*! \brief calcuate gradient based on one instance */
@@ -48,12 +53,6 @@ class FFM : public Model {
                   mit::PMAPT & weight,
                   mit::PMAPT * grad) override;
     
-    /*! \brief calculate model gradient based one instance for mpi */
-    void Gradient(const dmlc::Row<mit_uint> & row,
-                  const mit_float & pred,
-                  const mit::SArray<mit_float> & weight,
-                  mit::SArray<mit_float> * grad) override;
-
   private:
     /*! \brief ffm function expression. predict raw expression */
     mit_float RawExpr(const dmlc::Row<mit_uint> & row, 

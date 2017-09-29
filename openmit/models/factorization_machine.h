@@ -41,6 +41,16 @@ class FM : public Model {
       return new FM(kwargs); 
     }
 
+    /*! \brief prediction based one instance for mpi */
+    mit_float Predict(const dmlc::Row<mit_uint> & row,
+                      const mit::SArray<mit_float> & weight,
+                      bool is_norm) override;
+
+    /*! \brief calculate model gradient based one instance for mpi */
+    void Gradient(const dmlc::Row<mit_uint> & row,
+                  const mit_float & pred,
+                  mit::SArray<mit_float> * grad) override;
+
     /*! 
      * \brief prediction based on one instance for ps
      *        computation complexity: O(nk)
@@ -49,22 +59,11 @@ class FM : public Model {
                       mit::PMAPT & weight,
                       bool is_norm) override;
     
-    /*! \brief prediction based one instance for mpi */
-    mit_float Predict(const dmlc::Row<mit_uint> & row,
-                      const mit::SArray<mit_float> & weight,
-                      bool is_norm) override;
-    
     /*! \brief calcuate gradient based on one instance for ps */
     void Gradient(const dmlc::Row<mit_uint> & row, 
                   const mit_float & pred, 
                   mit::PMAPT & weight,
                   mit::PMAPT * grad) override;
-
-    /*! \brief calculate model gradient based one instance for mpi */
-    void Gradient(const dmlc::Row<mit_uint> & row,
-                  const mit_float & pred,
-                  const mit::SArray<mit_float> & weight,
-                  mit::SArray<mit_float> * grad) override;
 
   private:
     /*! \brief fm function expression. raw expression score. */

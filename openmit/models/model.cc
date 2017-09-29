@@ -39,8 +39,8 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & row_block,
 void Model::Gradient(
     const dmlc::RowBlock<mit_uint> & block,
     std::vector<mit_float> & preds,
-    std::unordered_map<mit_uint, mit::Unit * > & weight,
-    std::unordered_map<mit_uint, mit::Unit * > * grad) {
+    PMAPT & weight,
+    PMAPT * grad) {
 
   CHECK_EQ(block.size,  preds.size());
   CHECK_EQ(weight.size(), grad->size());
@@ -55,5 +55,30 @@ void Model::Gradient(
     (*grad)[feati]->Set(0, batch_grad);
   }
 } // method Gradient
+
+void Model::Predict(const dmlc::RowBlock<mit_uint> & batch, 
+                    mit::SArray<mit_float> & weight, 
+                    mit::SArray<mit_float> * preds, 
+                    bool is_norm) {
+  CHECK_EQ(batch.size, preds->size());
+  // TODO OpenMP?
+  for (auto i = 0u; i < batch.size; ++i) {
+    (*preds)[i] = Predict(batch[i], weight, is_norm);
+  }
+} // method Predict
+
+void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
+                     mit::SArray<mit_float> & preds, 
+                     mit::SArray<mit_float> * grads) {
+  CHECK_EQ(batch.size, preds.size());
+  for (auto i = 0u; i < batch.size; ++i) {
+    Gradient(batch[i], preds[i], grads);
+  }
+  if (batch.size == 1) return ;
+  CHECK(batch.size > 0) << "batch.size <= 0 in Model::Gradient";
+  for (auto j = 0u; j < grads->size(); ++j) {
+    (*grads)[j] /= batch.size;
+  }
+} // method Gradient 
 
 } // namespace mit

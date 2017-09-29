@@ -25,21 +25,43 @@ class MPIWorker {
     /*! \brief initialize data node */
     void Init(const mit::KWArgs & kwargs);
 
-    /*! \brief update local model using global model */
-    void Update(mit_float * global, const size_t size);
-    /*! \brief update dual parameter using global model */
+    /*! 
+     * \brief compute local model using global model and partial-data
+     */
+    void Run(mit_float * global, const size_t size);
+
+    /*! 
+     * \brief update dual parameter using global model. 
+     *        update formula: 
+     *          dual_[j] <- dual_[j] + \rho * (w_[j] - \theta[j])
+     */
     void UpdateDual(mit_float * global, const size_t size);
 
     /*! \brief get local model */
     inline mit_float * Data() { return weight_.data(); }
+
+    /*! \brief dual info */
+    inline mit_float * Dual() { return dual_.data(); }
+
     /*! \brief size */
     inline size_t Size() const {
       CHECK_EQ(weight_.size(), dual_.size()) 
         << "mpi_worker weight_.size != dual_.size";
       return weight_.size();
     }
-    /*! \brief get dual */
-    inline mit_float * Dual() { return dual_.data(); }
+    
+    /*! \brief debug mpi worker */
+    void Debug();
+
+  private:
+    /*! \brief mini-batch computation */
+    void MiniBatch(const dmlc::RowBlock<mit_uint> & batch);
+    
+    /*! \brief debug weight_ */
+    void DebugWeight();
+    
+    /*! \brief debug dual_ */
+    void DebugDual();
 
   private:
     /*! \brief model */
@@ -47,7 +69,7 @@ class MPIWorker {
     /*! \brief optimizer */
     std::shared_ptr<mit::Opt> opt_;
     /*! \brief client parameter */
-    mit::CliParam param_;
+    mit::CliParam cli_param_;
     /*! \brief algorithm framework params */
     mit::AdmmParam admm_param_;
     /*! \brief local model parameter. for lr */
@@ -58,6 +80,7 @@ class MPIWorker {
     std::shared_ptr<mit::DMatrix> train_;
     std::shared_ptr<mit::DMatrix> valid_;
     std::shared_ptr<mit::DMatrix> test_;
+
 }; // class MPIWorker
 } // namespace mit
 

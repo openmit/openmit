@@ -46,10 +46,20 @@ class RMSProp : public Opt {
       return new RMSProp(kwargs);
     }
 
-    /*! \brief unit updater for mpi */
-    void Update(const dmlc::Row<mit_uint> & row, 
-                mit_float pred, 
-                mit::SArray<mit_float> & weight) override;
+    /*! \brief initialize middle variable */
+    void Init(mit_uint dim) override {
+      nv_.resize(dim + 1, 0.0);
+    }
+    
+    /*!
+     * \brief parameter updater for mpi
+     * \param idx model index 
+     * \param g gradient of model index 
+     * \param w model index weight
+     */
+    void Update(const mit_uint idx,
+                const mit_float g,
+                mit_float & w) override;
 
     /*! 
      * \brief unit updater for parameter server
@@ -70,6 +80,8 @@ class RMSProp : public Opt {
     RMSPropParam param_;
     /*! \brief nm_ gradient means square */
     PMAPT nm_;
+    /*! \brief nv_ gradient means square for mpi */
+    mit::SArray<mit_float> nv_;
 
 }; // class RMSProp
 
@@ -81,9 +93,9 @@ RMSProp::RMSProp(const mit::KWArgs & kwargs) {
 
 RMSProp::~RMSProp() { }
     
-void RMSProp::Update(const dmlc::Row<mit_uint> & row, 
-                     mit_float pred, 
-                     mit::SArray<mit_float> & weight) {
+void RMSProp::Update(const mit_uint idx,
+                     const mit_float g,
+                     mit_float & w) {
   // TODO
 }
 

@@ -39,10 +39,19 @@ class AdaGrad : public Opt {
       return new AdaGrad(kwargs);
     }
 
-    /*! \brief update for mpi */
-    void Update(const dmlc::Row<mit_uint> & row, 
-                mit_float pred, 
-                mit::SArray<mit_float> & weight_) override;
+    void Init(mit_uint dim) override { 
+      nv_.resize(dim+1, 0.0); 
+    }
+    
+    /*!
+     * \brief parameter updater for mpi
+     * \param idx model index 
+     * \param g gradient of model index 
+     * \param w model index weight
+     */
+    void Update(const mit_uint idx,
+                const mit_float g,
+                mit_float & w) override;
 
     /*! 
      * \brief unit updater for parameter server interface
@@ -64,7 +73,7 @@ class AdaGrad : public Opt {
     /*! \brief n[i] gradient squared sum for ps */
     PMAPT nm_;
     /*! \brief n[i] gradient squared sum for mpi */
-    PVECT nv_;
+    mit::SArray<mit_float> nv_;
 }; // class AdaGrad
 
 DMLC_REGISTER_PARAMETER(AdaGradParam);
@@ -77,10 +86,8 @@ AdaGrad::~AdaGrad() {
   // TODO
 }
 
-void AdaGrad::Update(const dmlc::Row<mit_uint> & row, 
-                     mit_float pred, 
-                     mit::SArray<mit_float> & weight) {
-  // TODO
+void AdaGrad::Update(const mit_uint idx, const mit_float g, mit_float & w) {
+  // TODO 
 }
 
 void AdaGrad::Update(const mit_uint key, 

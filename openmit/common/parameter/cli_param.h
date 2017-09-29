@@ -26,7 +26,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string sync_mode;
     /*! \brief master "local", "yarn", default yarn */
     std::string master;
-    /* ! \brief data format type. such as "auto" "libsvm" */
+    /* ! \brief data format type. such as "auto" "libsvm", "libfm" */
     std::string data_format;
     /*! \brief train data path */
     std::string train_path;
@@ -34,14 +34,18 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string valid_path;
     /*! \brief test data path */
     std::string test_path;
-    /*! \brief model file out path */
-    std::string model_out;
+    /*! \brief predict result output path */
+    std::string pred_out_path;
+    /*! \brief model dump output path */
+    std::string model_dump;
+    /*! \brief model binary output path */
+    std::string model_binary;
     /*! \brief number of global iteration. it equals to number of global_weight updated */
     uint32_t max_epoch;
     /*! \brief number of local param update at each global iteration */
     int passes;
-    /*! \brief number of splitted data block at each worker node */
-    int batch_size;
+    /*! \brief number of splitted data block at each worker node. default 10 */
+    uint32_t batch_size;
     /*! \brief feature dimension */
     uint32_t dim;
     /*! \brief number of feature field for ffm model */
@@ -77,10 +81,12 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(train_path).set_default("");
       DMLC_DECLARE_FIELD(valid_path).set_default("");
       DMLC_DECLARE_FIELD(test_path).set_default("");
-      DMLC_DECLARE_FIELD(model_out).set_default("");
+      DMLC_DECLARE_FIELD(pred_out_path).set_default("");
+      DMLC_DECLARE_FIELD(model_dump).set_default("");
+      DMLC_DECLARE_FIELD(model_binary).set_default("");
       DMLC_DECLARE_FIELD(max_epoch).set_default(10);
       DMLC_DECLARE_FIELD(passes).set_default(1);
-      DMLC_DECLARE_FIELD(batch_size).set_default(100);
+      DMLC_DECLARE_FIELD(batch_size).set_default(10);
       DMLC_DECLARE_FIELD(dim).set_default(1e7);
       DMLC_DECLARE_FIELD(field_num).set_default(1);
       DMLC_DECLARE_FIELD(k).set_default(4);

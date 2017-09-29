@@ -49,10 +49,20 @@ class AdaDelta : public Opt {
       return new AdaDelta(kwargs);
     }
 
-    /*! \brief update for mpi */
-    void Update(const dmlc::Row<mit_uint> & row, 
-                mit_float pred, 
-                mit::SArray<mit_float> & weight_) override;
+    void Init(mit_uint dim) override {
+      Egv_.resize(dim + 1, 0.0);
+      Edxv_.resize(dim + 1, 0.0);
+    }
+
+    /*!
+     * \brief parameter updater for mpi
+     * \param idx model index 
+     * \param g gradient of model index 
+     * \param w model index weight
+     */
+    void Update(const mit_uint idx,
+                const mit_float g,
+                mit_float & w) override;
 
     /*! 
      * \brief unit updater for parameter server interface
@@ -79,7 +89,11 @@ class AdaDelta : public Opt {
     PMAPT Eg_;
     /*! \brief delta x stored */
     PMAPT Edx_;
-    
+    /*! \brief gradient stored for mpi */
+    mit::SArray<mit_float> Egv_;
+    /*! \brief delta x stored for mpi */
+    mit::SArray<mit_float> Edxv_;
+ 
 }; // class AdaDelta
 
 DMLC_REGISTER_PARAMETER(AdaDeltaParam);
@@ -92,9 +106,9 @@ AdaDelta::~AdaDelta() {
   // TODO  free Eg_ and Edx_
 }
 
-void AdaDelta::Update(const dmlc::Row<mit_uint> & row, 
-                      mit_float pred, 
-                      mit::SArray<mit_float> & weight) {
+void AdaDelta::Update(const mit_uint idx,
+                      const mit_float g,
+                      mit_float & w) {
   // TODO
 }
 

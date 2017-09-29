@@ -49,10 +49,22 @@ class Adam : public Opt {
       return new Adam(kwargs);
     }
 
-    /*! \brief unit updater for mpi */
-    void Update(const dmlc::Row<mit_uint> & row,
-                mit_float pred,
-                mit::SArray<mit_float> & weight) override;
+    /*! \brief initialize middle variable */
+    void Init(mit_uint dim) override {
+      wv_.resize(dim + 1, 0.0);
+      vv_.resize(dim + 1, 0.0);
+    }
+
+    /*!
+     * \brief parameter updater for mpi
+     * \param idx model index 
+     * \param g gradient of model index 
+     * \param w model index weight
+     */
+    void Update(const mit_uint idx,
+                const mit_float g,
+                mit_float & w) override;
+
     /*! 
      * \brief unit updater for parameter server
      * \param key model feature id
@@ -73,6 +85,10 @@ class Adam : public Opt {
     PMAPT wm_;
     /*! \brief vm_ 2nd moment information */
     PMAPT vm_;
+    /*! \brief wv_ 1st moment information for mpi */
+    mit::SArray<mit_float> wv_;
+    /*! \brief vv_ 2nd moment information for mpi */
+    mit::SArray<mit_float> vv_;
 
 }; // class Adam
 
@@ -86,9 +102,7 @@ Adam::~Adam() {
   // TODO
 }
 
-void Adam::Update(const dmlc::Row<mit_uint> & row, 
-                  mit_float pred, 
-                  mit::SArray<mit_float> & weight) {
+void Adam::Update(const mit_uint idx, const mit_float g, mit_float & w) {
   // TODO
 }
     

@@ -21,17 +21,22 @@ namespace mit {
  */
 class Opt {
   public:
-    /*! \brief create a optimization algorithm */
+    /*! \brief create a optimizer */
     static Opt * Create(const mit::KWArgs & kwargs, 
                         std::string & optimizer);
     
     /*! \brief destructor */
     virtual ~Opt() {}
     
+    /*! 
+     * \brief initialize optimizer middle variable
+     * \param dim feature max dimension
+     */
+    virtual void Init(mit_uint dim) = 0;
+
     /*! \brief parameter updater for mpi */
-    virtual void Update(const dmlc::Row<mit_uint> & row, 
-                        mit_float pred, 
-                        mit::SArray<mit_float> & weight_) = 0;
+    void Run(mit::SArray<mit_float> & grad, 
+             mit::SArray<mit_float> * weight);
 
     /*! \brief parameter updater for ps */
     void Run(PMAPT & map_grad, PMAPT * weight);
@@ -51,6 +56,15 @@ class Opt {
                         const mit_float g, 
                         mit_float & w) = 0;
 
+    /*!
+     * \brief parameter updater for mpi
+     * \param idx model index 
+     * \param g gradient of model index 
+     * \param w model index weight
+     */
+    virtual void Update(const mit_uint idx, 
+                        const mit_float g, 
+                        mit_float & w) = 0;
 
 }; // class Opt
 } // namespace mit

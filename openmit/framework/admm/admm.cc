@@ -27,8 +27,7 @@ void Admm::Run() {
     RunPredict();
   } else {
     LOG(ERROR) 
-      << this->miparam_.task 
-      << " is not in [train, predict].";
+      << this->miparam_.task << " is not in [train, predict].";
   }
   double endTime = dmlc::GetTime();
   rabit::TrackerPrintf("@node[%d] [OpenMIT-ADMM] \
@@ -36,25 +35,31 @@ void Admm::Run() {
       rabit::GetRank(), 
       this->miparam_.task.c_str(), 
       (endTime-startTime)/60);
-
   rabit::Finalize();
 }
 
 void Admm::RunTrain() {
-  LOG(INFO) << "Admm::RunTrain() ...";
   for (auto iter = 0u; iter < cli_param_.max_epoch; ++iter) {
+    LOG(INFO) << "Admm::RunTrain iter: " << iter;
     // learning 
-    LOG(INFO) << "Admm::RunTrain() 1 ...";
-    mpi_worker_->Update(mpi_server_->Data(), mpi_server_->Size());
-    LOG(INFO) << "Admm::RunTrain() 2 ...";
-    mpi_server_->Update();
-    LOG(INFO) << "Admm::RunTrain() 3 ...";
+    mpi_worker_->Run(mpi_server_->Data(), mpi_server_->Size());
+    mpi_server_->Run(mpi_worker_->Data(), mpi_worker_->Dual(), mpi_worker_->Size());
     mpi_worker_->UpdateDual(mpi_server_->Data(), mpi_server_->Size());
-    LOG(INFO) << "Admm::RunTrain() 4 ...";
-
-    // metric
+    
+    if (cli_param_.debug) { 
+      mpi_worker_->Debug(); 
+      mpi_server_->DebugTheta();
+    }
+    // metric TODO
   }
-
+  if (rabit::GetRank() == 0) {
+    LOG(INFO) << "Admm::RunTrain SaveModel begin";
+    std::unique_ptr<dmlc::Stream> fo(
+      dmlc::Stream::Create(cli_param_.model_dump.c_str(), "w"));
+    mpi_server_->SaveModel(fo.get());
+    LOG(INFO) << "Admm::RunTrain SaveModel done ";
+  }
+  LOG(INFO) << "Admm::RunTrain done ";
 }
 
 void Admm::RunPredict() {

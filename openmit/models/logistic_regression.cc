@@ -45,24 +45,25 @@ void LR::Gradient(const dmlc::Row<mit_uint> & row,
                   const mit_float & pred,
                   mit::PMAPT & weight,
                   mit::PMAPT * grad) {
+  auto instweight = row.get_weight();
   mit_float residual = pred - row.get_label();
-  (*grad)[0]->Set(0, residual * 1);   // bias
+  (*grad)[0]->Set(0, residual * 1 * instweight);   // bias
   for (auto i = 0u; i < row.length; ++i) {    // linear item
     mit_uint feati = row.index[i];
-    mit_float partial_wi = residual * row.value[i];
+    mit_float partial_wi = residual * row.get_value(i) * instweight;
     (*grad)[feati]->Set(0, (*grad)[feati]->Get(0) + partial_wi);
   }
 }
 
 void LR::Gradient(const dmlc::Row<mit_uint> & row,
                   const mit_float & pred,
-                  const mit::SArray<mit_float> & weight,
                   mit::SArray<mit_float> * grad) {
   auto residual = pred - row.get_label();
-  (*grad)[0] = residual * 1;
+  auto instweight = row.get_weight();
+  (*grad)[0] += residual * 1 * instweight;
   for (auto i = 0u; i < row.length; ++i) {
-    (*grad)[row.index[i]] = residual * row.value[i];
+    auto fvalue = row.get_value(i);
+    (*grad)[row.index[i]] += residual * fvalue * instweight;
   }
 }
-
 } // namespace mit

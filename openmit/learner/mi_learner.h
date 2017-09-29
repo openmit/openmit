@@ -7,6 +7,7 @@
 #ifndef OPENMIT_LEARNER_MI_LEARNER_H_
 #define OPENMIT_LEARNER_MI_LEARNER_H_
 
+#include <memory>
 #include <string>
 #include "dmlc/parameter.h"
 #include "openmit/common/arg.h"

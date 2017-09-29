@@ -24,7 +24,7 @@ class ArgParser {
     ~ArgParser() { }
 
     /*! \brief read argument from config file */
-    void ReadFile(const char* const filename) {
+    void ReadFile(const char* filename) {
       dmlc::Stream * fs = dmlc::Stream::Create(filename, "r");
       char buf[1000];
       while (true) {
