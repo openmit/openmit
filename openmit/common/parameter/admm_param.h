@@ -27,8 +27,8 @@ class AdmmParam : public dmlc::Parameter<AdmmParam> {
     uint64_t dim;
     /*! declare parameter field */
     DMLC_DECLARE_PARAMETER(AdmmParam) {
-      DMLC_DECLARE_FIELD(lambda_obj).set_default(1);
-      DMLC_DECLARE_FIELD(rho).set_default(0.1);
+      DMLC_DECLARE_FIELD(lambda_obj).set_default(0.05);
+      DMLC_DECLARE_FIELD(rho).set_default(1);
       DMLC_DECLARE_FIELD(dim).set_default(1e8);
     }
 };  // class AdmmParam

@@ -59,9 +59,7 @@ void MPIServer::AdmmGlobal() {
 
 void MPIServer::SaveModel(dmlc::Stream * fo) {
   dmlc::ostream os(fo);
-  os << "admm save model\n";
   for (auto i = 0u; i < Size(); ++i) {
-    LOG(INFO) << "   i: " << i;
     os << i << "\t" << theta_[i] << "\n";
   }
   // force flush before fo destruct
