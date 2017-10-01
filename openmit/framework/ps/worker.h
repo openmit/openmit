@@ -28,7 +28,7 @@ namespace mit {
 class WorkerParam : public dmlc::Parameter<WorkerParam> {
   public:
     /*! \brief task type. "train"/"predict" etc. default: "train" */
-    std::string task;
+    std::string task_type;
     /*! \brief data_format */
     std::string data_format;
     /*! \brief train data path */
@@ -37,38 +37,38 @@ class WorkerParam : public dmlc::Parameter<WorkerParam> {
     std::string valid_path;
     /*! \brief test data path */
     std::string test_path;
-    /*! \brief is not sync mode */
-    bool is_sync;
+    /*! \breif predict output path */
+    std::string predict_out;
     /*! \brief size of batch data */
     int batch_size;
     /*! \brief max number of iteration */
     uint32_t max_epoch;
     /*! \brief whether shuffle data before training */
     bool is_shuffle;
-    /*! \brief field number for ffm. default=1 */
-    int field_num;
-    /*! \brief latent vector length for fm/ffm. default=1 */
-    int k;
     /*! \brief metric method, 'logloss', 'auc', ... */
     std::string metric;
     /*! \brief peroid saved model */
     int save_peroid;
+    /*! \brief embedding_size */
+    size_t embedding_size;
+    /*! \brief field number for ffm */
+    size_t field_num;
 
     /*! \brief declare parameters */
     DMLC_DECLARE_PARAMETER(WorkerParam) {
-      DMLC_DECLARE_FIELD(task).set_default("train");
+      DMLC_DECLARE_FIELD(task_type).set_default("train");
       DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
       DMLC_DECLARE_FIELD(train_path).set_default("");
       DMLC_DECLARE_FIELD(valid_path).set_default("");
       DMLC_DECLARE_FIELD(test_path).set_default("");
-      DMLC_DECLARE_FIELD(is_sync).set_default(true);
+      DMLC_DECLARE_FIELD(predict_out).set_default("");
       DMLC_DECLARE_FIELD(batch_size).set_default(100);
       DMLC_DECLARE_FIELD(max_epoch).set_default(10);
       DMLC_DECLARE_FIELD(is_shuffle).set_default(false);
-      DMLC_DECLARE_FIELD(field_num).set_default(0);
-      DMLC_DECLARE_FIELD(k).set_default(0);
       DMLC_DECLARE_FIELD(metric).set_default("auc");
       DMLC_DECLARE_FIELD(save_peroid).set_default(0);
+      DMLC_DECLARE_FIELD(embedding_size).set_default(4);
+      DMLC_DECLARE_FIELD(field_num).set_default(10);
     }
 }; // class WorkerParam
 

@@ -43,7 +43,7 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
         break;
       case signal::SAVEINFO:
         {
-          std::string model_path = param_.model_out 
+          std::string model_path = param_.model_dump 
             + "/iter=" + std::to_string(req_data.keys[0]) 
             + "/part." + std::to_string(ps::MyRank());
           auto * fo = dmlc::Stream::Create(model_path.c_str(), "w"); 
@@ -52,10 +52,13 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
         break;
       case signal::FINISH:
         {
-          std::string model_path = param_.model_out 
+          // model dump 
+          std::string model_path = param_.model_dump 
             + "/part." + std::to_string(ps::MyRank());
           auto * foo = dmlc::Stream::Create(model_path.c_str(), "w");
           SaveModel(foo);
+          // model binary
+          // TODO
         }
         break;
       default:
@@ -69,7 +72,7 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
     for (auto i = 0u; i < req_data.keys.size(); ++i) {
       ps::Key key = req_data.keys[i]; 
       if (weight_.find(key) == weight_.end()) {
-        mit::Unit * unit = new Unit(param_.field_num * param_.k + 1);
+        mit::Unit * unit = new Unit(param_.field_num * param_.embedding_size + 1);
         weight_.insert(std::make_pair(key, unit));
       }
       // Flating: unit -> vector

@@ -33,39 +33,35 @@ namespace mit {
 class ServerParam : public dmlc::Parameter<ServerParam> {
   public:
     /*! \brief task type. */
-    std::string task;
+    std::string task_type;
     /*! \brief model type. "lr", "fm", "ffm", "mf", ... */
     std::string model;
     /*! \brief optimizer type. "sgd", "adagrad", "ftrl", "lbfgs", "als" */
     std::string optimizer;
-    /*! \brief is not sync. default=true */
-    bool is_sync;
-    /*! \brief sync mode. "async", "sync", "admm" */
+    /*! \brief sync mode. "asp", "bsp", "ssp" */
     std::string sync_mode;
-    /*! \brief field number for ffm. default=1 */
-    int field_num;
-    /*! \brief latent vector length for fm/ffm. default=1 */
-    int k;
     /*! \brief model input path */
     std::string model_in;
     /*! \brief model output path */
-    std::string model_out;
-    /*! \brief model checkout path */
-    // TODO is needed?
-    std::string model_checkout;
+    std::string model_dump;
+    /*! \brief model binary path */
+    std::string model_binary;
+    /*! \brief field number */
+    size_t field_num;
+    /*! \brief latent vector length for fm/ffm. default=1 */
+    size_t embedding_size;
 
     /*! \brief declare parameters */
     DMLC_DECLARE_PARAMETER(ServerParam) {
-      DMLC_DECLARE_FIELD(task).set_default("train");
+      DMLC_DECLARE_FIELD(task_type).set_default("train");
       DMLC_DECLARE_FIELD(model).set_default("lr");
       DMLC_DECLARE_FIELD(optimizer).set_default("sgd");
-      DMLC_DECLARE_FIELD(is_sync).set_default(true);
       DMLC_DECLARE_FIELD(sync_mode).set_default("sync");
-      DMLC_DECLARE_FIELD(field_num).set_default(0);
-      DMLC_DECLARE_FIELD(k).set_default(0);
       DMLC_DECLARE_FIELD(model_in).set_default("");
-      DMLC_DECLARE_FIELD(model_out).set_default("");
-      DMLC_DECLARE_FIELD(model_checkout).set_default("");
+      DMLC_DECLARE_FIELD(model_dump).set_default("");
+      DMLC_DECLARE_FIELD(model_binary).set_default("");
+      DMLC_DECLARE_FIELD(field_num).set_default(10);
+      DMLC_DECLARE_FIELD(embedding_size).set_default(4);
     }
 }; // ServerParam
 

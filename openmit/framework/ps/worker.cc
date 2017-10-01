@@ -25,7 +25,7 @@ void Worker::Init(const mit::KWArgs & kwargs) {
   int partid = ps::MyRank();
   int npart = ps::NumWorkers();
   LOG(INFO) << "partid: " << partid << ", npart: " << npart;
-  if (param_.task == "train") {
+  if (param_.task_type == "train") {
     CHECK_NE(param_.train_path, "") 
       << " train_path is empty! need train_path.";
     train_set_.reset(new mit::DMatrix(
@@ -48,7 +48,7 @@ void Worker::Init(const mit::KWArgs & kwargs) {
     //}
     //.insert(valid_fset_.end(), fset.begin(), fset.end());
     //sort(.begin(), valid_fset_.end());
-  } else if (param_.task == "predict") {
+  } else if (param_.task_type == "predict") {
     CHECK_NE(param_.test_path, "")
       << " test_path is empty! need test_path.";
     test_set_.reset(new mit::DMatrix(
@@ -140,7 +140,7 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   sort(keys.begin(), keys.end());
   
   // pull operation (weight)
-  std::vector<int> lens(keys.size(), param_.field_num * param_.k + 1);
+  std::vector<int> lens(keys.size(), param_.field_num * param_.embedding_size + 1);
   std::vector<mit_float> rets;
   kv_worker_->Wait(kv_worker_->Pull(keys, &rets));
   
