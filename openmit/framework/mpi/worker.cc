@@ -102,13 +102,13 @@ void MPIWorker::Run(mit_float * global, const size_t size, const size_t epoch) {
         const auto batch = block.Slice(i, end);
         if (cli_param_.is_progress) {
           if (progress % progress_interval == 0) {
-            LOG(INFO) << "@Worker[" << rabit::GetRank() 
+            LOG(INFO) << "@worker[" << rabit::GetRank() 
               << "] progress <epoch, inst>: <" 
               << epoch << ", " << progress << ">";
           }
           progress += (end - i);
           if ((end - i) != cli_param_.batch_size) {
-            LOG(INFO) << "@Worker[" << rabit::GetRank() 
+            LOG(INFO) << "@worker[" << rabit::GetRank() 
               << "] progress <epoch, inst>: <" 
               << epoch << ", " << end << ">";
           }

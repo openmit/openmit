@@ -36,7 +36,7 @@ void Admm::Run() {
       << this->miparam_.task_type << " not in [train, predict].";
   }
   double endTime = dmlc::GetTime();
-  rabit::TrackerPrintf("@node[%d] [OpenMIT-ADMM] \
+  rabit::TrackerPrintf("@worker[%d] [OpenMIT-ADMM] \
       The total time of the task %s is %g min \n", 
       rabit::GetRank(), 
       this->miparam_.task_type.c_str(), 
@@ -46,8 +46,6 @@ void Admm::Run() {
 
 void Admm::RunTrain() {
   for (auto iter = 0u; iter < cli_param_.max_epoch; ++iter) {
-    LOG(INFO) << "[INFO] @worker[" << rabit::GetRank() 
-              << "] begin " << iter + 1 << "-th epoch.";
     // learning 
     mpi_worker_->Run(mpi_server_->Data(), mpi_server_->Size(), iter + 1);
     mpi_server_->Run(mpi_worker_->Data(), mpi_worker_->Dual(), mpi_worker_->Size());
@@ -58,8 +56,10 @@ void Admm::RunTrain() {
       mpi_server_->DebugTheta();
     }
     // metric TODO
-    LOG(INFO) << "[INFO] @worker[" << rabit::GetRank() 
-              << "] finished " << iter+1 << "-th epoch. metric ...";
+    if (rabit::GetRank() == rabit::GetWorldSize() - 1) {
+      // TODO  metric allreduce & broadcast
+      LOG(INFO) << "finished " << iter+1 << "-th epoch. metric ...";
+    }
   }
   if (rabit::GetRank() == 0) {
     std::unique_ptr<dmlc::Stream> fo(
