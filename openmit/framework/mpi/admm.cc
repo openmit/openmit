@@ -11,6 +11,7 @@ Admm::Admm(const mit::KWArgs & kwargs) {
 }
 
 void Admm::Init(const mit::KWArgs & kwargs) {
+  rabit::Init(0, new char*[1]);
   this->miparam_.InitAllowUnknown(kwargs);
   admm_param_.InitAllowUnknown(kwargs);
   cli_param_.InitAllowUnknown(kwargs);
@@ -19,19 +20,20 @@ void Admm::Init(const mit::KWArgs & kwargs) {
 }
 
 void Admm::Run() {
-  rabit::Init(0, new char*[1]);
   double startTime = dmlc::GetTime();
   if (this->miparam_.task_type == "train") {
-    std::unique_ptr<Transaction> trans(new Transaction(0, "mpi", "train"));
+    std::unique_ptr<Transaction> trans(
+        new Transaction(0, "mpi", "train", true));
     RunTrain();
     Transaction::End(trans.get());
   } else if (this->miparam_.task_type == "predict") {
-    std::unique_ptr<Transaction> trans(new Transaction(0, "mpi", "predict"));
+    std::unique_ptr<Transaction> trans(
+        new Transaction(0, "mpi", "predict", true));
     RunPredict();
     Transaction::End(trans.get());
   } else {
     LOG(ERROR) 
-      << this->miparam_.task_type << " is not in [train, predict].";
+      << this->miparam_.task_type << " not in [train, predict].";
   }
   double endTime = dmlc::GetTime();
   rabit::TrackerPrintf("@node[%d] [OpenMIT-ADMM] \
@@ -44,7 +46,8 @@ void Admm::Run() {
 
 void Admm::RunTrain() {
   for (auto iter = 0u; iter < cli_param_.max_epoch; ++iter) {
-    LOG(INFO) << "[INFO] ============ epoch: " << iter + 1;
+    LOG(INFO) << "[INFO] @worker[" << rabit::GetRank() 
+              << "] begin " << iter + 1 << "-th epoch.";
     // learning 
     mpi_worker_->Run(mpi_server_->Data(), mpi_server_->Size(), iter + 1);
     mpi_server_->Run(mpi_worker_->Data(), mpi_worker_->Dual(), mpi_worker_->Size());
@@ -55,6 +58,8 @@ void Admm::RunTrain() {
       mpi_server_->DebugTheta();
     }
     // metric TODO
+    LOG(INFO) << "[INFO] @worker[" << rabit::GetRank() 
+              << "] finished " << iter+1 << "-th epoch. metric ...";
   }
   if (rabit::GetRank() == 0) {
     std::unique_ptr<dmlc::Stream> fo(

@@ -27,10 +27,19 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
       << "train_path should not be empty for train.";
     train_.reset(new mit::DMatrix(
       cli_param_.train_path, partid, npart, cli_param_.data_format));
+
+    size_t train_inst = 0;
+    train_->BeforeFirst();
+    while (train_->Next()) {
+      auto block = train_->Value();
+      train_inst += block.size;
+    }
+    
     CHECK_NE(cli_param_.valid_path, "")
       << "valid_path should not be empty for train.";
     valid_.reset(new mit::DMatrix(
       cli_param_.valid_path, partid, npart, cli_param_.data_format));
+  
   } else if (cli_param_.task_type == "predict") {
     CHECK_NE(cli_param_.test_path, "")
       << "test path should not be empty for predict task.";
@@ -59,7 +68,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
     opt_.reset(mit::Opt::Create(kwargs, cli_param_.optimizer));
     opt_->Init(max_dim);
 
-    LOG(INFO) << "worker init done...";
+    LOG(INFO) << "@worker[" <<  rabit::GetRank() << "] MPIWorker Init Done.";
   } if (cli_param_.task_type == "predict") {
     // Load Model for prediction
   } else {
@@ -77,6 +86,8 @@ void MPIWorker::Run(mit_float * global, const size_t size, const size_t epoch) {
   weight_.CopyFrom(global, size);
 
   size_t progress = 0;
+  CHECK(cli_param_.job_progress > 0) << "parameter job_progress > 0";
+  size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
   train_->BeforeFirst();
   while (train_->Next()) {
     auto & block = train_->Value();
@@ -90,13 +101,15 @@ void MPIWorker::Run(mit_float * global, const size_t size, const size_t epoch) {
           block.size : i + cli_param_.batch_size;
         const auto batch = block.Slice(i, end);
         if (cli_param_.is_progress) {
-          if (progress % (cli_param_.batch_size * cli_param_.job_progress) == 0) {
-            LOG(INFO) << "progress <epoch, inst>: <" 
+          if (progress % progress_interval == 0) {
+            LOG(INFO) << "@Worker[" << rabit::GetRank() 
+              << "] progress <epoch, inst>: <" 
               << epoch << ", " << progress << ">";
           }
           progress += (end - i);
           if ((end - i) != cli_param_.batch_size) {
-            LOG(INFO) << "progress <epoch, inst>: <" 
+            LOG(INFO) << "@Worker[" << rabit::GetRank() 
+              << "] progress <epoch, inst>: <" 
               << epoch << ", " << end << ">";
           }
         }
@@ -120,8 +133,7 @@ void MPIWorker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
 // dual_[j] <-- dual_[j] + \rho * (w_[j] - \theta[j])
 void MPIWorker::UpdateDual(mit_float * global, const size_t size) {
   auto dsize = dual_.size();
-  CHECK_EQ(size, dsize) 
-    << "global_model.size != dual.size";
+  CHECK_EQ(size, dsize) << "global_model.size != dual.size";
   for (auto j = 0u; j < size; ++j) {
     dual_[j] += admm_param_.rho * (weight_[j] - *(global + j));
   }
