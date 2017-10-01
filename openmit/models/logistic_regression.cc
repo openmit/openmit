@@ -4,17 +4,6 @@ namespace mit {
 
 LR::LR(const mit::KWArgs & kwargs) {
   this->param_.InitAllowUnknown(kwargs);
-  if (this->param_.field_num != 0) {
-    LOG(INFO) << "WARNING field_num != 0 for linear model. field_num: "
-      << this->param_.field_num << ", set to 0.";
-    this->param_.field_num = 0;
-    LOG(INFO) << "updated field_num: " << this->param_.field_num;
-  }
-  if (this->param_.k != 0) {
-    LOG(INFO) << "WARNING k != 0 for linear model. k: "
-      << this->param_.k << ", set to 0.";
-    this->param_.k = 0;
-  }
   if (!this->param_.is_linear) {
     LOG(INFO) << "WARNING is_linear should be true for lr model, "
       << "this is is_linear = false";
