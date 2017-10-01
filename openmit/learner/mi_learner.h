@@ -16,14 +16,14 @@ namespace mit {
 /*! machine intelligence learner related parameter */
 class MILearnerParam : public dmlc::Parameter<MILearnerParam> {
   public:
-    /*! \brief learner tasks, 'train'/'predict'/'metric' */
-    std::string task;
+    /*! \brief learner tasks, 'train'/'predict'/'dump' */
+    std::string task_type;
     /*! \brief machine learning framework. 'ps'/'mpi' */
     std::string framework;
 
     /*! \brief declare parameters */
     DMLC_DECLARE_PARAMETER(MILearnerParam) {
-      DMLC_DECLARE_FIELD(task).set_default("train");
+      DMLC_DECLARE_FIELD(task_type).set_default("train");
       DMLC_DECLARE_FIELD(framework).set_default("ps");
     }
 }; // class MILearnerParam
