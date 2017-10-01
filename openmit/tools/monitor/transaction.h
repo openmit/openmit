@@ -9,6 +9,7 @@
 
 #include <stack>
 #include <stdint.h>
+#include "dmlc/logging.h"
 #include "openmit/tools/util/timer.h"
 
 namespace mit {
@@ -40,6 +41,12 @@ struct TMessage {
            std::string name) :
     type(type), name(name), level(level), 
     timestamp(mit::TimeStamp()) {}
+
+  /*! \brief message string */
+  std::string MessageStr() const {
+    return "<" + std::to_string(level) + ", " 
+          + type + ", " + name + ">";
+  }
 }; // struct TMessage
 
 /*! 
@@ -49,12 +56,15 @@ struct TMessage {
 class Transaction {
   public:
     /*! \brief default constructor */
-    Transaction() : message_(0, "", "") {}
+    Transaction() : message_(0, "", ""), print_(false) {}
     /*! \brief constructor by level, type, name */
-    Transaction(uint32_t level, 
-                std::string type, 
-                std::string name) : 
-      message_(level, type, name) {}
+    Transaction(uint32_t level, std::string type, 
+                std::string name, 
+                bool print = false) : 
+      message_(level, type, name), print_(print) {
+    if (print) 
+      LOG(INFO) << "transaction " << message_.MessageStr() << " begin.";
+  }
 
     /*! \brief destructor */
     ~Transaction() { }
@@ -109,6 +119,8 @@ class Transaction {
   private:
     /*! \brief transaction message unit */
     TMessage message_;
+    /*! \brief is print */
+    bool print_;
 }; // class Transaction
 
 } // namespace mit

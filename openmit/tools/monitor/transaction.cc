@@ -1,4 +1,3 @@
-#include "dmlc/logging.h"
 #include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
@@ -32,7 +31,6 @@ void Transaction::End(Transaction * trans) {
       trans->Level(), trans->Type(), trans->Name());
   trans->LogTrace(trans_end);
   trans_info.pop();
-  delete trans;
   delete trans_end;
 }
 

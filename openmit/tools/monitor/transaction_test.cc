@@ -10,6 +10,7 @@ void Inner() {
   std::cout << "inner .... size: " << Transaction::Size() << std::endl;
   sleep(1);
   Transaction::End(trans);
+  delete trans;
 }
 
 void Test() {
@@ -18,7 +19,7 @@ void Test() {
   for (int i = 0; i < 10; ++i) {
     Inner();
   }
-  Transaction::End(trans);
+  Transaction::End(trans); delete trans;
 }
 
 int main(int argc, char * argv[]) {

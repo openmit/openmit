@@ -6,7 +6,7 @@ aux_source_directory(common/io SRCS_COMMON_IO)
 aux_source_directory(common/parameter SRCS_COMMON_PARAMETER)
 aux_source_directory(engine SRCS_ENGINE)
 aux_source_directory(entity SRCS_ENTITY)
-aux_source_directory(framework/admm SRCS_FRAMEWORK_ADMM)
+aux_source_directory(framework/mpi SRCS_FRAMEWORK_MPI)
 aux_source_directory(framework/ps SRCS_FRAMEWORK_PS)
 aux_source_directory(learner SRCS_LEARNER)
 aux_source_directory(loss SRCS_LOSS)
@@ -28,7 +28,7 @@ set(mit_SRCS
   ${SRCS_COMMON_PARAMETER}
   ${SRCS_ENGINE}
   ${SRCS_ENTITY}
-  ${SRCS_FRAMEWORK_ADMM}
+  ${SRCS_FRAMEWORK_MPI}
   ${SRCS_FRAMEWORK_PS}
   ${SRCS_LEARNER}
   ${SRCS_LOSS}

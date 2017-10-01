@@ -24,12 +24,12 @@ class AdmmParam : public dmlc::Parameter<AdmmParam> {
      */
     float rho;
     /*! \brief dim size of global_weights. it equals to feature dimimension. */
-    uint64_t dim;
+    uint64_t max_dim;
     /*! declare parameter field */
     DMLC_DECLARE_PARAMETER(AdmmParam) {
       DMLC_DECLARE_FIELD(lambda_obj).set_default(0.05);
       DMLC_DECLARE_FIELD(rho).set_default(1);
-      DMLC_DECLARE_FIELD(dim).set_default(1e8);
+      DMLC_DECLARE_FIELD(max_dim).set_default(1e8);
     }
 };  // class AdmmParam
 
