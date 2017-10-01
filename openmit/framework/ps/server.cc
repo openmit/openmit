@@ -38,6 +38,7 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
       case signal::UPDATE: 
         { 
           Run(&req_data); 
+          //LOG(INFO) << "serverid: " << ps::MyRank() << ", weight_.size: " << weight_.size();
         }
         break;
       case signal::SAVEINFO:

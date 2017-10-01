@@ -3,6 +3,7 @@
 git submodule init
 git submodule update
 
+set -x
 PROJECT_PATH=`pwd`/`dirname $0`
 THIRD_PARTY_PATH=$PROJECT_PATH/third_party
 
@@ -20,10 +21,14 @@ mkdir -p $THIRD_PARTY_PATH/{include,lib} || true
 #./autogen.sh && ./configure --prefix=$THIRD_PARTY_PATH --disable-shared --enable-static --enable-sse2
 #make && make install
 
+echo "[INFO] build openmit/ps-lite begin ..."
 cd $PROJECT_PATH/third_party/ps-lite
+git checkout master 
+git pull origin master  
 make -j4 \
   && cp -r include/* $THIRD_PARTY_PATH/include \
   && cp -r build/libps.a $THIRD_PARTY_PATH/lib
+echo "[INFO] build openmit/ps-lite done"
 
 cd $PROJECT_PATH/third_party/rabit
 make all \
