@@ -4,18 +4,21 @@
 
 namespace mit {
 
-DMLC_REGISTER_PARAMETER(MILearnerParam);
-
 MILearner * MILearner::Create(const mit::KWArgs & kwargs) {
-  MILearnerParam param_;
-  param_.InitAllowUnknown(kwargs);
-  if (param_.framework == "mpi") {
+  std::string framework = "ps";     // default
+  for (auto & kv : kwargs) {
+    if (kv.first != "framework") continue;
+    framework = kv.second;
+  }
+  LOG(INFO) << "MILearner framework: " << framework;
+
+  if (framework == "mpi") {
     return mit::Admm::Get(kwargs);
-  } else if (param_.framework == "ps") {
+  } else if (framework == "ps") {
     return mit::PS::Get(kwargs);
   } else {
     LOG(ERROR) << "framework must be belonging to [mpi, ps]."
-      << " current framework value: " << param_.framework;
+      << " current framework value: " << framework;
     return nullptr;
    }
 }
