@@ -1,1 +1,2 @@
-HADOOP_HOME=/home/zhouyongsdzh/software/hadoop-2.7.3
+# local path of hadoop home. for example: HADOOP_HOME="/data/local/hadoop-2.7.4"
+HADOOP_HOME=""
