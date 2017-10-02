@@ -18,5 +18,4 @@ ${wk_dir}/tracker/dmlc-submit \
   train_path = examples/data/libsvm/train \
   valid_path = examples/data/libsvm/agaricus.txt.test \
   test_path = examples/data/libsvm/agaricus.txt.test \
-  model_dump = examples/data/model_dump.admm
-
+  model_dump = examples/data/model_dump.tmp
