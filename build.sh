@@ -3,6 +3,9 @@
 cd $(dirname `ls -l $0 | awk '{print $NF;}'`)
 wk_dir=`pwd`
 
+set -o pipefail
+set -o errexit
+
 is_all_build=0
 if [ $# > 1 ]; then
   is_all_build=$1
@@ -35,3 +38,5 @@ else
 fi
 
 make 
+
+echo "======== $0 done ========="
