@@ -1,7 +1,7 @@
 ## 使用指南
 
 + [项目构建](#1.项目构建)
-    + [Unbuntu/Centos构建](#1.1.Unbuntu/Centos构建)
+    + [Ubuntu/Centos构建](#1.1.Ubuntu/Centos构建)
     + [MacOS构建](#1.2.MacOS构建) 
     + [支持GPU构建](#1.3.支持GPU构建)
 + [使用示例](#2.使用示例)
@@ -10,7 +10,7 @@
 
 OpenMIT项目构建比较简单，构建过程如下:
 
-<h3 id="1.1.Unbuntu/Centos构建">Unbuntu/Centos构建</h3>
+<h3 id="1.1.Ubuntu/Centos构建">Ubuntu/Centos构建</h3>
 
 + Step1，下载从github上OpenMIT项目
 
@@ -31,7 +31,8 @@ echo $JAVA_HOME         // 如果输出为🈳️，说明没有配置，需要�
 ```bash
 export HADOOP_HOME=${path to your hadoop path}
 export HADOOP_HDFS_HOME=$HADOOP_HOME
-export HDFS_INC_PATH=${HADOOP_HOME}/includeexport HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
+export HDFS_INC_PATH=${HADOOP_HOME}/include
+export HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
 export JAVA_HOME=${path to your java path}
 ```
 + Step3，构建依赖项目
