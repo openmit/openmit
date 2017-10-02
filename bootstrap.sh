@@ -22,6 +22,9 @@ export HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
 
 mkdir -p $THIRD_PARTY_PATH/{include,lib} || true
 
+cp -r $HADOOP_HOME/include/* $THIRD_PARTY/hadoop/include
+cp -r $HADOOP_HOME/lib/native/* $THIRD_PARTY/hadoop/lib
+
 #cd $PROJECT_PATH/third_party/liblbfgs
 #./autogen.sh && ./configure --prefix=$THIRD_PARTY_PATH --disable-shared --enable-static --enable-sse2
 #make && make install
