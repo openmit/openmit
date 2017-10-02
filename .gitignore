@@ -28,6 +28,7 @@
 *.out
 *.app
 bin/
+*.tmp
 
 # CMake
 build/

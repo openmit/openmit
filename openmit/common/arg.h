@@ -7,6 +7,7 @@
 #ifndef OPENMIT_COMMON_ARG_H_
 #define OPENMIT_COMMON_ARG_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 #include "dmlc/io.h"
@@ -20,12 +21,17 @@ typedef std::vector<std::pair<std::string, std::string>> KWArgs;
 /*! \brief class for arguments parse. */
 class ArgParser {
   public:
+    /*! \brief default constructor */
     ArgParser() : args_("") { }
+    
+    /*! \brief destructor */
     ~ArgParser() { }
 
     /*! \brief read argument from config file */
     void ReadFile(const char* filename) {
-      dmlc::Stream * fs = dmlc::Stream::Create(filename, "r");
+      std::unique_ptr<dmlc::Stream> fs(
+          dmlc::Stream::Create(filename, "r"));
+      //dmlc::Stream * fs = dmlc::Stream::Create(filename, "r");
       char buf[1000];
       while (true) {
         size_t r = fs->Read(buf, 1000);

@@ -8,7 +8,6 @@ DMLC_REGISTER_PARAMETER(PSParam);
 
 PS::PS(const mit::KWArgs & kwargs) {
   kwargs_ = kwargs;
-  this->miparam_.InitAllowUnknown(kwargs);
   param_.InitAllowUnknown(kwargs);
   // feature max feature dimension
   uint64_t max_key = param_.max_dimension > 0 

@@ -30,6 +30,11 @@ class DMatrix {
       Load(uri, partid, npart, data_format);
     }
 
+    /*! \brief destructor */
+    ~DMatrix() {
+      if (dmat_) { delete dmat_; dmat_=NULL; }
+    }
+
     /*! \brief load method that be suitable for local and yarn environment */
     inline void Load(const std::string & uri,
                      int partid,
@@ -64,6 +69,8 @@ inline void DMatrix
   dmat_ = dmlc::RowBlockIter<mit_uint>::Create(
       uri.c_str(), partid, npart, data_format.c_str());
 }
+
+
 } // namespace mit
 
 #endif // OPENMIT_COMMON_DATA_DATA_H_
