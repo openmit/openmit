@@ -76,9 +76,11 @@ class MPIWorker {
     mit::SArray<mit_float> weight_;
     /*! \brief dual variables parameter */
     mit::SArray<mit_float> dual_;
-    /*! \brief task related data set */
+    /*! \brief train data  */
     std::shared_ptr<mit::DMatrix> train_;
+    /*! \brief valid data  */
     std::shared_ptr<mit::DMatrix> valid_;
+    /*! \brief test data for predict task */
     std::shared_ptr<mit::DMatrix> test_;
 
 }; // class MPIWorker

@@ -11,8 +11,7 @@ Admm::Admm(const mit::KWArgs & kwargs) {
 }
 
 void Admm::Init(const mit::KWArgs & kwargs) {
-  rabit::Init(0, new char*[1]);
-  this->miparam_.InitAllowUnknown(kwargs);
+  rabit::Init(0, nullptr);
   admm_param_.InitAllowUnknown(kwargs);
   cli_param_.InitAllowUnknown(kwargs);
   mpi_worker_.reset(new MPIWorker(kwargs));
@@ -21,25 +20,25 @@ void Admm::Init(const mit::KWArgs & kwargs) {
 
 void Admm::Run() {
   double startTime = dmlc::GetTime();
-  if (this->miparam_.task_type == "train") {
+  if (cli_param_.task_type == "train") {
     std::unique_ptr<Transaction> trans(
         new Transaction(0, "mpi", "train", true));
     RunTrain();
     Transaction::End(trans.get());
-  } else if (this->miparam_.task_type == "predict") {
+  } else if (cli_param_.task_type == "predict") {
     std::unique_ptr<Transaction> trans(
         new Transaction(0, "mpi", "predict", true));
     RunPredict();
     Transaction::End(trans.get());
   } else {
-    LOG(ERROR) 
-      << this->miparam_.task_type << " not in [train, predict].";
+    LOG(ERROR) << "'task_type' not in [train, predict]. task: " 
+      << cli_param_.task_type;
   }
   double endTime = dmlc::GetTime();
   rabit::TrackerPrintf("@worker[%d] [OpenMIT-ADMM] \
       The total time of the task %s is %g min \n", 
       rabit::GetRank(), 
-      this->miparam_.task_type.c_str(), 
+      cli_param_.task_type.c_str(), 
       (endTime-startTime)/60);
   rabit::Finalize();
 }
