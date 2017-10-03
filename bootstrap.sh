@@ -38,7 +38,8 @@ git checkout master
 git pull origin master  
 make -j4 \
   && cp -r include/* $third_party_dir/include \
-  && cp -r build/libps.a $third_party_dir/lib
+  && cp -r build/libps.a $third_party_dir/lib \
+  && cp -r deps/lib/lib*.a $third_party_dir/lib
 echo "[INFO] build openmit/ps-lite done"
 
 cd $third_party_dir/rabit
