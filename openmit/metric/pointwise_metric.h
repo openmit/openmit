@@ -35,7 +35,7 @@ inline float LogLoss::
 Eval(const std::vector<float> & preds, 
      const std::vector<float> & labels) const {
   CHECK_NE(labels.size(), 0) << "label cannot be empty!";
-  CHECK_NE(preds.size(), 0) << "prediction cannot be empty!";
+  CHECK_NE(preds.size(), 0) << "prediction variable cannot be empty!";
   CHECK_EQ(labels.size(), preds.size()) 
     << "label and prediction size not match, ";
   // TODO omp_ulong ndata = static_cast<omp_ulong>(info.labels.size());

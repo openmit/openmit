@@ -9,7 +9,6 @@
 
 #include <string>
 #include <vector>
-
 #include "dmlc/logging.h"
 
 namespace mit {

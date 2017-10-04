@@ -1,5 +1,4 @@
 #include "openmit/metric/metric.h"
-
 #include "openmit/metric/pointwise_metric.h"
 #include "openmit/metric/rank_metric.h"
 
