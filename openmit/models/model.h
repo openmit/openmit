@@ -67,24 +67,23 @@ class Model {
      * \brief prediction based on batch data for mpi  
      */
     void Predict(const dmlc::RowBlock<mit_uint> & batch,
-                 mit::SArray<mit_float> & weight,
-                 mit::SArray<mit_float> * preds,
+                 mit::SArray<mit_float> & weight, 
+                 std::vector<mit_float> * preds,
                  bool is_norm = true);
 
     /*!
      * \brief gradient based on batch data for mpi
      */
     void Gradient(const dmlc::RowBlock<mit_uint> & batch,
-                  mit::SArray<mit_float> & preds,
+                  std::vector<mit_float> & preds,
                   mit::SArray<mit_float> * grads);
 
 
   public:
     /*! \brief prediction based one instance for mpi */
-    virtual mit_float Predict(
-        const dmlc::Row<mit_uint> & row,
-        const mit::SArray<mit_float> & weight,
-        bool is_norm) = 0;
+    virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                              const mit::SArray<mit_float> & weight,
+                              bool is_norm) = 0;
 
     /*! \brief calculate model gradient based one instance for mpi */
     virtual void Gradient(const dmlc::Row<mit_uint> & row,
@@ -92,10 +91,9 @@ class Model {
                           mit::SArray<mit_float> * grad) = 0;
 
     /*! \brief prediction based on one instance for ps */
-    virtual mit_float Predict(
-        const dmlc::Row<mit_uint> & row,
-        mit::PMAPT & weight,
-        bool is_norm) = 0;
+    virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                              mit::PMAPT & weight,
+                              bool is_norm) = 0;
 
     /*! \brief calcuate gradient based on one instance for ps */
     virtual void Gradient(const dmlc::Row<mit_uint> & row,

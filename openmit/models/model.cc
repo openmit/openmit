@@ -57,8 +57,8 @@ void Model::Gradient(
 } // method Gradient
 
 void Model::Predict(const dmlc::RowBlock<mit_uint> & batch, 
-                    mit::SArray<mit_float> & weight, 
-                    mit::SArray<mit_float> * preds, 
+                    mit::SArray<mit_float> & weight,
+                    std::vector<mit_float> * preds, 
                     bool is_norm) {
   CHECK_EQ(batch.size, preds->size());
   // TODO OpenMP?
@@ -68,7 +68,7 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
 } // method Predict
 
 void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
-                     mit::SArray<mit_float> & preds, 
+                     std::vector<mit_float> & preds, 
                      mit::SArray<mit_float> * grads) {
   CHECK_EQ(batch.size, preds.size());
   for (auto i = 0u; i < batch.size; ++i) {
