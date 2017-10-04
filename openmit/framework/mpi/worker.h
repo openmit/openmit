@@ -8,6 +8,7 @@
 #include "openmit/common/data/data.h"
 #include "openmit/common/parameter/admm_param.h"
 #include "openmit/common/parameter/cli_param.h"
+#include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/dstruct/sarray.h"
@@ -28,7 +29,9 @@ class MPIWorker {
     /*! 
      * \brief compute local model using global model and partial-data
      */
-    void Run(mit_float * global, const size_t size, const size_t epoch);
+    void Run(mit_float * global, 
+             const size_t size, 
+             const size_t epoch);
 
     /*! 
      * \brief update dual parameter using global model. 
@@ -36,6 +39,16 @@ class MPIWorker {
      *          dual_[j] <- dual_[j] + \rho * (w_[j] - \theta[j])
      */
     void UpdateDual(mit_float * global, const size_t size);
+
+    /*!
+     * \brief metric at the application of each epoch (use global model)
+     * \param data_type "train"/"valid"/"test"
+     * \param global global model (theta)
+     * \param size size of theta
+     */
+    std::string Metric(const std::string & data_type, 
+                       mit_float * global, 
+                       const size_t size);
 
     /*! \brief get local model */
     inline mit_float * Data() { return weight_.data(); }
@@ -63,19 +76,31 @@ class MPIWorker {
     /*! \brief debug dual_ */
     void DebugDual();
 
+    /*! \brief metric predict */
+    void MetricPredict(mit::DMatrix * data, 
+                       mit_float * global, 
+                       const size_t & size, 
+                       std::vector<float> & preds, 
+                       std::vector<float> & labels);
+
   private:
     /*! \brief model */
     std::shared_ptr<mit::Model> model_;
     /*! \brief optimizer */
     std::shared_ptr<mit::Opt> opt_;
+    /*! \brief metric */
+    std::vector<mit::Metric *> metrics_; 
+
     /*! \brief client parameter */
     mit::CliParam cli_param_;
     /*! \brief algorithm framework params */
     mit::AdmmParam admm_param_;
+    
     /*! \brief local model parameter. for lr */
     mit::SArray<mit_float> weight_;
     /*! \brief dual variables parameter */
     mit::SArray<mit_float> dual_;
+    
     /*! \brief train data  */
     std::shared_ptr<mit::DMatrix> train_;
     /*! \brief valid data  */

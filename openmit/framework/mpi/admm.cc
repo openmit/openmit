@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "dmlc/logging.h"
 #include "dmlc/timer.h"
 #include "rabit/rabit.h"
@@ -35,11 +36,11 @@ void Admm::Run() {
       << cli_param_.task_type;
   }
   double endTime = dmlc::GetTime();
-  rabit::TrackerPrintf("@worker[%d] [OpenMIT-ADMM] \
-      The total time of the task %s is %g min \n", 
-      rabit::GetRank(), 
-      cli_param_.task_type.c_str(), 
-      (endTime-startTime)/60);
+  rabit::TrackerPrintf("@worker[%d] [OpenMIT-MPI] \
+      The total time of the task %s is %g s \n", 
+      rabit::GetRank(), cli_param_.task_type.c_str(), 
+      endTime-startTime);
+
   rabit::Finalize();
 }
 
@@ -51,13 +52,17 @@ void Admm::RunTrain() {
     mpi_worker_->UpdateDual(mpi_server_->Data(), mpi_server_->Size());
     
     if (cli_param_.debug) { 
-      mpi_worker_->Debug(); 
-      mpi_server_->DebugTheta();
+      mpi_worker_->Debug(); mpi_server_->DebugTheta();
     }
-    // metric TODO
+    // metric 
+    std::string metric_train = mpi_worker_->Metric(
+      std::string("train"), mpi_server_->Data(), mpi_server_->Size());
+    std::string metric_valid = mpi_worker_->Metric(
+      std::string("valid"), mpi_server_->Data(), mpi_server_->Size());
     if (rabit::GetRank() == rabit::GetWorldSize() - 1) {
       // TODO  metric allreduce & broadcast
-      LOG(INFO) << "finished " << iter+1 << "-th epoch. metric ...";
+      rabit::TrackerPrintf("finished %d-th epoch. [train] %s\t[valid] %s", 
+                          iter + 1, metric_train.c_str(), metric_valid.c_str());
     }
   }
   if (rabit::GetRank() == 0) {
