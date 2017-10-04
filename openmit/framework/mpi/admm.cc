@@ -59,10 +59,10 @@ void Admm::RunTrain() {
       std::string("train"), mpi_server_->Data(), mpi_server_->Size());
     std::string metric_valid = mpi_worker_->Metric(
       std::string("valid"), mpi_server_->Data(), mpi_server_->Size());
+
     if (rabit::GetRank() == rabit::GetWorldSize() - 1) {
-      // TODO  metric allreduce & broadcast
       rabit::TrackerPrintf("finished %d-th epoch. [train] %s\t[valid] %s", 
-                          iter + 1, metric_train.c_str(), metric_valid.c_str());
+                           iter + 1, metric_train.c_str(), metric_valid.c_str());
     }
   }
   if (rabit::GetRank() == 0) {

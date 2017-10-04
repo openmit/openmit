@@ -159,10 +159,7 @@ void MPIWorker::UpdateDual(mit_float * global, const size_t size) {
   }
 }
 
-std::string MPIWorker::Metric(const std::string & data_type, 
-                              mit_float * global, 
-                              const size_t size) {
-  std::string result;
+std::string MPIWorker::Metric(const std::string & data_type, mit_float * global, const size_t size) {
   // predict
   std::vector<float> preds;
   std::vector<float> labels;
@@ -175,11 +172,24 @@ std::string MPIWorker::Metric(const std::string & data_type,
   } else {
     LOG(ERROR) << "data_type not in [train, valid, test]";
   }
-  // metric 
-  for (auto i = 0u; i < metrics_.size(); ++i) {
+  // metric computing
+  auto metric_count = metrics_.size();
+  std::vector<float> metric_partial(metric_count, 0.0f);
+  for (auto i = 0u; i < metric_count; ++i) {
     float value = metrics_[i]->Eval(preds, labels);
+    metric_partial[i] = value;
+  }
+  // allreduce and broadcast 
+  rabit::Allreduce<rabit::op::Sum>(metric_partial.data(), metric_count);
+  for (auto i = 0u; i < metric_partial.size(); ++i) {
+    metric_partial[i] /= rabit::GetWorldSize();
+  }
+  rabit::Broadcast(metric_partial.data(), sizeof(mit_float) * metric_count, 0);
+  // metric result
+  std::string result;
+  for (auto i = 0u; i < metrics_.size(); ++i) {
     result += std::string(metrics_[i]->Name());
-    result += std::string(": ") + mit::NumToString<float>(value);
+    result += std::string(": ") + mit::NumToString<float>(metric_partial[i]);
     if (i != metrics_.size() - 1) result += ", ";
   }
   return result;
