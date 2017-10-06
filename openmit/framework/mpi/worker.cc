@@ -105,36 +105,28 @@ void MPIWorker::Run(mit_float * global,
   weight_.clear(); 
   weight_.CopyFrom(global, size);
 
-  size_t progress = 0;
+  uint64_t progress = 0u;
   CHECK(cli_param_.job_progress > 0) << "parameter job_progress > 0";
   size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
   train_->BeforeFirst();
   while (train_->Next()) {
     auto & block = train_->Value();
     // TODO optimized to matrix/vector computation
-    size_t end = 0;
-    if (block.size <= cli_param_.batch_size) {
-      MiniBatch(block);
-    } else {
-      for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
-        end = i + cli_param_.batch_size >= block.size ? 
-          block.size : i + cli_param_.batch_size;
-        const auto batch = block.Slice(i, end);
-        if (cli_param_.is_progress) {
-          if (progress % progress_interval == 0) {
-            LOG(INFO) << "@worker[" << rabit::GetRank() 
-              << "] progress <epoch, inst>: <" 
-              << epoch << ", " << progress << ">";
-          }
-          progress += (end - i);
-          if ((end - i) != cli_param_.batch_size) {
-            LOG(INFO) << "@worker[" << rabit::GetRank() 
-              << "] progress <epoch, inst>: <" 
-              << epoch << ", " << end << ">";
-          }
-        }
-        MiniBatch(batch);
+    uint32_t end = 0;
+    for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
+      end = i + cli_param_.batch_size >= block.size ? 
+        block.size : i + cli_param_.batch_size;
+      if (progress % progress_interval == 0 && cli_param_.is_progress) {
+        LOG(INFO) << "@worker[" << rabit::GetRank() << "] progress \
+                  <epoch, inst>: <" << epoch << ", " << progress << ">";
       }
+      progress += (end - i);
+      if ((end - i) != cli_param_.batch_size && cli_param_.is_progress) {
+        LOG(INFO) << "@worker[" << rabit::GetRank() << "] progress \
+                  <epoch, inst>: <" << epoch << ", " << end << ">";
+      }
+      const auto batch = block.Slice(i, end);
+      MiniBatch(batch);
     }
   } // while
 }

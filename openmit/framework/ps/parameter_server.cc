@@ -12,19 +12,17 @@ PS::PS(const mit::KWArgs & kwargs) {
   // feature max feature dimension
   uint64_t max_key = param_.max_dimension > 0 
     ? param_.max_dimension : std::numeric_limits<uint64_t>::max();
+  // register env variable for ps-lite
   setenv("DMLC_MAX_DIMENSION", std::to_string(max_key).c_str(), 1);
   LOG(INFO) << "param_.max_dimension: " << getenv("DMLC_MAX_DIMENSION");
 }
 
 void PS::Run() {
-  LOG(INFO) << "PS::Run beginning";
   ps::Start();
   LaunchScheduler();
   LaunchServer();
   LaunchWorker();
   ps::Finalize();
-  LOG(INFO) << "PS::Run finalize!";
-  LOG(INFO) << "sizeof(ps::Key): " << sizeof(ps::Key);
   // TODO
 }
 
