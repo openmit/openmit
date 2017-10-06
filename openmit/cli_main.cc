@@ -3,7 +3,7 @@
 
 int main(int argc, char * argv[]) {
   CHECK_GE(argc, 2) << "Usage: " 
-    << argv[0] << " mit.conf [k1=v1] [k2=v2] ...";
+    << argv[0] << " openmit.conf [k1=v1] [k2=v2] ...";
 
   mit::ArgParser parser;
   if (strcmp(argv[1], "none")) parser.ReadFile(argv[1]);
@@ -11,6 +11,5 @@ int main(int argc, char * argv[]) {
   const mit::KWArgs kwargs = parser.GetKWArgs();
   std::unique_ptr<mit::MILearner> milearner(mit::MILearner::Create(kwargs)); 
   milearner->Run();
-  LOG(INFO) << "cli_main done.";
   return 0;
 }
