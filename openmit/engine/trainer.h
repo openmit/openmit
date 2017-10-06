@@ -11,13 +11,12 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
 #include "dmlc/logging.h"
-
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
 #include "openmit/entity/unit.h"
+#include "openmit/entity/entry_meta.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
 #include "openmit/optimizer/optimizer.h"
@@ -25,24 +24,9 @@
 #include "openmit/loss/loss.h"
 
 namespace mit {
-
-class TrainerParam : public dmlc::Parameter<TrainerParam> {
-  public:
-    std::string model_type;
-    std::string metric;
-    std::string loss_type;
-    float nsample_rate;
-
-    DMLC_DECLARE_PARAMETER(TrainerParam) {
-      DMLC_DECLARE_FIELD(model_type).set_default("lr");
-      DMLC_DECLARE_FIELD(metric).set_default("logloss");
-      DMLC_DECLARE_FIELD(loss_type).set_default("logit");
-      DMLC_DECLARE_FIELD(nsample_rate).set_default(1.0f);
-    }
-}; // class TrainerParam
-
 /*!
- * \brief trainer template for distributed machine learning framework
+ * \brief trainer template used worker node 
+ *  for distributed parameter server framework
  */
 class Trainer {
   public:
@@ -61,6 +45,12 @@ class Trainer {
         std::vector<ps::Key> & keys,
         std::vector<mit_float> & rets,
         std::vector<mit_float> * vals);
+    
+    void Run(const dmlc::RowBlock<mit_uint> & batch, 
+             std::vector<ps::Key> & keys, 
+             std::vector<mit_float> & weights, 
+             std::vector<int> & lens, 
+             std::vector<mit_float> * grads);
 
     /*! \brief trainer logic for mpi interface */
     // TODO
@@ -79,7 +69,7 @@ class Trainer {
 
   protected:
     /*! \brief parameter */
-    mit::TrainerParam param_;
+    mit::CliParam cli_param_;
     /*! \brief model */
     mit::Model * model_;
     /*! \brief model optimizer */
@@ -89,6 +79,8 @@ class Trainer {
     /*! \brief loss function */
     //std::shared_ptr<mit::Loss> loss_;
     mit::Loss * loss_;
+    /*! \brief entry meta information */
+    std::unique_ptr<mit::EntryMeta> entry_meta_;
 
 }; // class Trainer
 

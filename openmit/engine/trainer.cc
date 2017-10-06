@@ -2,35 +2,45 @@
 
 namespace mit {
 
-DMLC_REGISTER_PARAMETER(TrainerParam);
-
 Trainer::Trainer(const mit::KWArgs & kwargs) {
   Init(kwargs);
 }
 
 void Trainer::Init(const mit::KWArgs & kwargs) {
-  param_.InitAllowUnknown(kwargs);
+  cli_param_.InitAllowUnknown(kwargs);
   model_ = mit::Model::Create(kwargs);
-  metric_ = mit::Metric::Create(param_.metric);
-  loss_  = mit::Loss::Create(param_.loss_type);
+  metric_ = mit::Metric::Create(cli_param_.metric);
+  loss_ = mit::Loss::Create(cli_param_.loss);
+  entry_meta_.reset(new mit::EntryMeta(cli_param_));
 }
 
 void Trainer::Run(
-    const dmlc::RowBlock<mit_uint> & batch, 
-    std::vector<ps::Key> & keys,
-    std::vector<mit_float> & rets,
-    std::vector<mit_float> * vals) {
+        const dmlc::RowBlock<mit_uint> & batch,
+        std::vector<ps::Key> & keys,
+        std::vector<mit_float> & rets,
+  std::vector<mit_float> * vals) {
+    // TMP
+  }
+
+void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> & keys, std::vector<mit_float> & weights, std::vector<int> & lens, std::vector<mit_float> * grads) {
+
+  // step1: KVPairs -> Map<keys, offset_of_weights>
+  // step2: model_->Predict(batch, mapoffset, weights, &preds);
+  // step3: model_->Gradient(batch, mapoffset, weights, preds, grads);
 
   auto nfeature = keys.size();
-  auto unit_size = 
-    model_->Param().field_num * model_->Param().k + 1;
   // map weight
-  std::unordered_map<mit_uint, mit::Unit * > map_weight;
-
+  std::unordered_map<mit_uint, size_t> key2offset;
+  size_t offset = 0;
+  for (auto i = 0u; i < nfeature; ++i) {
+    key2offset[keys[i]] = offset;
+    offset += lens[i];
+  }
+  /*
   for (auto i = 0u; i < nfeature; ++i) {
     mit::Unit * unit = new mit::Unit(unit_size);
     unit->CopyFrom(
-        rets.begin() + i*unit_size, rets.begin() + (i+1)*unit_size);
+        weights.begin() + i*unit_size, weights.begin() + (i+1)*unit_size);
     map_weight.insert(std::make_pair(keys[i], unit));
   }
   
@@ -54,11 +64,12 @@ void Trainer::Run(
         unit->Data(), unit->Data() + unit->Size());
     delete unit;
   }
+  */
 }
 
 float Trainer::Eval(mit::DMatrix * data, 
                     std::vector<ps::Key> & keys, 
-                    std::vector<mit_float> & rets) {
+                    std::vector<mit_float> & weights) {
   // 1. predict
   auto nfeature = keys.size();
   auto unit_size = 
@@ -69,7 +80,7 @@ float Trainer::Eval(mit::DMatrix * data,
   for (auto i = 0u; i < nfeature; ++i) {
     mit::Unit * unit = new mit::Unit(unit_size);
     unit->CopyFrom(
-        rets.begin() + i*unit_size, rets.begin() + (i+1)*unit_size);
+        weights.begin() + i*unit_size, weights.begin() + (i+1)*unit_size);
     map_weight.insert(std::make_pair(keys[i], unit));
   }
   
