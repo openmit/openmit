@@ -70,7 +70,5 @@ inline void DMatrix
       uri.c_str(), partid, npart, data_format.c_str());
 }
 
-
 } // namespace mit
-
 #endif // OPENMIT_COMMON_DATA_DATA_H_

@@ -38,17 +38,17 @@ class SGDParam : public dmlc::Parameter<SGDParam> {
  * \brief optimizer: gradient descent algorithm
  *        support: sgd/batch-gd
  */
-class SGD : public Opt {
+class SGDOptimizer : public Optimizer {
   public:
     /*! \brief constructor for SGD */
-    SGD(const mit::KWArgs & kwargs);
+    SGDOptimizer(const mit::KWArgs & kwargs);
     
     /*! \brief destructor */
-    ~SGD();
+    ~SGDOptimizer();
     
     /*! \brief get SGD optimizer */
-    static SGD * Get(const mit::KWArgs & kwargs) {
-      return new SGD(kwargs);
+    static SGDOptimizer * Get(const mit::KWArgs & kwargs) {
+      return new SGDOptimizer(kwargs);
     }
     
     void Init(mit_uint dim) override {}
@@ -76,6 +76,14 @@ class SGD : public Opt {
                 const uint32_t size, 
                 const mit_float g, 
                 mit_float & w) override;
+    
+    void Update(const mit::OptimizerParam & param, 
+                const mit_uint & key, 
+                const size_t & idx, 
+                const mit_float & g,
+                mit_float & w,
+                mit::Entry * weight = nullptr) override;
+
 
   private:
     /*! \brief gradient descent parameter */
@@ -85,25 +93,34 @@ class SGD : public Opt {
 DMLC_REGISTER_PARAMETER(SGDParam);
 
 
-SGD::SGD(const mit::KWArgs & kwargs) {
+SGDOptimizer::SGDOptimizer(const mit::KWArgs & kwargs) {
   param_.InitAllowUnknown(kwargs);
 }
 
-SGD::~SGD() {}
+SGDOptimizer::~SGDOptimizer() {}
 
-void SGD::Update(const mit_uint idx, 
+void SGDOptimizer::Update(const mit_uint idx, 
                  const mit_float g, 
                  mit_float & w) {
   w -= param_.lr * g;
 }
 
-void SGD::Update(const mit_uint key, 
+void SGDOptimizer::Update(const mit_uint key, 
                  const uint32_t idx, 
                  const uint32_t size, 
                  const mit_float g, 
                  mit_float & w) {
   w -= param_.lr * g;
-} // SGD::Update
+} // SGDOptimizer::Update
+
+void SGDOptimizer::Update(const mit::OptimizerParam & param, 
+                          const mit_uint & key, 
+                          const size_t & idx, 
+                          const mit_float & g,
+                          mit_float & w, 
+                          mit::Entry * weight) {
+  w -= param.lr * g;
+} // SGDOptimizer::Update
 
 } // namespace mit
 #endif // OPENMIT_OPTIMIZER_SGD_H_

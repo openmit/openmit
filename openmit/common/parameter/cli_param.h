@@ -129,7 +129,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(l1).set_default(3);
       DMLC_DECLARE_FIELD(l2).set_default(4);
       DMLC_DECLARE_FIELD(w_minv).set_default(1e-8);
-      DMLC_DECLARE_FIELD(save_peroid).set_default(2);
+      DMLC_DECLARE_FIELD(save_peroid).set_default(0);
     }
 }; // class CliParam
 

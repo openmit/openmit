@@ -13,20 +13,28 @@
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
 #include "openmit/entity/unit.h"
+#include "openmit/entity/entry.h"
 #include "openmit/tools/dstruct/sarray.h"
 
 namespace mit {
+
+struct OptimizerParam {
+  /*! \brief learning rate */
+  float lr = 0.01;
+  // TODO all optimizer parameter
+}; // class optimizer
+
 /*!
  * \brief optimizer template for varies optimization algorithm
  */
-class Opt {
+class Optimizer {
   public:
     /*! \brief create a optimizer */
-    static Opt * Create(const mit::KWArgs & kwargs, 
+    static Optimizer * Create(const mit::KWArgs & kwargs, 
                         std::string & optimizer);
     
     /*! \brief destructor */
-    virtual ~Opt() {}
+    virtual ~Optimizer() {}
     
     /*! 
      * \brief initialize optimizer middle variable
@@ -40,6 +48,11 @@ class Opt {
 
     /*! \brief parameter updater for ps */
     void Run(PMAPT & map_grad, PMAPT * weight);
+    
+    void Run(const ps::SArray<mit_uint> & keys, 
+             const ps::SArray<mit_float> & vals, 
+             const ps::SArray<int> & lens, 
+             PMAPT1 * weight);
   
   protected:
     /*! 
@@ -55,6 +68,14 @@ class Opt {
                         const uint32_t size, 
                         const mit_float g, 
                         mit_float & w) = 0;
+    
+    /*! \brief optimizer implementation for ps interface */
+    virtual void Update(const mit::OptimizerParam & param, 
+                        const mit_uint & key, 
+                        const size_t & idx, 
+                        const mit_float & g,
+                        mit_float & w,
+                        mit::Entry * weight = nullptr) = 0;
 
     /*!
      * \brief parameter updater for mpi
@@ -66,7 +87,10 @@ class Opt {
                         const mit_float g, 
                         mit_float & w) = 0;
 
-}; // class Opt
-} // namespace mit
+  protected:
+    mit::OptimizerParam param_w_;
+    mit::OptimizerParam param_v_;
+}; // class Optimizer
 
+} // namespace mit
 #endif // OPENMIT_OPTIMIZER_OPTIMIZER_H_

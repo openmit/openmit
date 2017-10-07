@@ -26,6 +26,19 @@ class LR : public Model {
       return new LR(kwargs);
     }
 
+    /*! \brief prediction based one instance for ps */
+    mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                      const std::vector<mit_float> & weights, 
+                      std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, 
+                      bool is_norm) override;
+    
+    /*! \brief calcuate gradient based on one instance for ps */
+    void Gradient(const dmlc::Row<mit_uint> & row, 
+                  const std::vector<mit_float> & weights,
+                  std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                  const mit_float & preds, 
+                  std::vector<mit_float> * grads) override;
+
     /*! \brief prediction based one instance for mpi */
     mit_float Predict(const dmlc::Row<mit_uint> & row,
                       const mit::SArray<mit_float> & weight,

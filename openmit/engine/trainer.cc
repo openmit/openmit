@@ -23,39 +23,28 @@ void Trainer::Run(
   }
 
 void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> & keys, std::vector<mit_float> & weights, std::vector<int> & lens, std::vector<mit_float> * grads) {
+  CHECK_EQ(keys.size(), lens.size());
+  CHECK_EQ(weights.size(), grads->size());
 
-  // step1: KVPairs -> Map<keys, offset_of_weights>
-  // step2: model_->Predict(batch, mapoffset, weights, &preds);
-  // step3: model_->Gradient(batch, mapoffset, weights, preds, grads);
-
-  auto nfeature = keys.size();
-  // map weight
-  std::unordered_map<mit_uint, size_t> key2offset;
+  size_t nfeature = keys.size();
+  // key -> (offset, count) 
+  std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset;
   size_t offset = 0;
-  for (auto i = 0u; i < nfeature; ++i) {
-    key2offset[keys[i]] = offset;
+  for (size_t i = 0; i < nfeature; ++i) {
+    key2offset[keys[i]] = std::make_pair(offset, lens[i]);
     offset += lens[i];
   }
-  /*
-  for (auto i = 0u; i < nfeature; ++i) {
-    mit::Unit * unit = new mit::Unit(unit_size);
-    unit->CopyFrom(
-        weights.begin() + i*unit_size, weights.begin() + (i+1)*unit_size);
-    map_weight.insert(std::make_pair(keys[i], unit));
-  }
-  
+
   // predict
   std::vector<mit_float> preds(batch.size);
-  model_->Predict(batch, map_weight, &preds);
-  
-  // gradient
-  std::unordered_map<mit_uint, mit::Unit * > map_grad;
-  for (auto i = 0u; i < nfeature; ++i) {
-    mit::Unit * unit = new mit::Unit(unit_size, 0.0);
-    map_grad.insert(std::make_pair(keys[i], unit));
-  }
-  model_->Gradient(batch, preds, map_weight, &map_grad);
+  model_->Predict(batch, weights, key2offset, preds);
 
+  // gradient
+  model_->Gradient(batch, weights, key2offset, preds, grads);
+  
+  //model_->Gradient(batch, preds, map_weight, &map_grad);
+
+  /*
   // map_grad_ --> vals
   vals->clear();
   for (auto i = 0u; i < nfeature; i++) {

@@ -53,6 +53,18 @@ class Model {
     virtual ~Model() {}
 
     /*! \brief prediction based on data block for ps */
+    void Predict(const dmlc::RowBlock<mit_uint> & batch, 
+                 const std::vector<mit_float> & weights,
+                 std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                 std::vector<mit_float> & preds,
+                 bool is_norm = true);
+
+    void Gradient(const dmlc::RowBlock<mit_uint> & batch, 
+                  const std::vector<mit_float> & weights,
+                  std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                  const std::vector<mit_float> & preds,
+                  std::vector<mit_float> * grads);
+
     void Predict(const dmlc::RowBlock<mit_uint> & row_block,
                  mit::PMAPT & weight,
                  std::vector<mit_float> * preds,
@@ -89,6 +101,18 @@ class Model {
     virtual void Gradient(const dmlc::Row<mit_uint> & row,
                           const mit_float & pred,
                           mit::SArray<mit_float> * grad) = 0;
+
+    virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                              const std::vector<mit_float> & weights, 
+                              std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, 
+                              bool is_norm) = 0;
+    
+    virtual void Gradient(const dmlc::Row<mit_uint> & row, 
+                          const std::vector<mit_float> & weights,
+                          std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                          const mit_float & preds, 
+                          std::vector<mit_float> * grads) = 0;
+
 
     /*! \brief prediction based on one instance for ps */
     virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 

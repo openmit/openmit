@@ -12,28 +12,40 @@
 #include <stddef.h>
 #include <vector>
 #include "openmit/common/base.h"
+#include "openmit/common/parameter/cli_param.h"
 #include "openmit/tools/dstruct/dstring.h"
 
 namespace mit {
 /*! 
- * \brief w + (f1 v11 v12 v13 v14 f2 v21 v22 ...)
+ * \brief w + (v11 v12 v13 v14 v21 v22 ...)
  */
 struct Entry {
   /*! \brief constructor */
-  Entry(mit_uint featid, 
-        size_t embedding_size, 
-        std::vector<mit_uint> fields, 
-        mit_uint fieldid) :
-  featid(featid), fieldid(fieldid), embedding_size(embedding_size) {
-    length = 1 + fields.size() * (1 + embedding_size);
-    wv = new mit_float[length]();
-    for (auto i = 0u; i < fields.size(); ++i) {
-      wv[1 + i * (1 + embedding_size)] = fields[i];
+  Entry(const mit::CliParam & cli_param, size_t field_size = 0, mit_uint fieldid = 0l) {
+    embedding_size = cli_param.embedding_size;
+    // only w parameter. (lr || ffm that not cross field)
+    if (cli_param.model == "lr" || field_size == 0) {
+      length = 1;
+      embedding_size = 0;
+    } else if (cli_param.model == "fm") {
+      length = 1 + embedding_size;
+    } else if (cli_param.model == "ffm" && fieldid > 0l) {
+      length = 1 + field_size * embedding_size;
+      fieldid = fieldid;
+    } else {
+      LOG(FATAL) << "parameter error. model: " << cli_param.model 
+        << ", field_size: " << field_size 
+        << ", fieldid: " << fieldid; 
     }
+    wv = new mit_float[length]();
+    // init 
+    for (auto i = 0u; i < length; ++i) { wv[i] = 0.0f; }
   }
 
-  /*! \brief feature key */
-  mit_uint featid;
+  ~Entry() {
+    if (wv) { delete[] wv; wv = nullptr; }
+  }
+
   /*! \brief feild key */
   mit_uint fieldid;
   /*! 
@@ -47,32 +59,43 @@ struct Entry {
   /*! \brief embedding size */
   size_t embedding_size;
 
-  /*! 
-   * \brief raw feature key 
-   */
-  inline mit_uint Key() const {
-    return featid;
+  /*! \brief field size */
+  inline size_t field_size() const {
+    return (length - 1) / embedding_size;
   }
-  /*! \brief new feature key if libfm */
-  inline mit_uint NewKey(size_t nbit) const {
-    return (featid << nbit) + fieldid;
+
+  inline mit_float Get(size_t idx) {
+    return *(wv + idx);
+  }
+
+  inline void Set(size_t idx, mit_float value) {
+    *(wv + idx) = value;
+  }
+
+  inline mit_float * Data() { return wv; }
+
+  inline mit_float GetW() { return *wv; }
+
+  inline void SetW(const mit_float & weight) {
+    *wv = weight;
   }
 
   /*! 
    * \brief i-th feild latent vector info 
    */
   inline mit_float * GetV(const size_t & index) {
-    return wv + (1 + index * (1 + embedding_size));
+    return wv + (1 + index * embedding_size);
   }
 
   inline void SetV(const size_t & index, 
                    const size_t & f, 
                    const mit_float & value) {
-    auto offset = 1 + index * (1 + embedding_size) + (f + 1);
+    auto offset = 1 + index * embedding_size + f;
     *(wv + offset) = value;
   }
-}; 
+};  // struct Entry
+
+typedef std::unordered_map<mit_uint, mit::Entry * > PMAPT1;
 
 } // namespace mit 
-
 #endif // OPENMIT_ENTITY_ENTRY_H_

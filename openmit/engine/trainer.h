@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 #include "dmlc/logging.h"
+#include "ps/base.h"
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
@@ -19,7 +20,6 @@
 #include "openmit/entity/entry_meta.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
-#include "openmit/optimizer/optimizer.h"
 
 #include "openmit/loss/loss.h"
 
@@ -46,6 +46,7 @@ class Trainer {
         std::vector<mit_float> & rets,
         std::vector<mit_float> * vals);
     
+    /*! \brief trainer logic for ps interface */
     void Run(const dmlc::RowBlock<mit_uint> & batch, 
              std::vector<ps::Key> & keys, 
              std::vector<mit_float> & weights, 
@@ -72,8 +73,6 @@ class Trainer {
     mit::CliParam cli_param_;
     /*! \brief model */
     mit::Model * model_;
-    /*! \brief model optimizer */
-    mit::Opt * opt_;
     /*! \brief metric */
     mit::Metric * metric_;
     /*! \brief loss function */

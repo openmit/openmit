@@ -11,6 +11,24 @@ LR::LR(const mit::KWArgs & kwargs) {
   }
 }
 
+mit_float LR::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, bool is_norm) {
+  mit_float wTx = 0;
+  for (auto idx = 0u; idx < row.length; ++idx) {
+    mit_uint featid = row.get_index(idx);
+    if (key2offset.find(featid) == key2offset.end()) {
+      LOG(FATAL) << "featid: " << featid << " not in keys (key2offset)";
+    }
+    auto offset_count = key2offset[featid];
+    CHECK(offset_count.second == 1) << "length of entry != 1 for lr model.";
+    auto offset = offset_count.first;
+    wTx += weights[offset] * row.get_value(idx);
+  }
+  if (is_norm) return mit::math::sigmoid(wTx);
+  return wTx;
+}
+
+
+
 mit_float LR::Predict(const dmlc::Row<mit_uint> & row,
                       mit::PMAPT & weight, 
                       bool is_norm) {
@@ -41,6 +59,28 @@ void LR::Gradient(const dmlc::Row<mit_uint> & row,
     mit_uint feati = row.index[i];
     mit_float partial_wi = residual * row.get_value(i) * instweight;
     (*grad)[feati]->Set(0, (*grad)[feati]->Get(0) + partial_wi);
+  }
+}
+
+void LR::Gradient(const dmlc::Row<mit_uint> & row, 
+                  const std::vector<mit_float> & weights,
+                  std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                  const mit_float & preds, 
+                  std::vector<mit_float> * grads) {
+  auto max_length = weights.size();
+  auto instweight = row.get_weight();
+  mit_float residual = preds - row.get_label();
+  size_t offset = 0;
+  for (auto idx = 0u; idx < row.length; ++idx) {
+    auto key = row.get_index(idx);
+    CHECK(key2offset.find(key) != key2offset.end()) 
+      << "key: " << key << " not in keys";
+    auto offset_count = key2offset[key];
+    offset = offset_count.first;
+    CHECK(offset < max_length) << "offset: " 
+      << offset << " out of range. max_length: " << max_length;
+    CHECK(offset_count.second == 1) << "length of entry != 1 for lr model.";
+    (*grads)[offset] += residual * row.get_value(idx) * instweight;
   }
 }
 
