@@ -43,7 +43,6 @@ void Scheduler::Handle(const ps::SimpleData & reqinfo, ps::SimpleApp * app) {
     case signal::METRIC:
       {
         mutex_.lock();
-        std::cout << "scheduler METRIC msg.meta.customer_id: " <<msg.meta.customer_id << std::endl;
         UpdateMetric(reqinfo);
         mutex_.unlock();
       }
@@ -51,28 +50,21 @@ void Scheduler::Handle(const ps::SimpleData & reqinfo, ps::SimpleApp * app) {
     case signal::WORKER_COMPLETE:
       {
         mutex_.lock();
-        std::cout << "scheduler WORKER_COMPLETE msg.meta.customer_id: " <<msg.meta.customer_id << std::endl;
         complete_worker_number_++;
         mutex_.unlock();
       }
       break;
     default:
-      LOG(ERROR) << "can not recognize signal.";
+      LOG(FATAL) << "can not recognize signal.";
   }
 }
 
 void Scheduler::ExitCondition() {
-  std::cout << "complete_worker_number_: " << complete_worker_number_ << ", ps::NumWorkers(): " << ps::NumWorkers() 
-    << "complete_server_number_: " << complete_server_number_ << ", ps::NumServers(): " << ps::NumServers() << std::endl;
   if (complete_worker_number_ == ps::NumWorkers()) {
-    std::cout << "Scheduler::ExitCondition begin" << std::endl;
     mutex_.lock();
     exit_ = true;
     mutex_.unlock();
-    std::cout << "Scheduler::ExitCondition begin notify_all" << std::endl;
     cond_.notify_all();
-    std::cout << "Scheduler::ExitCondition done notify_all" << std::endl;
-    std::cout << "Scheduler::ExitCondition done" << std::endl;
   }
 }
 

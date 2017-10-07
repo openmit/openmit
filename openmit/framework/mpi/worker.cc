@@ -72,8 +72,8 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
     weight_.resize(max_dim + 1, 0.0f);
     dual_.resize(max_dim + 1, 0.0f);
     // optimizer
-    opt_.reset(mit::Opt::Create(kwargs, cli_param_.optimizer));
-    opt_->Init(max_dim);
+    optimizer_.reset(mit::Optimizer::Create(kwargs, cli_param_.optimizer));
+    optimizer_->Init(max_dim);
     LOG(INFO) << "@worker[" <<  rabit::GetRank() 
       << "] mpiworker init done for train task.";
   } if (cli_param_.task_type == "predict") {
@@ -139,7 +139,7 @@ void MPIWorker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   mit::SArray<mit_float> grads(weight_.size(), 0.0f);
   model_->Gradient(batch, preds, &grads);
   // optimizer : weight_
-  opt_->Run(grads, &weight_);
+  optimizer_->Run(grads, &weight_);
 }
 
 // dual_[j] <-- dual_[j] + \rho * (w_[j] - \theta[j])

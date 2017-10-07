@@ -10,6 +10,7 @@ Server::Server(const mit::KWArgs & kwargs) {
 }
 
 void Server::Init(const mit::KWArgs & kwargs) {
+  cli_param_.InitAllowUnknown(kwargs);
   param_.InitAllowUnknown(kwargs);
 
   // kv_server_
@@ -17,13 +18,17 @@ void Server::Init(const mit::KWArgs & kwargs) {
   kv_server_->set_request_handle(std::bind(&Server::KVRequestHandle, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
+  // optimizer 
+  optimizer_.reset(mit::Optimizer::Create(kwargs, param_.optimizer));
+
+  // entry_meta_
+  entry_meta_.reset(new mit::EntryMeta(cli_param_));
   // updater_
-  updater_.reset(new mit::Updater(kwargs));
+  //updater_.reset(new mit::Updater(kwargs));
 }
   
 Server::~Server() {
   if (kv_server_) {
-    std::cout << "~KVmitServer. " << std::endl;
     delete kv_server_;
   }
   // TODO
@@ -37,8 +42,11 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
     switch(cmd) {
       case signal::UPDATE: 
         { 
-          Run(&req_data); 
-          //LOG(INFO) << "serverid: " << ps::MyRank() << ", weight_.size: " << weight_.size();
+          Run(req_data); 
+          if (cli_param_.debug) {
+            LOG(INFO) << "serverid: " << ps::MyRank() 
+              << ", weight_.size: " << weight1_.size();
+          }
         }
         break;
       case signal::SAVEINFO:
@@ -67,23 +75,67 @@ void Server::KVRequestHandle(const ps::KVMeta & req_meta,
     server->Response(req_meta);
   } else { // pull
     ps::KVPairs<mit_float> response;
-    response.keys = req_data.keys;
-    response.vals.resize(req_data.keys.size());
-    for (auto i = 0u; i < req_data.keys.size(); ++i) {
-      ps::Key key = req_data.keys[i]; 
-      if (weight_.find(key) == weight_.end()) {
-        mit::Unit * unit = new Unit(param_.field_num * param_.embedding_size + 1);
-        weight_.insert(std::make_pair(key, unit));
-      }
-      // Flating: unit -> vector
-      response.vals[i] = weight_[req_data.keys[i]]->Get(0);
-    }
+    ProcessPullRequest(req_data, response);
     server->Response(req_meta, response);
   }
 }
 
-void Server::Run(const ps::KVPairs<mit_float> * req_data) { 
-  updater_->Run(req_data, &weight_);
+void Server::ProcessPullRequest(const ps::KVPairs<mit_float> & req_data, ps::KVPairs<mit_float> & response) {
+  response.keys = req_data.keys;
+  response.vals.clear();
+  response.lens.clear();
+  if (cli_param_.data_format == "libfm") {
+    for (auto i = 0u; i < response.keys.size(); ++i) {
+      ps::Key key = response.keys[i];
+      if (weight1_.find(key) == weight1_.end()) {
+        size_t field_size = 0;
+        mit_uint fieldid = 0l;
+        if (key > 0l) {   // not bias item
+          fieldid = mit::DecodeField(key, cli_param_.nbit);
+          CHECK(fieldid > 0) << "fieldid error. fieldid: " << fieldid;
+          field_size = entry_meta_->CombineInfo(fieldid)->size();
+        }
+        mit::Entry * entry = new mit::Entry(
+          cli_param_, field_size, fieldid);
+        weight1_.insert(std::make_pair(key, entry));
+      }
+      mit::Entry * entry = weight1_[key];
+      ps::SArray<mit_float> wv; 
+      wv.CopyFrom(entry->Data(), entry->length);
+      // fill response.vals and response.lens
+      response.vals.append(wv);
+      response.lens.push_back(entry->length);
+    }
+  } else {  // data_format in ["auto", "libsvm"]
+    for (auto i = 0u; i < response.keys.size(); ++i) {
+      ps::Key key = response.keys[i];
+      if (weight1_.find(key) == weight1_.end()) {
+        mit::Entry * entry = new mit::Entry(cli_param_);
+        weight1_.insert(std::make_pair(key, entry));
+        if (cli_param_.debug) {
+          LOG(INFO) << "key not in weight_, new it. " << key;
+        }
+      }
+      mit::Entry * entry = weight1_[key];
+      ps::SArray<mit_float> wv; 
+      wv.CopyFrom(entry->Data(), entry->length);
+      // fill response.vals and response.lens
+      response.vals.append(wv);
+      response.lens.push_back(entry->length);
+    }
+  }
+  if (cli_param_.debug) {
+    LOG(INFO) << "pull request vals info: " 
+      << mit::DebugStr(response.vals.data(), 10); 
+  }
+}
+
+void Server::Run(const ps::KVPairs<mit_float> & req_data) { 
+  if (cli_param_.debug) {
+    LOG(INFO) << "grads from worker: " 
+      << mit::DebugStr(req_data.vals.data(), 10);
+  }
+  optimizer_->Run(req_data.keys, req_data.vals, req_data.lens, &weight1_);
 }
 
 void Server::SaveModel(dmlc::Stream * fo) {

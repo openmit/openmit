@@ -128,6 +128,7 @@ void Worker::Run() {
       kv_worker_->Push(keys, vals, lens, mit::signal::FINISH));
   */
   mit::Transaction::End(trans.get());
+  LOG(INFO) << "@worker[" << ps::MyRank() << "] epoch completation";
 } 
 
 float Worker::Metric(mit::DMatrix * data, std::vector<ps::Key> & feat_set) {
@@ -165,9 +166,14 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   std::vector<int> lens; 
   kv_worker_->Wait(
     kv_worker_->Pull(keys, &weights, &lens));
+
+  if (cli_param_.debug) {
+    LOG(INFO) << "weights from server: " 
+      << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+  }
   
   // worker computing 
-  std::vector<mit_float> grads;
+  std::vector<mit_float> grads(weights.size(), 0.0f);
   trainer_->Run(batch, keys, weights, lens, &grads);
 
   // push operation (gradient)

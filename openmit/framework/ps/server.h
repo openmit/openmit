@@ -22,8 +22,10 @@
 
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/engine/updater.h"
+#include "openmit/optimizer/optimizer.h"
 #include "openmit/entity/unit.h"
+#include "openmit/entity/entry.h"
+#include "openmit/entity/entry_meta.h"
 #include "openmit/framework/ps/signal.h"
 
 namespace mit {
@@ -80,7 +82,7 @@ class Server {
     void Init(const mit::KWArgs & kwargs);
 
     /*! \brief server core processing logic. */
-    void Run(const ps::KVPairs<mit_float> * req_data);
+    void Run(const ps::KVPairs<mit_float> & req_data);
 
   protected:
     /** 
@@ -94,6 +96,14 @@ class Server {
         const ps::KVPairs<mit_float> & req_data,
         ps::KVServer<mit_float> * server);
 
+    /*! 
+     * \brief process pull request (weight)
+     * \param req_data pull request information
+     * \param response request response information
+     */
+    void ProcessPullRequest(const ps::KVPairs<mit_float> & req_data, 
+                            ps::KVPairs<mit_float> & response);
+
   private:
     /*! \brief save model */
     void SaveModel(dmlc::Stream * fo);
@@ -102,17 +112,25 @@ class Server {
     void DumpModel(dmlc::Stream * fi, dmlc::Stream * fo);
   
   private:
+    /*! \brief client parameter info */
+    mit::CliParam cli_param_;
+
     /*! \brief server parameter info */
     mit::ServerParam param_;
     
     /*! \brief process push & pull request */
     ps::KVServer<mit_float> * kv_server_;
-    
-    /*! \brief updater */
-    std::shared_ptr<mit::Updater> updater_;
+
+    /*! \brief model optimizer */
+    std::shared_ptr<mit::Optimizer> optimizer_; 
+
+    /*! \brief entry meta info */
+    std::unique_ptr<mit::EntryMeta> entry_meta_;
 
     /*! \brief global model weight */
     std::unordered_map<ps::Key, mit::Unit * > weight_;
+
+    std::unordered_map<ps::Key, mit::Entry * > weight1_;
 
     /*! \brief mutex */
     //std::mutex mu_;

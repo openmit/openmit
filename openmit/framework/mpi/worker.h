@@ -87,7 +87,7 @@ class MPIWorker {
     /*! \brief model */
     std::shared_ptr<mit::Model> model_;
     /*! \brief optimizer */
-    std::shared_ptr<mit::Opt> opt_;
+    std::shared_ptr<mit::Optimizer> optimizer_;
     /*! \brief metric */
     std::vector<mit::Metric *> metrics_; 
 
