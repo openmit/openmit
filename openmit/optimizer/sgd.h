@@ -64,27 +64,20 @@ class SGDOptimizer : public Optimizer {
                 mit_float & w) override;
     
     /*! 
-     * \brief unit updater for parameter server interface
+     * \brief model updater for parameter server interface
+     * \param param optimizer parameter
      * \param key model feature id
-     * \param idx model unit index
-     * \param size model unit max size
+     * \param idx entry data index
      * \param g gradient of unit index that computed by worker node
-     * \param w model parameter of unit index
+     * \param w model parameter of unit index 
+     * \param weight used initialize optimizer middle variable
      */
-    void Update(const mit_uint key, 
-                const uint32_t idx, 
-                const uint32_t size, 
-                const mit_float g, 
-                mit_float & w) override;
-    
     void Update(const mit::OptimizerParam & param, 
                 const mit_uint & key, 
                 const size_t & idx, 
                 const mit_float & g,
                 mit_float & w,
                 mit::Entry * weight = nullptr) override;
-
-
   private:
     /*! \brief gradient descent parameter */
     SGDParam param_;   
@@ -95,6 +88,7 @@ DMLC_REGISTER_PARAMETER(SGDParam);
 
 SGDOptimizer::SGDOptimizer(const mit::KWArgs & kwargs) {
   param_.InitAllowUnknown(kwargs);
+  this->param_w_.InitAllowUnknown(kwargs);
 }
 
 SGDOptimizer::~SGDOptimizer() {}
@@ -104,14 +98,6 @@ void SGDOptimizer::Update(const mit_uint idx,
                  mit_float & w) {
   w -= param_.lr * g;
 }
-
-void SGDOptimizer::Update(const mit_uint key, 
-                 const uint32_t idx, 
-                 const uint32_t size, 
-                 const mit_float g, 
-                 mit_float & w) {
-  w -= param_.lr * g;
-} // SGDOptimizer::Update
 
 void SGDOptimizer::Update(const mit::OptimizerParam & param, 
                           const mit_uint & key, 

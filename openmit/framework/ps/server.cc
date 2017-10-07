@@ -19,7 +19,7 @@ void Server::Init(const mit::KWArgs & kwargs) {
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
   // optimizer 
-  optimizer_.reset(mit::Optimizer::Create(kwargs, param_.optimizer));
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
 
   // entry_meta_
   entry_meta_.reset(new mit::EntryMeta(cli_param_));

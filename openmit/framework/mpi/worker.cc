@@ -72,7 +72,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
     weight_.resize(max_dim + 1, 0.0f);
     dual_.resize(max_dim + 1, 0.0f);
     // optimizer
-    optimizer_.reset(mit::Optimizer::Create(kwargs, cli_param_.optimizer));
+    optimizer_.reset(mit::Optimizer::Create(kwargs));
     optimizer_->Init(max_dim);
     LOG(INFO) << "@worker[" <<  rabit::GetRank() 
       << "] mpiworker init done for train task.";

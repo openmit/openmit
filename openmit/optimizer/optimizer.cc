@@ -8,8 +8,13 @@
 
 namespace mit {
 
-Optimizer * Optimizer::Create(const mit::KWArgs & kwargs, 
-                  std::string & optimizer) {
+Optimizer * Optimizer::Create(const mit::KWArgs & kwargs) {
+  std::string optimizer = "sgd";
+  for (auto & kv : kwargs) {
+    if (kv.first != "optimizer") continue;
+    optimizer = kv.second;
+  }
+  LOG(INFO) << "Optimizer optimizer: " << optimizer;
   if (optimizer == "gd" || optimizer == "sgd") {
     return mit::SGDOptimizer::Get(kwargs);
   } else if (optimizer == "adadelta") {
@@ -36,7 +41,10 @@ Optimizer * Optimizer::Create(const mit::KWArgs & kwargs,
   }
 } // Optimizer::Create
 
-void Optimizer::Run(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_float> & vals, const ps::SArray<int> & lens, PMAPT1 * weight) {
+void Optimizer::Run(const ps::SArray<mit_uint> & keys, 
+                    const ps::SArray<mit_float> & vals, 
+                    const ps::SArray<int> & lens, 
+                    std::unordered_map<mit_uint, mit::Entry *> * weight) {
   auto offset = 0u;
   auto keys_len = keys.size();
   for (auto i = 0u; i < keys_len; ++i) {
@@ -55,24 +63,6 @@ void Optimizer::Run(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_floa
     offset += lens[i];
   }
 }
-
-void Optimizer::Run(PMAPT & grad, PMAPT * weight) {
-  // OpenMP
-  for (auto & kunit : grad) {
-    auto key = kunit.first;
-    mit::Unit * unit = kunit.second;
-    auto size = unit->Size();
-    CHECK(size >= 1) << "length of unit should not less than 1.";
-    // OpenMP
-    for (auto idx = 0u; idx < size; ++idx) {
-      float w = (*weight)[key]->Get(idx);
-      float g = grad[key]->Get(idx);
-      // g += param_.l1 * 1 + param_.l2 * w;
-      Update(key, idx, size, g, w);
-      (*weight)[key]->Set(idx, w);
-    }
-  }
-} // Optimizer::Run 
 
 void Optimizer::Run(mit::SArray<mit_float> & grad, 
               mit::SArray<mit_float> * weight) {
