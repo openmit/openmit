@@ -10,11 +10,12 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
+#include "openmit/common/parameter/cli_param.h"
 #include "openmit/entity/unit.h"
+#include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/math/basic_formula.h"
 
 namespace mit {
-
 /*!
  * \brief model related parameter
  */
@@ -52,6 +53,10 @@ class Model {
     /*! \brief destructor */
     virtual ~Model() {}
 
+    /*! \brief initialize model optimizer */
+    virtual void InitOptimzier() = 0;
+
+  public:
     /*! \brief prediction based on data block for ps */
     void Predict(const dmlc::RowBlock<mit_uint> & batch, 
                  const std::vector<mit_float> & weights,
@@ -92,6 +97,12 @@ class Model {
 
 
   public:
+    /*! \brief model updater */
+    virtual void Update(const ps::SArray<mit_uint> & keys, 
+                        const ps::SArray<mit_float> & vals, 
+                        const ps::SArray<int> & lens, 
+                        std::unordered_map<mit_uint, mit::Entry *> * weight) = 0;
+
     /*! \brief prediction based one instance for mpi */
     virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
                               const mit::SArray<mit_float> & weight,

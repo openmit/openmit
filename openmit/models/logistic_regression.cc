@@ -11,6 +11,14 @@ LR::LR(const mit::KWArgs & kwargs) {
   }
 }
 
+void LR::InitOptimizer(const mit::CliParam & cliparam) {
+  optimizer_.reset(mit::Optimizer::Create(cliparam.optimizer));
+}
+
+void LR::Update() {
+  // TODO
+}
+
 mit_float LR::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, bool is_norm) {
   mit_float wTx = 0;
   for (auto idx = 0u; idx < row.length; ++idx) {

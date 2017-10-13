@@ -12,7 +12,7 @@ git submodule update
 
 # env config.mk
 if [ "x$HADOOP_HOME" == "x" ]; then
-  source $wk_dir/make/config.mk
+  source $wk_dir/make/openmit.mk
 fi
 export HADOOP_HOME=$HADOOP_HOME
 if [ "x$HADOOP_HOME" == "x" ]; then

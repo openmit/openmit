@@ -7,6 +7,7 @@
 #ifndef OPENMIT_MODEL_LOGISTIC_REGRESSION_H_
 #define OPENMIT_MODEL_LOGISTIC_REGRESSION_H_
 
+#include <memory>
 #include "openmit/models/model.h"
 
 namespace mit {
@@ -26,6 +27,18 @@ class LR : public Model {
       return new LR(kwargs);
     }
 
+  public:
+    /*! \brief initialize model optimizer */
+    void InitOptimizer(const mit::KWArgs & kwargs) override;
+
+    /*! \brief Update */
+    void Update() override;
+
+  private:
+    /*! \brief lr model optimizer for w */
+    std::unique_ptr<mit::Optimizer> optimizer_;
+
+  public:
     /*! \brief prediction based one instance for ps */
     mit_float Predict(const dmlc::Row<mit_uint> & row, 
                       const std::vector<mit_float> & weights, 

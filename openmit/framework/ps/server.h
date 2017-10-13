@@ -128,8 +128,6 @@ class Server {
     std::unique_ptr<mit::EntryMeta> entry_meta_;
 
     /*! \brief global model weight */
-    std::unordered_map<ps::Key, mit::Unit * > weight_;
-
     std::unordered_map<ps::Key, mit::Entry * > weight1_;
 
     /*! \brief mutex */

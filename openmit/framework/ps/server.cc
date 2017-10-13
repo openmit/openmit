@@ -23,8 +23,6 @@ void Server::Init(const mit::KWArgs & kwargs) {
 
   // entry_meta_
   entry_meta_.reset(new mit::EntryMeta(cli_param_));
-  // updater_
-  //updater_.reset(new mit::Updater(kwargs));
 }
   
 Server::~Server() {
@@ -141,7 +139,7 @@ void Server::Run(const ps::KVPairs<mit_float> & req_data) {
 void Server::SaveModel(dmlc::Stream * fo) {
   dmlc::ostream oss(fo);
   oss << "server save model\n";
-  for (auto & kunit : weight_) {
+  for (auto & kunit : weight1_) {
     auto feati = kunit.first;
     auto * unit = kunit.second;
     //if (unit->AllZero()) continue;
