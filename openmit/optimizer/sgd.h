@@ -65,8 +65,6 @@ class SGDOptimizer : public Optimizer {
     mit::OptimizerParam param_; 
 }; // class SGD
 
-DMLC_REGISTER_PARAMETER(SGDParam);
-
 
 SGDOptimizer::SGDOptimizer(const mit::KWArgs & kwargs) {
   param_.InitAllowUnknown(kwargs);

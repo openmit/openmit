@@ -32,6 +32,12 @@ class FFM : public Model {
       return new FFM(kwargs); 
     }
 
+  public:
+    /*! \brief pull request */
+    void Pull(ps::KVPairs<mit_float> & response, 
+              mit::EntryMeta * entry_meta, 
+              std::unordered_map<ps::Key, mit::Entry *> * weight) override;
+ 
     /*! \brief prediction based one instance for mpi */
     mit_float Predict(const dmlc::Row<mit_uint> & row,
                       const mit::SArray<mit_float> & weight,

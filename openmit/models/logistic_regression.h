@@ -28,11 +28,19 @@ class LR : public Model {
     }
 
   public:
+    /*! \brief pull request */
+    void Pull(ps::KVPairs<mit_float> & response, 
+              mit::EntryMeta * entry_meta, 
+              std::unordered_map<ps::Key, mit::Entry *> * weight) override;
+ 
     /*! \brief initialize model optimizer */
     void InitOptimizer(const mit::KWArgs & kwargs) override;
 
-    /*! \brief Update */
-    void Update() override;
+    /*! \brief update */
+    void Update(const ps::SArray<mit_uint> & keys, 
+                const ps::SArray<mit_float> & vals, 
+                const ps::SArray<int> & lens, 
+                std::unordered_map<mit_uint, mit::Entry *> * weight) override;
 
   private:
     /*! \brief lr model optimizer for w */
@@ -61,18 +69,6 @@ class LR : public Model {
     void Gradient(const dmlc::Row<mit_uint> & row,
                   const mit_float & pred,
                   mit::SArray<mit_float> * grad) override;
-
-  /*! \brief prediction based on one instance for ps */
-    mit_float Predict(const dmlc::Row<mit_uint> & row,
-                      mit::PMAPT & weight,
-                      bool is_norm) override;
-
-    /*! \brief calcuate gradient based on one instance for ps*/
-    void Gradient(const dmlc::Row<mit_uint> & row,
-                  const mit_float & pred,
-                  mit::PMAPT & weight,
-                  mit::PMAPT * grad) override;
-
 }; // class LR
 } // namespace mit
 

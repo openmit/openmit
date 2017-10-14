@@ -31,13 +31,13 @@ int main(int argc, char ** argv) {
   mit::EntryMeta * entry_meta = new mit::EntryMeta(cli_param);
   mit_uint fieldid = 3;
   auto * result = entry_meta->CombineInfo(fieldid);
-  auto field_size = result->size();
-  LOG(INFO) << "fieldid=3, size: " << field_size;
+  auto field_number = result->size();
+  LOG(INFO) << "fieldid=3, size: " << field_number;
   LOG(INFO) << VecInfo<mit_uint>(result->data(), result->size());
   if (result->size() == 0) delete result;
   delete entry_meta;
   
-  mit::Entry * entry = new mit::Entry(cli_param, field_size, fieldid);
+  mit::Entry * entry = new mit::Entry(cli_param, field_number, fieldid);
   LOG(INFO) << "entry.length: " << entry->length;
 
   entry->SetW(0.01);

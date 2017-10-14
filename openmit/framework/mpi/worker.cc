@@ -76,7 +76,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
     optimizer_->Init(max_dim);
     LOG(INFO) << "@worker[" <<  rabit::GetRank() 
       << "] mpiworker init done for train task.";
-  } if (cli_param_.task_type == "predict") {
+  } else if (cli_param_.task_type == "predict") {
     // TODO Load Model for prediction
   } else {
     LOG(ERROR) << "task_type not in [train, predict].";
@@ -91,7 +91,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
   metrics_.clear();
   for (auto i = 0u; i < metric_names.size(); ++i) {
     mit::Metric * metric = mit::Metric::Create(metric_names[i]);
-    CHECK(metric) << "Metric::Create(" << metric_names[i] << ") return null.";
+    CHECK(metric) << "Metric::Create(" << metric_names[i] << ")";
     metrics_.push_back(metric);
   }
 }
@@ -151,7 +151,9 @@ void MPIWorker::UpdateDual(mit_float * global, const size_t size) {
   }
 }
 
-std::string MPIWorker::Metric(const std::string & data_type, mit_float * global, const size_t size) {
+std::string MPIWorker::Metric(const std::string & data_type, 
+                              mit_float * global, 
+                              const size_t size) {
   // predict
   std::vector<float> preds;
   std::vector<float> labels;
@@ -177,6 +179,7 @@ std::string MPIWorker::Metric(const std::string & data_type, mit_float * global,
     metric_partial[i] /= rabit::GetWorldSize();
   }
   rabit::Broadcast(metric_partial.data(), sizeof(mit_float) * metric_count, 0);
+
   // metric result
   std::string result;
   for (auto i = 0u; i < metrics_.size(); ++i) {

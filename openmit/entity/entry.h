@@ -21,20 +21,20 @@ namespace mit {
  */
 struct Entry {
   /*! \brief constructor */
-  Entry(const mit::CliParam & cli_param, size_t field_size = 0, mit_uint fieldid = 0l) {
+  Entry(const mit::CliParam & cli_param, size_t field_number = 0, mit_uint fieldid = 0l) {
     embedding_size = cli_param.embedding_size;
     // only w parameter. (lr || ffm that not cross field)
-    if (cli_param.model == "lr" || field_size == 0) {
+    if (cli_param.model == "lr" || field_number == 0) {
       length = 1;
       embedding_size = 0;
     } else if (cli_param.model == "fm") {
       length = 1 + embedding_size;
     } else if (cli_param.model == "ffm" && fieldid > 0l) {
-      length = 1 + field_size * embedding_size;
+      length = 1 + field_number * embedding_size;
       fieldid = fieldid;
     } else {
       LOG(FATAL) << "parameter error. model: " << cli_param.model 
-        << ", field_size: " << field_size 
+        << ", field_number: " << field_number 
         << ", fieldid: " << fieldid; 
     }
     wv = new mit_float[length]();
@@ -59,8 +59,11 @@ struct Entry {
   /*! \brief embedding size */
   size_t embedding_size;
 
+  /*! \brief length of entry */
+  size_t Size() const { return length; }
+
   /*! \brief field size */
-  inline size_t field_size() const {
+  inline size_t field_number() const {
     return (length - 1) / embedding_size;
   }
 

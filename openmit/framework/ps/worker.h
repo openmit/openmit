@@ -39,9 +39,6 @@ class Worker {
     /*! \brief worker processing logic */
     void Run();
 
-    /*! model effect evaluation */
-    float Metric(mit::DMatrix * data, std::vector<ps::Key> & feat_set);
-
   private:
     /*! \brief training based ps */
     void RunTrain();
@@ -53,6 +50,16 @@ class Worker {
     void InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set);
     /*! \brief train model based on mini-batch data */
     void MiniBatch(const dmlc::RowBlock<mit_uint> & batch);
+    /*! \brief key set */
+    void KeySet(const dmlc::RowBlock<mit_uint> & batch, 
+                std::unordered_set<mit_uint> & fset);
+
+  private:
+    /*! \brief metric method */
+    std::string Metric(mit::DMatrix * data);
+    
+    void MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
+                     std::vector<float> & metrics_value);
 
   private:
     /*! \brief kv worker */
@@ -70,11 +77,11 @@ class Worker {
     /*! \brief train data feature set used to evaluation phase*/
     std::vector<ps::Key> train_fset_;
     /*! \brief validation data set */
-    std::shared_ptr<mit::DMatrix> valid_set_;
+    std::shared_ptr<mit::DMatrix> valid_;
     /*! \brief validation data feature set */
     std::vector<ps::Key> valid_fset_;  
     /*! \brief validation data set */
-    std::shared_ptr<mit::DMatrix> test_set_;
+    std::shared_ptr<mit::DMatrix> test_;
 }; // class Worker
 } // namespace mit
 

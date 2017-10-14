@@ -2,6 +2,32 @@
 
 namespace mit {
 
+void FFM::Pull(ps::KVPairs<mit_float> & response, mit::EntryMeta * entry_meta, 
+    std::unordered_map<ps::Key, mit::Entry *> * weight) {
+  for (auto i = 0u; i < response.keys.size(); ++i) {
+    ps::Key key = response.keys[i];
+    if (weight->find(key) == weight->end()) {
+      size_t field_number = 0;
+      mit_uint fieldid = 0l;
+      if (key > 0l) {  // no bias feature item
+        fieldid = mit::DecodeField(key, this->cli_param_.nbit);
+        CHECK(fieldid > 0) < "fieldid <= 0 for no bias item is error.";
+        field_number = entry_meta->CombineInfo(fieldid)->size();
+      }
+      mit::Entry * entry = new mit::Entry(
+          this->cli_param_, field_number, fieldid);
+      weight->insert(std::make_pair(key, entry));
+    }
+    mit::Entry * entry = (*weight)[key];
+    ps::SArray<mit_float> wv;
+    wv.CopyFrom(entry->Data(), entry->Size());
+    // fill response.vals and response.lens 
+    response.vals.append(wv);
+    response.lens.push_back(entry->Size());
+  }
+}
+ 
+
 mit_float FFM::Predict(const dmlc::Row<mit_uint> & row,
                        const mit::SArray<mit_float> & weight,
                        bool is_norm) {

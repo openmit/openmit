@@ -4,27 +4,30 @@
 #include "openmit/models/model.h"
 
 namespace mit {
-
 Model * Model::Create(const mit::KWArgs & kwargs) {
-  cli_param_.InitAllowUnknown(kwargs);
-  if (cli_param_.model == "lr") {
+  std::string model = "lr";
+  for (auto & kv : kwargs) {
+    if (kv.first != "model") continue;
+    model = kv.second;
+  }
+  if (model == "lr") {
     return mit::LR::Get(kwargs);
-  } else if (cli_param_.model == "fm") {
+  } else if (model == "fm") {
     return mit::LR::Get(kwargs);
     //return mit::FM::Get(kwargs);
-  } else if (cli_param_.model == "ffm") {
+  } else if (model == "ffm") {
     return mit::LR::Get(kwargs);
     //return mit::FFM::Get(kwargs);
   } else {
     LOG(ERROR) <<
-      "model not in [lr, fm, ffm], model: " << cli_param_.model;
+      "model not in [lr, fm, ffm], model: " << model;
     return nullptr;
   }
 }
 
 void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
                     const std::vector<mit_float> & weights, 
-                    std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, 
+                    key2offset_type & key2offset,
                     std::vector<mit_float> & preds, 
                     bool is_norm) {
   CHECK_EQ(batch.size, preds.size());
@@ -34,20 +37,12 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
   }
 }
 
-// implementation of prediction based on batch instance for ps
-void Model::Predict(const dmlc::RowBlock<mit_uint> & row_block,
-                    mit::PMAPT & weight,
-                    std::vector<mit_float> * preds,
-                    bool is_norm) {
-  CHECK_EQ(row_block.size, preds->size());
-  // TODO OpenMP?
-  for (auto i = 0u; i < row_block.size; ++i) {
-    (*preds)[i] = Predict(row_block[i], weight, is_norm);
-  }
-}
-
 // implementation of gradient based on batch instance for ps
-void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, const std::vector<mit_float> & preds, std::vector<mit_float> * grads) {
+void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
+                     const std::vector<mit_float> & weights, 
+                     key2offset_type & key2offset,
+                     const std::vector<mit_float> & preds, 
+                     std::vector<mit_float> * grads) {
   CHECK_EQ(batch.size, preds.size()) << "block.size != preds.size()";
   CHECK_EQ(weights.size(), grads->size()) << "weights.size() != grads.size()";
   // \sum grad for w and v
@@ -60,26 +55,6 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, const std::vector<m
     (*grads)[i] /= batch.size;
   }
 }
-
-void Model::Gradient(
-    const dmlc::RowBlock<mit_uint> & block,
-    std::vector<mit_float> & preds,
-    PMAPT & weight,
-    PMAPT * grad) {
-
-  CHECK_EQ(block.size,  preds.size());
-  CHECK_EQ(weight.size(), grad->size());
-  // \sum grad
-  for (auto i = 0u; i < block.size; ++i) {
-    Gradient(block[i], preds[i], weight, grad);
-  }
-  // \frac{1}{block.size} \sum grad
-  for (auto kunit : *grad) {
-    auto feati = kunit.first;
-    auto batch_grad = 1.0 * (*grad)[feati]->Get(0) / block.size;
-    (*grad)[feati]->Set(0, batch_grad);
-  }
-} // method Gradient
 
 void Model::Predict(const dmlc::RowBlock<mit_uint> & batch, 
                     mit::SArray<mit_float> & weight,

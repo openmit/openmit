@@ -31,16 +31,16 @@ void Worker::Init(const mit::KWArgs & kwargs) {
           cli_param_.train_path, partid, npart, cli_param_.data_format));
     CHECK_NE(cli_param_.valid_path, "") 
       << " valid_path is empty! need evalution_path.";
-    valid_set_.reset(new mit::DMatrix(
+    valid_.reset(new mit::DMatrix(
           cli_param_.valid_path, partid, npart, cli_param_.data_format));
     
     InitFSet(train_.get(), & train_fset_);
-    InitFSet(valid_set_.get(), & valid_fset_);
+    InitFSet(valid_.get(), & valid_fset_);
     //std::unordered_set<ps::Key> fset;
     //fset.insert(0);
-    //valid_set_->BeforeFirst();
-    //while (valid_set_->Next()) {
-    //  const auto & block = valid_set_->Value();
+    //valid_->BeforeFirst();
+    //while (valid_->Next()) {
+    //  const auto & block = valid_->Value();
     //  fset.insert(
     //    block.index + block.offset[0], 
     //    block.index + block.offset[block.size]);
@@ -50,9 +50,10 @@ void Worker::Init(const mit::KWArgs & kwargs) {
   } else if (cli_param_.task_type == "predict") {
     CHECK_NE(cli_param_.test_path, "")
       << " test_path is empty! need test_path.";
-    test_set_.reset(new mit::DMatrix(
+    test_.reset(new mit::DMatrix(
           cli_param_.test_path, partid, npart, cli_param_.data_format));
   }
+
   mit::Transaction::End(trans.get());
 }
 
@@ -101,17 +102,16 @@ void Worker::Run() {
     if (cli_param_.save_peroid != 0 && epoch % cli_param_.save_peroid == 0) {
       kv_worker_->Push({epoch}, {}, {}, signal::SAVEINFO);
     }
-    
-    // evaluation based on lastest model
-    float metric_train = Metric(train_.get(), train_fset_);
-    float metric_eval = Metric(valid_set_.get(), valid_fset_);
-    
-    std::string metric_info = 
-      cli_param_.metric + "," + std::to_string(epoch) + "," + std::to_string(metric_train) 
-      + "," + cli_param_.metric + "," + std::to_string(epoch) + "," + std::to_string(metric_eval);
-    
+
+    // metric 
+    std::string metric_train_info = Metric(train_.get());
+    std::string metric_valid_info = Metric(valid_.get());
+    // format: "epoch;train:auc^0.80,logloss^0.1;valid:auc^0.78,logloss^0.11"
+    std::string metric_info = std::to_string(epoch);
+    metric_info += ";train:" + metric_train_info + ";valid:" + metric_valid_info;
     static_cast<ps::SimpleApp *>(kv_worker_)->Request(
         mit::signal::METRIC, metric_info, ps::kScheduler);
+
   } // end for epoch
   
   kv_worker_->Wait(kv_worker_->Request(
@@ -122,6 +122,7 @@ void Worker::Run() {
   // message to tell server job finish
   /*
   std::vector<ps::Key> keys(1,1);
+  B
   std::vector<float> vals(1,1);
   std::vector<int> lens(1,1);
   kv_worker_->Wait(
@@ -131,33 +132,9 @@ void Worker::Run() {
   LOG(INFO) << "@worker[" << ps::MyRank() << "] epoch completation";
 } 
 
-float Worker::Metric(mit::DMatrix * data, std::vector<ps::Key> & feat_set) {
-  // pull (weight)
-  std::vector<mit_float> rets;
-  kv_worker_->Wait(kv_worker_->Pull(feat_set, & rets));
-  // worker metric
-  float metric = trainer_->Eval(data, feat_set, rets);
-  return metric;
-}
-
 void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
-  // step3: Pull(newID, &vals, nullptr, cmd=DecodeFeature). cmd if row.field != null
-  // step4: Pull Retry Number Control
-  // step5: worker computing 
-  // step1: if row.field != null: generate newID according to (featureid, fieldid)
   std::unordered_set<mit_uint> fset;
-  if (cli_param_.data_format == "libfm") {
-    for (auto i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
-      mit_uint new_key = batch.index[i];
-      if (new_key > 0) {
-        new_key = mit::NewKey(batch.index[i], batch.field[i], cli_param_.nbit);
-      }
-      fset.insert(new_key);   
-    }
-  } else { // data_format in ["auto", "libsvm"]
-    fset.insert(batch.index + batch.offset[0], batch.index + batch.offset[batch.size]);
-  }
-  fset.insert(0);  // for bias
+  KeySet(batch, fset);
   std::vector<ps::Key> keys(fset.begin(), fset.end());
   sort(keys.begin(), keys.end());
   
@@ -180,5 +157,71 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   kv_worker_->Wait(
     kv_worker_->Push(keys, grads, lens, mit::signal::UPDATE));
 }
+
+std::string Worker::Metric(mit::DMatrix * data) {
+  std::vector<float> metrics(trainer_->MetricInfo().size(), 0.0f);
+  std::vector<float> batch_metric(metrics.size(), 0.0f);
+  auto metric_batch = cli_param_.batch_size * 100;
+  auto metric_batch_count = 0l;
+  data->BeforeFirst();
+  while (data->Next()) {
+    auto & block = data->Value();
+    uint32_t end = 0;
+    for (auto i = 0u; i < block.size; i += metric_batch) {
+      end = i + metric_batch > block.size ? block.size : i + metric_batch;
+      const auto batch = block.Slice(i, end);
+      MetricBatch(batch, batch_metric);
+      for (auto idx = 0u; idx < batch_metric.size(); ++idx) {
+        metrics[idx] += batch_metric[idx];
+      }
+      metric_batch_count += 1;
+    }
+  } // while 
+  for (auto & metric_value : metrics) {
+    metric_value /= metric_batch_count;
+  }
+  std::string metric_info("");
+  for (auto i = 0u; i < metrics.size(); ++i) {
+    metric_info += 
+      const_cast<char *>(trainer_->MetricInfo()[i]->Name()) 
+      + std::string("^") + std::to_string(metrics[i]);
+    if (i != metrics.size() - 1) metric_info += ",";
+  }
+  return metric_info;
+}
+
+void Worker::MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
+                         std::vector<float> & metrics_value) {
+  std::unordered_set<mit_uint> fset;
+  KeySet(batch, fset);
+  std::vector<ps::Key> keys(fset.begin(), fset.end());
+  sort(keys.begin(), keys.end());
+
+  // pull operation 
+  std::vector<mit_float> weights;
+  std::vector<int> lens; 
+  kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
+
+  // metric computing 
+  metrics_value.clear();
+  trainer_->Metric(batch, keys, weights, lens, metrics_value);
+}
+
+void Worker::KeySet(const dmlc::RowBlock<mit_uint> & batch, std::unordered_set<mit_uint> & fset) {
+  if (cli_param_.data_format == "libfm") {
+    for (auto i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
+      mit_uint new_key = batch.index[i];
+      if (new_key > 0) {
+        new_key = mit::NewKey(
+          batch.index[i], batch.field[i], cli_param_.nbit);
+      }
+      fset.insert(new_key);   
+    }
+  } else { // data_format in ["auto", "libsvm"]
+    fset.insert(batch.index + batch.offset[0], 
+                batch.index + batch.offset[batch.size]);
+  }
+  fset.insert(0);  // for bias
+} // method Worker::KeySet
 
 } // namespace mit

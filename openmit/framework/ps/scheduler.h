@@ -33,7 +33,6 @@ class Scheduler {
     /*! \brief initialize scheduler */
     void Init(const mit::KWArgs & kwargs);
 
-
     void Run();
 
     /*! \brief scheduler processing logic */
@@ -42,10 +41,6 @@ class Scheduler {
   private:
     void UpdateMetric(const ps::SimpleData & recved);
     
-    void MetricInfo(const std::string & data_type, 
-                               const std::string & metric_type,
-                               int epoch, 
-                               float metric_value);
     void ExitCondition();
 
   private:
@@ -61,17 +56,14 @@ class Scheduler {
     /*! 
      * \brief metric info 
      *        stats worker complete numbers each epoch
-     *        <type, <epoch, completed_number>>
-     *        metric type: "logloss"/"auc"
+     *        <datatype_metrictype, <epoch, completed_number>>
+     *        "train-auc", <1, 2>
+     *        "valid-logloss", <2, 2>
      */
     std::unordered_map<std::string, 
-      std::unordered_map<int, int> > epoch_metric_number_train_;
+      std::unordered_map<int, int> > epoch_metric_number_;
     std::unordered_map<std::string, 
-      std::unordered_map<int, float> > metric_sum_train_;
-    std::unordered_map<std::string, 
-      std::unordered_map<int, int> > epoch_metric_number_eval_;
-    std::unordered_map<std::string, 
-      std::unordered_map<int, float> > metric_sum_eval_;
+      std::unordered_map<int, float> > metric_sum_;
     /*! \brief worker complete number */
     int complete_worker_number_ = 0;
     /*! \brief server complete number */

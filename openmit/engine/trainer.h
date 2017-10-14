@@ -40,33 +40,30 @@ class Trainer {
     void Init(const mit::KWArgs & kwargs);
 
     /*! \brief trainer logic for ps interface */
-    void Run(
-        const dmlc::RowBlock<mit_uint> & batch,
-        std::vector<ps::Key> & keys,
-        std::vector<mit_float> & rets,
-        std::vector<mit_float> * vals);
-    
-    /*! \brief trainer logic for ps interface */
     void Run(const dmlc::RowBlock<mit_uint> & batch, 
              std::vector<ps::Key> & keys, 
              std::vector<mit_float> & weights, 
              std::vector<int> & lens, 
              std::vector<mit_float> * grads);
 
+    /*! \brief metric logic for ps interface */
+    void Metric(const dmlc::RowBlock<mit_uint> & batch, 
+                std::vector<ps::Key> & keys, 
+                std::vector<mit_float> & weights, 
+                std::vector<int> & lens, 
+                std::vector<float> & metrics_value);
+
+    inline std::vector<mit::Metric *> MetricInfo() const {
+      return metrics_;
+    }
+
     /*! \brief trainer logic for mpi interface */
     // TODO
-
- 
-    /*! \brief evaluation effect based on test set */
-    float Eval(mit::DMatrix * data,
-               std::vector<ps::Key> & keys,
-               std::vector<mit_float> & rets);
-
+    
     /*! \brief loss */
-    void Loss(
-        const dmlc::RowBlock<mit_uint> & batch, 
-        const std::vector<mit_float> * predict, 
-        std::vector<mit_float> * loss);
+    void Loss(const dmlc::RowBlock<mit_uint> & batch, 
+              const std::vector<mit_float> * predict, 
+              std::vector<mit_float> * loss);
 
   protected:
     /*! \brief parameter */
@@ -74,7 +71,7 @@ class Trainer {
     /*! \brief model */
     mit::Model * model_;
     /*! \brief metric */
-    mit::Metric * metric_;
+    std::vector<mit::Metric *> metrics_; 
     /*! \brief loss function */
     //std::shared_ptr<mit::Loss> loss_;
     mit::Loss * loss_;

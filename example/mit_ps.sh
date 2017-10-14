@@ -3,7 +3,7 @@ cd $(dirname `ls -ls $0 | awk '{print $NF;}'`)/..
 wk_dir=`pwd`
 
 num_workers=3
-num_servers=5
+num_servers=2
 
 ${wk_dir}/tracker/dmlc-submit \
   --cluster local \

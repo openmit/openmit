@@ -3,14 +3,38 @@
 namespace mit {
 
 LR::LR(const mit::KWArgs & kwargs) {
-  this->param_.InitAllowUnknown(kwargs);
+  this->cli_param_.InitAllowUnknown(kwargs);
 }
 
-void LR::InitOptimizer(const mit::KWArgs) {
+void LR::Pull(ps::KVPairs<mit_float> & response, 
+              mit::EntryMeta * entry_meta, 
+              std::unordered_map<ps::Key, mit::Entry *> * weight) {
+  for (auto i = 0u; i < response.keys.size(); ++i) {
+    ps::Key key = response.keys[i];
+    if (weight->find(key) == weight->end()) {
+      mit::Entry * entry = new mit::Entry(this->cli_param_);
+      weight->insert(std::make_pair(key, entry));
+      if (this->cli_param_.debug) {
+        LOG(INFO) << "key:" << key << " not in weight, generate it.";
+      }
+    }
+    mit::Entry * entry = (*weight)[key];
+    ps::SArray<mit_float> wv;
+    wv.CopyFrom(entry->Data(), entry->Size());
+    // fill response.vals and response.lens 
+    response.vals.append(wv);
+    response.lens.push_back(entry->Size());
+  }
+}
+
+void LR::InitOptimizer(const mit::KWArgs & kwargs) {
   optimizer_.reset(mit::Optimizer::Create(kwargs));
 }
 
-virtual void LR::Update(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_float> & vals, const ps::SArray<int> & lens, std::unordered_map<mit_uint, mit::Entry *> * weight) {
+void LR::Update(const ps::SArray<mit_uint> & keys, 
+                const ps::SArray<mit_float> & vals, 
+                const ps::SArray<int> & lens, 
+                std::unordered_map<mit_uint, mit::Entry *> * weight) {
   auto offset = 0u;
   auto keys_length = keys.size();
   for (auto i = 0u; i < keys_length; ++i) {
@@ -21,12 +45,16 @@ virtual void LR::Update(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_
     }
     auto w = (*weight)[keys[i]]->Get(0);    // 0: index of w
     auto g = vals[i];
-    optimizer_->Update(keys[i], w, g, 0, (*weight)[keys[i]]);
-    (*weight)[key[i]]->Set(0, w);
+    optimizer_->Update(keys[i], 0, g, w, (*weight)[keys[i]]);
+    (*weight)[keys[i]]->Set(0, w);
   }
 }
 
-mit_float LR::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, bool is_norm) {
+mit_float LR::Predict(const dmlc::Row<mit_uint> & row, 
+                      const std::vector<mit_float> & weights, 
+                      std::unordered_map<mit_uint, 
+                      std::pair<size_t, int> > & key2offset, 
+                      bool is_norm) {
   mit_float wTx = 0;
   for (auto idx = 0u; idx < row.length; ++idx) {
     mit_uint featid = row.get_index(idx);
@@ -40,41 +68,6 @@ mit_float LR::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_flo
   }
   if (is_norm) return mit::math::sigmoid(wTx);
   return wTx;
-}
-
-
-
-mit_float LR::Predict(const dmlc::Row<mit_uint> & row,
-                      mit::PMAPT & weight, 
-                      bool is_norm) {
-  mit_float wTx = weight[0]->Get(0);
-  for (auto idx = 0u; idx < row.length; ++idx) {
-    wTx += weight[row.index[idx]]->Get(0) * row.value[idx];
-  }
-  if (is_norm) return mit::math::sigmoid(wTx);
-  return wTx;
-}
-
-mit_float LR::Predict(const dmlc::Row<mit_uint> & row,
-                      const mit::SArray<mit_float> & weight,
-                      bool is_norm) {
-  auto wTx = row.SDot(weight.data(), weight.size());
-  if (is_norm) return mit::math::sigmoid(wTx);
-  return wTx;
-}
-
-void LR::Gradient(const dmlc::Row<mit_uint> & row,
-                  const mit_float & pred,
-                  mit::PMAPT & weight,
-                  mit::PMAPT * grad) {
-  auto instweight = row.get_weight();
-  mit_float residual = pred - row.get_label();
-  (*grad)[0]->Set(0, residual * 1 * instweight);   // bias
-  for (auto i = 0u; i < row.length; ++i) {    // linear item
-    mit_uint feati = row.index[i];
-    mit_float partial_wi = residual * row.get_value(i) * instweight;
-    (*grad)[feati]->Set(0, (*grad)[feati]->Get(0) + partial_wi);
-  }
 }
 
 void LR::Gradient(const dmlc::Row<mit_uint> & row, 
@@ -110,4 +103,13 @@ void LR::Gradient(const dmlc::Row<mit_uint> & row,
     (*grad)[row.index[i]] += residual * fvalue * instweight;
   }
 }
+
+mit_float LR::Predict(const dmlc::Row<mit_uint> & row,
+                      const mit::SArray<mit_float> & weight,
+                      bool is_norm) {
+  auto wTx = row.SDot(weight.data(), weight.size());
+  if (is_norm) return mit::math::sigmoid(wTx);
+  return wTx;
+}
+
 } // namespace mit
