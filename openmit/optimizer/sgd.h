@@ -10,30 +10,6 @@
 #include "openmit/optimizer/optimizer.h"
 
 namespace mit {
-/*! 
- * \brief gradient descent parameter
- */
-class SGDParam : public dmlc::Parameter<SGDParam> {
-  public:
-    /*! \brief optimizer type. gd/adagrad/... */
-    std::string optimizer;
-    /*! \brief lr learning rate */
-    float lr;
-    /*! \brief l1 regularation */
-    float l1;
-    /*! \brief l2 regularation */
-    float l2;
-  
-    /*! \brief declare parameters */
-    DMLC_DECLARE_PARAMETER(SGDParam) {
-      DMLC_DECLARE_FIELD(optimizer).set_default("gd");
-      DMLC_DECLARE_FIELD(lr).set_default(0.01);
-      DMLC_DECLARE_FIELD(l1).set_default(0.1);
-      DMLC_DECLARE_FIELD(l2).set_default(0.1);
-    }
-
-}; // class SGDParam
-
 /*!
  * \brief optimizer: gradient descent algorithm
  *        support: sgd/batch-gd
@@ -59,7 +35,7 @@ class SGDOptimizer : public Optimizer {
      * \param g gradient of model index 
      * \param w model index weight
      */
-    void Update(const mit_uint idx,
+     void Update(const mit_uint idx,
                 const mit_float g,
                 mit_float & w) override;
     
@@ -78,9 +54,15 @@ class SGDOptimizer : public Optimizer {
                 const mit_float & g,
                 mit_float & w,
                 mit::Entry * weight = nullptr) override;
+    
+    void Update(const mit_uint & key, 
+                const size_t & idx, 
+                const mit_float & g, 
+                mit_float & w, 
+                mit::Entry * weight = nullptr) override;
   private:
     /*! \brief gradient descent parameter */
-    SGDParam param_;   
+    mit::OptimizerParam param_; 
 }; // class SGD
 
 DMLC_REGISTER_PARAMETER(SGDParam);
@@ -107,6 +89,10 @@ void SGDOptimizer::Update(const mit::OptimizerParam & param,
                           mit::Entry * weight) {
   w -= param.lr * g;
 } // SGDOptimizer::Update
+
+void SGDOptimizer::Update(const mit_uint & key, const size_t & idx, const mit_float & g, mit_float & w, mit::Entry * weight) {
+  w -= param_.lr * g;
+} 
 
 } // namespace mit
 #endif // OPENMIT_OPTIMIZER_SGD_H_

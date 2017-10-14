@@ -17,32 +17,6 @@
 
 namespace mit {
 /*!
- * \brief model related parameter
- */
-class ModelParam : public dmlc::Parameter<ModelParam> {
-  public:
-    /*! \brief model type */
-    std::string model_type;
-    /*! \brief number of field */
-    mit_uint field_num;
-    /*! \brief length of latent factor */
-    mit_uint k;
-    /*!
-     * \brief whether to add linear item,
-     *  This parameter is valid only for fm or ffm model.
-     */
-    bool is_linear;
-
-    /*! \brief declare parameters */
-    DMLC_DECLARE_PARAMETER(ModelParam) {
-      DMLC_DECLARE_FIELD(model_type).set_default("lr");
-      DMLC_DECLARE_FIELD(field_num).set_default(0);
-      DMLC_DECLARE_FIELD(k).set_default(0);
-      DMLC_DECLARE_FIELD(is_linear).set_default(true);
-    }
-}; // class ModelParam
-
-/*!
  * \brief model template for distributed machine learning framework
  */
 class Model {
@@ -54,7 +28,7 @@ class Model {
     virtual ~Model() {}
 
     /*! \brief initialize model optimizer */
-    virtual void InitOptimzier() = 0;
+    virtual void InitOptimzier(const mit::KWArgs & kwargs) = 0;
 
   public:
     /*! \brief prediction based on data block for ps */
@@ -142,7 +116,7 @@ class Model {
 
   protected:
     /*! \brief model type */
-    ModelParam param_;
+    mit::CliParam param_;
 
 }; // class Model
 } // namespace mit

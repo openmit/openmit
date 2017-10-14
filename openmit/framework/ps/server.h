@@ -22,10 +22,11 @@
 
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/optimizer/optimizer.h"
 #include "openmit/entity/unit.h"
 #include "openmit/entity/entry.h"
 #include "openmit/entity/entry_meta.h"
+#include "openmit/model/model.h"
+#include "openmit/optimizer/optimizer.h"
 #include "openmit/framework/ps/signal.h"
 
 namespace mit {
@@ -120,6 +121,9 @@ class Server {
     
     /*! \brief process push & pull request */
     ps::KVServer<mit_float> * kv_server_;
+
+    /*! \brief model */
+    std::shared_ptr<mit::Model> model_;
 
     /*! \brief model optimizer */
     std::shared_ptr<mit::Optimizer> optimizer_; 

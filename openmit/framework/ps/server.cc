@@ -18,6 +18,10 @@ void Server::Init(const mit::KWArgs & kwargs) {
   kv_server_->set_request_handle(std::bind(&Server::KVRequestHandle, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
+  // model 
+  model_.reset(mit::Model::Create(kwargs));
+  model_->InitOptimizer(kwargs);
+
   // optimizer 
   optimizer_.reset(mit::Optimizer::Create(kwargs));
 
@@ -134,6 +138,8 @@ void Server::Run(const ps::KVPairs<mit_float> & req_data) {
       << mit::DebugStr(req_data.vals.data(), 10);
   }
   optimizer_->Run(req_data.keys, req_data.vals, req_data.lens, &weight1_);
+
+  //model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight1_);
 }
 
 void Server::SaveModel(dmlc::Stream * fo) {

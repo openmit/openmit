@@ -5,22 +5,19 @@
 
 namespace mit {
 
-DMLC_REGISTER_PARAMETER(ModelParam);
-
 Model * Model::Create(const mit::KWArgs & kwargs) {
-  ModelParam tmp_param_;
-  tmp_param_.InitAllowUnknown(kwargs);
-  if (tmp_param_.model_type == "lr") {
+  cli_param_.InitAllowUnknown(kwargs);
+  if (cli_param_.model == "lr") {
     return mit::LR::Get(kwargs);
-  } else if (tmp_param_.model_type == "fm") {
+  } else if (cli_param_.model == "fm") {
     return mit::LR::Get(kwargs);
     //return mit::FM::Get(kwargs);
-  } else if (tmp_param_.model_type == "ffm") {
+  } else if (cli_param_.model == "ffm") {
     return mit::LR::Get(kwargs);
     //return mit::FFM::Get(kwargs);
   } else {
     LOG(ERROR) <<
-      "model_type not in [lr, fm, ffm], model_type: " << tmp_param_.model_type;
+      "model not in [lr, fm, ffm], model: " << cli_param_.model;
     return nullptr;
   }
 }

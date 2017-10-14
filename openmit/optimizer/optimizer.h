@@ -39,13 +39,17 @@ class Optimizer {
              mit::SArray<mit_float> * weight);
 
     /*! \brief parameter updater for ps */
-    //void Run(PMAPT & map_grad, PMAPT * weight);
-    
     void Run(const ps::SArray<mit_uint> & keys, 
              const ps::SArray<mit_float> & vals, 
              const ps::SArray<int> & lens, 
              std::unordered_map<mit_uint, mit::Entry *> * weight);
   
+    virtual void Update(const mit_uint & key, 
+                        const size_t & idx, 
+                        const mit_float & g, 
+                        mit_float & w, 
+                        mit::Entry * weight = nullptr) = 0;
+
   protected:
     /*! 
      * \brief model updater for parameter server interface
@@ -74,6 +78,9 @@ class Optimizer {
                         mit_float & w) = 0;
 
   protected:
+    /*! \brief optimizer parameter */
+    mit::OptimizerParam param_;
+
     /*! \brief optimizer parameter for w */
     mit::OptimizerParam param_w_;
     /*! \brief optimizer parameter for v */

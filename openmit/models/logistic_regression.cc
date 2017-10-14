@@ -4,19 +4,26 @@ namespace mit {
 
 LR::LR(const mit::KWArgs & kwargs) {
   this->param_.InitAllowUnknown(kwargs);
-  if (!this->param_.is_linear) {
-    LOG(INFO) << "WARNING is_linear should be true for lr model, "
-      << "this is is_linear = false";
-    this->param_.is_linear = true;
+}
+
+void LR::InitOptimizer(const mit::KWArgs) {
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
+}
+
+virtual void LR::Update(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_float> & vals, const ps::SArray<int> & lens, std::unordered_map<mit_uint, mit::Entry *> * weight) {
+  auto offset = 0u;
+  auto keys_length = keys.size();
+  for (auto i = 0u; i < keys_length; ++i) {
+    CHECK_EQ(lens[i], 1) 
+      << "length of vals[" << i << "] should be 1 for lr model.";
+    if (weight->find(keys[i]) == weight->end()) {
+      LOG(FATAL) << keys[i] << " not in weight structure";
+    }
+    auto w = (*weight)[keys[i]]->Get(0);    // 0: index of w
+    auto g = vals[i];
+    optimizer_->Update(keys[i], w, g, 0, (*weight)[keys[i]]);
+    (*weight)[key[i]]->Set(0, w);
   }
-}
-
-void LR::InitOptimizer(const mit::CliParam & cliparam) {
-  optimizer_.reset(mit::Optimizer::Create(cliparam.optimizer));
-}
-
-void LR::Update() {
-  // TODO
 }
 
 mit_float LR::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, bool is_norm) {
