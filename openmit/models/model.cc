@@ -37,6 +37,17 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
   }
 }
 
+void Model::Predict(const dmlc::RowBlock<mit_uint> & batch, 
+                    mit::SArray<mit_float> & weight,
+                    std::vector<mit_float> * preds, 
+                    bool is_norm) {
+  CHECK_EQ(batch.size, preds->size());
+  // TODO OpenMP?
+  for (auto i = 0u; i < batch.size; ++i) {
+    (*preds)[i] = Predict(batch[i], weight, is_norm);
+  }
+} // method Predict
+
 // implementation of gradient based on batch instance for ps
 void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
                      const std::vector<mit_float> & weights, 
@@ -55,17 +66,6 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch,
     (*grads)[i] /= batch.size;
   }
 }
-
-void Model::Predict(const dmlc::RowBlock<mit_uint> & batch, 
-                    mit::SArray<mit_float> & weight,
-                    std::vector<mit_float> * preds, 
-                    bool is_norm) {
-  CHECK_EQ(batch.size, preds->size());
-  // TODO OpenMP?
-  for (auto i = 0u; i < batch.size; ++i) {
-    (*preds)[i] = Predict(batch[i], weight, is_norm);
-  }
-} // method Predict
 
 void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
                      std::vector<mit_float> & preds, 

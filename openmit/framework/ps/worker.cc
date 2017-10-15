@@ -207,7 +207,8 @@ void Worker::MetricBatch(const dmlc::RowBlock<mit_uint> & batch,
   trainer_->Metric(batch, keys, weights, lens, metrics_value);
 }
 
-void Worker::KeySet(const dmlc::RowBlock<mit_uint> & batch, std::unordered_set<mit_uint> & fset) {
+void Worker::KeySet(const dmlc::RowBlock<mit_uint> & batch, 
+                    std::unordered_set<mit_uint> & fset) {
   if (cli_param_.data_format == "libfm") {
     for (auto i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
       mit_uint new_key = batch.index[i];

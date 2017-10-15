@@ -101,11 +101,10 @@ void Server::Run(const ps::KVPairs<mit_float> & req_data) {
 void Server::SaveModel(dmlc::Stream * fo) {
   dmlc::ostream oss(fo);
   oss << "server save model\n";
-  for (auto & kunit : weight_) {
-    auto feati = kunit.first;
-    auto * unit = kunit.second;
-    //if (unit->AllZero()) continue;
-    //oss << feati << "\t" << unit->Str() << "\n";
+  for (auto & kv : weight_) {
+    auto key = kv.first;
+    mit::Entry * entry = kv.second;
+    oss << key << "\t" << entry->Size() << "\n";
   }
 }
 

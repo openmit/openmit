@@ -23,7 +23,8 @@ namespace mit {
 class Optimizer {
   public:
     /*! \brief create a optimizer */
-    static Optimizer * Create(const mit::KWArgs & kwargs);
+    static Optimizer * Create(const mit::KWArgs & kwargs, 
+                              const std::string & name = "gd");
     
     /*! \brief destructor */
     virtual ~Optimizer() {}
@@ -80,7 +81,6 @@ class Optimizer {
   protected:
     /*! \brief optimizer parameter */
     mit::OptimizerParam param_;
-
     /*! \brief optimizer parameter for w */
     mit::OptimizerParam param_w_;
     /*! \brief optimizer parameter for v */

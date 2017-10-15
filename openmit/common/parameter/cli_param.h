@@ -47,6 +47,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string model;
     /*! \brief optimizer. "sgd", "adag", "ftrl", "als", "lbfgs", "mcmc" */
     std::string optimizer;
+    /*! \brief optimizer for fm/ffm embedding learning */
+    std::string optimizer_v;
     /*! \brief loss function */
     std::string loss;
     /*! \brief metric */
@@ -107,6 +109,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(sync_mode).set_default("asp");
       DMLC_DECLARE_FIELD(model).set_default("lr");
       DMLC_DECLARE_FIELD(optimizer).set_default("ftrl");
+      DMLC_DECLARE_FIELD(optimizer).set_default("");
       DMLC_DECLARE_FIELD(loss).set_default("loss");
       DMLC_DECLARE_FIELD(metric).set_default("auc,logloss");
       

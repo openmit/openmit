@@ -1,41 +1,40 @@
 /*!
  *  Copyright 2016 by Contributors
- *  \file logistic_regression.h
- *  \brief logistic regression model
+ *  \file fieldaware_factorization_machine.h
+ *  \brief fieldaware factorization machine model
  *  \author ZhouYong, diffm
  */
-#ifndef OPENMIT_MODEL_LOGISTIC_REGRESSION_H_
-#define OPENMIT_MODEL_LOGISTIC_REGRESSION_H_
+#ifndef OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
+#define OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
 
-#include <memory>
 #include "openmit/models/model.h"
 
 namespace mit {
 /*!
- * \brief the logistic regression model for worker phase
+ * \brief the field-aware factorization machine model
  */
-class LR : public Model {
+class FFM : public Model {
   public:
     /*! \brief default constructor */
-    LR(const mit::KWArgs & kwargs);
+    FFM(const mit::KWArgs & kwargs);
 
     /*! \brief destructor */
-    ~LR() {}
+    ~FFM();
 
-    /*! \brief get lr model */
-    inline static LR * Get(const mit::KWArgs & kwargs) {
-      return new LR(kwargs);
+    /*! \brief get ffm-model pointer */
+    static FFM * Get(const mit::KWArgs & kwargs) { 
+      return new FFM(kwargs); 
     }
 
   public:  // method for server
+    /*! \brief initialize model optimizer */
+    void InitOptimizer(const mit::KWArgs & kwargs) override;
+
     /*! \brief pull request */
     void Pull(ps::KVPairs<mit_float> & response, 
               mit::EntryMeta * entry_meta, 
               mit::entry_map_type * weight) override;
  
-    /*! \brief initialize model optimizer */
-    void InitOptimizer(const mit::KWArgs & kwargs) override;
-
     /*! \brief update */
     void Update(const ps::SArray<mit_uint> & keys, 
                 const ps::SArray<mit_float> & vals, 
@@ -68,10 +67,25 @@ class LR : public Model {
                       bool is_norm) override;
 
   private:
+    /*! \brief ffm function expression. predict raw expression */
+    //mit_float RawExpr(const dmlc::Row<mit_uint> & row, 
+    //                  mit::PMAPT & weight);
+
+    /*! \brief ffm 1-order linear item */
+    //mit_float Linear(const dmlc::Row<mit_uint> & row, 
+    //                 mit::PMAPT & weight);
+
+    /*! \brief ffm 2-order cross item */
+    //mit_float Cross(const dmlc::Row<mit_uint> & row, 
+    //                mit::PMAPT & weight);
+
+  private:
     /*! \brief lr model optimizer for w */
     std::unique_ptr<mit::Optimizer> optimizer_;
+    
+    /*! \brief lr model optimizer for v */
+    std::unique_ptr<mit::Optimizer> optimizer_v_;
 
-}; // class LR
+}; // class FFM 
 } // namespace mit
-
-#endif // OPENMIT_MODEL_FACTORIZATION_MACHINE_H_
+#endif // OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_

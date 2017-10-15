@@ -12,10 +12,13 @@ Scheduler::~Scheduler() {
 
 void Scheduler::Init(const mit::KWArgs & kwargs) {
   scheduler_.reset(new ps::SimpleApp(0));
+
   scheduler_->set_request_handle(std::bind(&Scheduler::Handle, 
         this, std::placeholders::_1, std::placeholders::_2));
+  
   scheduler_->set_response_handle(std::bind(&Scheduler::Handle, 
         this, std::placeholders::_1, std::placeholders::_2));
+  
   complete_worker_number_ = 0;
   complete_server_number_ = 0;
 }

@@ -2,8 +2,21 @@
 
 namespace mit {
 
-void FFM::Pull(ps::KVPairs<mit_float> & response, mit::EntryMeta * entry_meta, 
-    std::unordered_map<ps::Key, mit::Entry *> * weight) {
+FFM::FFM(const mit::KWArgs & kwargs) {
+  this->cli_param_.InitAllowUnknown(kwargs);
+}
+
+FFM::~FFM() { // TODO }
+
+void FFM::InitOptimizer(const mit::KWArgs & kwargs) {
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
+  optimizer_v_.reset(
+    mit::Optimizer::Create(kwargs, this->cli_param_.optimizer_v));
+}
+
+void FFM::Pull(ps::KVPairs<mit_float> & response, 
+               mit::EntryMeta * entry_meta, 
+               mit::entry_map_type * weight) {
   for (auto i = 0u; i < response.keys.size(); ++i) {
     ps::Key key = response.keys[i];
     if (weight->find(key) == weight->end()) {
@@ -27,13 +40,29 @@ void FFM::Pull(ps::KVPairs<mit_float> & response, mit::EntryMeta * entry_meta,
   }
 }
  
+void FFM::Update(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_float> & vals, const ps::SArray<int> & lens, mit::entry_map_type * weight) {
+  // TODO
+}
 
-mit_float FFM::Predict(const dmlc::Row<mit_uint> & row,
-                       const mit::SArray<mit_float> & weight,
-                       bool is_norm) {
+void FFM::Gradient(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, const mit_float & preds, std::vector<mit_float> * grads) {
+  // TODO 
+}
+
+void FFM::Gradient(const dmlc::Row<mit_uint> & row, const mit_float & pred, mit::SArray<mit_float> * grad) {
+  // TODO
+}
+
+mit_float FFM::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, bool is_norm) {
   // TODO
   return 0.0f;
 }
+
+mit_float FFM::Predict(const dmlc::Row<mit_uint> & row, const mit::SArray<mit_float> & weight, bool is_norm) {
+  // TODO 
+  return 0.0f;
+}
+
+/*
 // TODO is_linear? is_sigmoid?
 mit_float FFM::Predict(const dmlc::Row<mit_uint> & row, 
                        mit::PMAPT & weight,
@@ -126,11 +155,5 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
     }
   } 
 } // method FFM::Gradient
-
-void FFM::Gradient(const dmlc::Row<mit_uint> & row,
-                   const mit_float & pred,
-                   mit::SArray<mit_float> * grad) {
-  // TODO
-}
-
+*/
 } // namespace mit

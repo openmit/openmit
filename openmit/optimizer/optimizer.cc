@@ -8,11 +8,16 @@
 
 namespace mit {
 
-Optimizer * Optimizer::Create(const mit::KWArgs & kwargs) {
-  std::string optimizer = "sgd";
-  for (auto & kv : kwargs) {
-    if (kv.first != "optimizer") continue;
-    optimizer = kv.second;
+Optimizer * Optimizer::Create(const mit::KWArgs & kwargs, 
+                              const std::string & name) {
+  std::string optimizer;
+  if (name != "") {
+    optimizer = name;
+  } else {
+    for (auto & kv : kwargs) {
+      if (kv.first != "optimizer") continue;
+      optimizer = kv.second;
+    }
   }
   LOG(INFO) << "Optimizer optimizer: " << optimizer;
   if (optimizer == "gd" || optimizer == "sgd") {

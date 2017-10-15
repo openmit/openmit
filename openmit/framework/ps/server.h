@@ -87,26 +87,6 @@ class Server {
 
     /*! \brief entry meta info */
     std::unique_ptr<mit::EntryMeta> entry_meta_;
-    
-    /*! \brief mutex */
-    //std::mutex mu_;
-    
-    /*! \brief condition */
-    //std::condition_variable cond_;
-
-    /*! \brief mutex used exit */
-    //std::mutex exit_mu_;
-
-    /*! \brief eixt when scheduler send message to server */
-    //bool exit_ = false;
-
-    /*! \brief whether doing sync */
-    //bool doing_sync_;
-
-    /*!
-     * \brief save gradient from workers for sync model update
-     */
-    //std::vector<std::unordered_map<mit_uint, std::vector<mit_float> > > grad_;
 
     /*! \brief epoch complete worke number */
     //int epoch_complete_worker_num_;

@@ -6,9 +6,13 @@ LR::LR(const mit::KWArgs & kwargs) {
   this->cli_param_.InitAllowUnknown(kwargs);
 }
 
+void LR::InitOptimizer(const mit::KWArgs & kwargs) {
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
+}
+
 void LR::Pull(ps::KVPairs<mit_float> & response, 
               mit::EntryMeta * entry_meta, 
-              std::unordered_map<ps::Key, mit::Entry *> * weight) {
+              mit::entry_map_type * weight) {
   for (auto i = 0u; i < response.keys.size(); ++i) {
     ps::Key key = response.keys[i];
     if (weight->find(key) == weight->end()) {
@@ -27,15 +31,10 @@ void LR::Pull(ps::KVPairs<mit_float> & response,
   }
 }
 
-void LR::InitOptimizer(const mit::KWArgs & kwargs) {
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
-}
-
 void LR::Update(const ps::SArray<mit_uint> & keys, 
                 const ps::SArray<mit_float> & vals, 
                 const ps::SArray<int> & lens, 
-                std::unordered_map<mit_uint, mit::Entry *> * weight) {
-  auto offset = 0u;
+                mit::entry_map_type * weight) {
   auto keys_length = keys.size();
   for (auto i = 0u; i < keys_length; ++i) {
     CHECK_EQ(lens[i], 1) 

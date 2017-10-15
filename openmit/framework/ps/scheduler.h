@@ -7,12 +7,11 @@
 #ifndef OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
 #define OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
 
+#include <condition_variable>
 #include <cstdlib>
 #include <memory>
-#include <unordered_map>
 #include <mutex>
-#include <condition_variable>
-
+#include <unordered_map>
 #include "ps/ps.h"
 #include "openmit/common/arg.h"
 #include "openmit/framework/ps/signal.h"
@@ -33,26 +32,28 @@ class Scheduler {
     /*! \brief initialize scheduler */
     void Init(const mit::KWArgs & kwargs);
 
+    /*! \brief run main logic */
     void Run();
 
     /*! \brief scheduler processing logic */
     void Handle(const ps::SimpleData & recved, ps::SimpleApp * app);
 
   private:
+    /*! \brief update metric stats info */
     void UpdateMetric(const ps::SimpleData & recved);
-    
+
+    /*! \brief app complete exit condition */
     void ExitCondition();
 
   private:
     /*! \brief ps simple app */
     std::shared_ptr<ps::SimpleApp> scheduler_;
-
+    /*! \brief mutex */
     std::mutex mutex_;
-
+    /*! \biref condition variable */
     std::condition_variable cond_;
 
     bool exit_ = false;
-    
     /*! 
      * \brief metric info 
      *        stats worker complete numbers each epoch
@@ -73,5 +74,4 @@ class Scheduler {
 
 }; // class Scheduler
 } // namespace mit
-
 #endif // OPENMIT_FRAMEWORK_PS_SCHEDULER_H_

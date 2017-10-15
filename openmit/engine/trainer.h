@@ -16,7 +16,6 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
-#include "openmit/entity/unit.h"
 #include "openmit/entity/entry_meta.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"

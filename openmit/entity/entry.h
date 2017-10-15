@@ -98,7 +98,7 @@ struct Entry {
   }
 };  // struct Entry
 
-typedef std::unordered_map<mit_uint, mit::Entry * > PMAPT1;
+typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
 
 } // namespace mit 
 #endif // OPENMIT_ENTITY_ENTRY_H_
