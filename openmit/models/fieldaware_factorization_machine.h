@@ -45,8 +45,8 @@ class FFM : public Model {
     /*! \brief calcuate gradient based on one instance for ps */
     void Gradient(const dmlc::Row<mit_uint> & row, 
                   const std::vector<mit_float> & weights,
-                  std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
-                  const mit_float & preds, 
+                  mit::key2offset_type & key2offset,
+                  const mit_float & pred, 
                   std::vector<mit_float> * grads) override;
 
     /*! \brief calculate model gradient based one instance for mpi */
@@ -58,7 +58,7 @@ class FFM : public Model {
     /*! \brief prediction based one instance for ps */
     mit_float Predict(const dmlc::Row<mit_uint> & row, 
                       const std::vector<mit_float> & weights, 
-                      std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, 
+                      mit::key2offset_type & key2offset, 
                       bool is_norm) override;
 
     /*! \brief prediction based one instance for mpi */
@@ -67,24 +67,23 @@ class FFM : public Model {
                       bool is_norm) override;
 
   private:
-    /*! \brief ffm function expression. predict raw expression */
-    //mit_float RawExpr(const dmlc::Row<mit_uint> & row, 
-    //                  mit::PMAPT & weight);
-
     /*! \brief ffm 1-order linear item */
-    //mit_float Linear(const dmlc::Row<mit_uint> & row, 
-    //                 mit::PMAPT & weight);
+    mit_float Linear(const dmlc::Row<mit_uint> & row, 
+                     const std::vector<mit_float> & weights, 
+                     mit::key2offset_type & key2offset);
 
     /*! \brief ffm 2-order cross item */
-    //mit_float Cross(const dmlc::Row<mit_uint> & row, 
-    //                mit::PMAPT & weight);
+    mit_float Cross(const dmlc::Row<mit_uint> & row, 
+                    const std::vector<mit_float> & weights, 
+                    mit::key2offset_type & key2offset);
 
   private:
     /*! \brief lr model optimizer for w */
-    std::unique_ptr<mit::Optimizer> optimizer_;
-    
+    std::unique_ptr<mit::Optimizer> optimizer_;   
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
+    /*! \brief entry meta info */
+    std::unique_ptr<mit::EntryMeta> entry_meta_;
 
 }; // class FFM 
 } // namespace mit

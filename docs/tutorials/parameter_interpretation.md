@@ -40,3 +40,7 @@
 | | `is_progress` | 是否打印作业进度信息，`true/false` | `true` | 默认打印 |
 | | `job_progress` | 作业进度控制，`batch_size * progress_control`打印进度信息 | `10` | 默认每10个batch打印一条batch信息 |
 | Debug | `debug` | 是否debug，会打印出最细粒度信息 | `false` | 日志量会很大，适合小数据集验证 |
+| 参数初始化 | `random_name` | 参数随机分布名 | `normal` | 默认正态分布(`normal`)，还支持均匀分布`uniform`等 |
+| | `random_mean` | 正态分布均值 | `0.0` | 适用于`random_name=normal` |
+| | `random_variance` | 正态分布方差 | `0.01` | 适用于`random_name=normal` | 
+| | `random_threshold` | 均匀分布阈值 | `0.01` | 生成`[-threshold, threshold]`之间服从均匀分布的随机值 |

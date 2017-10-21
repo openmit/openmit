@@ -25,10 +25,11 @@ int main(int argc, char ** argv) {
   mit::CliParam cli_param;
   cli_param.InitAllowUnknown(kwargs);
 
-  LOG(INFO) << "field_combine_set: " << cli_param.field_combine_set;
-  LOG(INFO) << "field_combine_pair: " << cli_param.field_combine_pair;
-
-  mit::EntryMeta * entry_meta = new mit::EntryMeta(cli_param);
+  //LOG(INFO) << "field_combine_set: " << cli_param.field_combine_set;
+  //LOG(INFO) << "field_combine_pair: " << cli_param.field_combine_pair;
+  mit::ModelParam model_param;
+  model_param.InitAllowUnknown(kwargs);
+  mit::EntryMeta * entry_meta = new mit::EntryMeta(model_param);
   mit_uint fieldid = 3;
   auto * result = entry_meta->CombineInfo(fieldid);
   auto field_number = result->size();
@@ -41,8 +42,8 @@ int main(int argc, char ** argv) {
   LOG(INFO) << "entry.length: " << entry->length;
 
   entry->SetW(0.01);
-  entry->SetV(0, 0, 0.1234566);
-  entry->SetV(1, 3, 0.3333333);
+  //entry->SetV(0, 0, 0.1234566);
+  //entry->SetV(1, 3, 0.3333333);
   LOG(INFO) << "entry content: " << VecInfo(entry->Data(), entry->length);
 
   delete entry;

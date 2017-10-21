@@ -10,7 +10,9 @@ void Trainer::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   model_ = mit::Model::Create(kwargs);
   loss_ = mit::Loss::Create(cli_param_.loss);
-  entry_meta_.reset(new mit::EntryMeta(cli_param_));
+  mit::ModelParam model_param;
+  model_param.InitAllowUnknown(kwargs);
+  entry_meta_.reset(new mit::EntryMeta(model_param));
   // metric 
   std::vector<std::string> metric_names;
   mit::string::Split(cli_param_.metric, &metric_names, ',');

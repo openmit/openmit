@@ -36,6 +36,7 @@ void LR::Update(const ps::SArray<mit_uint> & keys,
                 const ps::SArray<int> & lens, 
                 mit::entry_map_type * weight) {
   auto keys_length = keys.size();
+  auto offset = 0u;
   for (auto i = 0u; i < keys_length; ++i) {
     CHECK_EQ(lens[i], 1) 
       << "length of vals[" << i << "] should be 1 for lr model.";
@@ -43,9 +44,10 @@ void LR::Update(const ps::SArray<mit_uint> & keys,
       LOG(FATAL) << keys[i] << " not in weight structure";
     }
     auto w = (*weight)[keys[i]]->Get(0);    // 0: index of w
-    auto g = vals[i];
+    auto g = vals[offset];
     optimizer_->Update(keys[i], 0, g, w, (*weight)[keys[i]]);
     (*weight)[keys[i]]->Set(0, w);
+    offset++;
   }
 }
 
@@ -71,7 +73,7 @@ mit_float LR::Predict(const dmlc::Row<mit_uint> & row,
 
 void LR::Gradient(const dmlc::Row<mit_uint> & row, 
                   const std::vector<mit_float> & weights,
-                  std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                  mit::key2offset_type & key2offset,
                   const mit_float & preds, 
                   std::vector<mit_float> * grads) {
   auto max_length = weights.size();
@@ -80,8 +82,8 @@ void LR::Gradient(const dmlc::Row<mit_uint> & row,
   size_t offset = 0;
   for (auto idx = 0u; idx < row.length; ++idx) {
     auto key = row.get_index(idx);
-    CHECK(key2offset.find(key) != key2offset.end()) 
-      << "key: " << key << " not in keys";
+    CHECK(key2offset.find(key) != key2offset.end()) << 
+      "key: " << key << " not in key2offset";
     auto offset_count = key2offset[key];
     offset = offset_count.first;
     CHECK(offset < max_length) << "offset: " 

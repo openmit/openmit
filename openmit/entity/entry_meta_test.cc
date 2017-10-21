@@ -1,5 +1,5 @@
 #include "openmit/common/arg.h"
-#include "openmit/common/parameter/cli_param.h"
+#include "openmit/common/parameter/model_param.h"
 #include "openmit/entity/entry_meta.h"
 #include "openmit/common/base.h"
 using namespace mit;
@@ -22,13 +22,13 @@ int main(int argc, char ** argv) {
   parser.ReadArgs(argc - 2, argv + 2);
   const mit::KWArgs kwargs = parser.GetKWArgs();
 
-  mit::CliParam cli_param;
-  cli_param.InitAllowUnknown(kwargs);
+  mit::ModelParam model_param;
+  model_param.InitAllowUnknown(kwargs);
 
-  LOG(INFO) << "field_combine_set: " << cli_param.field_combine_set;
-  LOG(INFO) << "field_combine_pair: " << cli_param.field_combine_pair;
+  LOG(INFO) << "field_combine_set: " << model_param.field_combine_set;
+  LOG(INFO) << "field_combine_pair: " << model_param.field_combine_pair;
 
-  mit::EntryMeta * entry_meta = new mit::EntryMeta(cli_param);
+  mit::EntryMeta * entry_meta = new mit::EntryMeta(model_param);
   auto * result = entry_meta->CombineInfo(3);
   LOG(INFO) << "fieldid=3, size: " << result->size();
   LOG(INFO) << VecInfo<mit_uint>(result);

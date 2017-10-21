@@ -1,5 +1,5 @@
 //#include "openmit/models/factorization_machine.h"
-//#include "openmit/models/fieldaware_factorization_machine.h"
+#include "openmit/models/fieldaware_factorization_machine.h"
 #include "openmit/models/logistic_regression.h"
 #include "openmit/models/model.h"
 
@@ -16,8 +16,8 @@ Model * Model::Create(const mit::KWArgs & kwargs) {
     return mit::LR::Get(kwargs);
     //return mit::FM::Get(kwargs);
   } else if (model == "ffm") {
-    return mit::LR::Get(kwargs);
-    //return mit::FFM::Get(kwargs);
+    //return mit::LR::Get(kwargs);
+    return mit::FFM::Get(kwargs);
   } else {
     LOG(ERROR) <<
       "model not in [lr, fm, ffm], model: " << model;

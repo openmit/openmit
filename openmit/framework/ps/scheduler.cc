@@ -126,7 +126,7 @@ void Scheduler::UpdateMetric(const ps::SimpleData & recved) {
         auto key = data_type + "-" + metrictypesets[j];
         auto value = metric_sum_[key][epoch] / ps::NumWorkers();
         message += metrictypesets[j] + ":" + std::to_string(value);
-        message += (j != metrictypesets.size() - 1 ? "," : "; ");
+        message += (j != metrictypesets.size() - 1 ? "," : " ");
       }
     }
     LOG(INFO) << message;

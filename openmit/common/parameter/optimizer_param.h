@@ -1,7 +1,7 @@
 /*!
  *  Copyright 2017 by Contributors
  *  \file optimizer_param.h
- *  \brief client configure parameter
+ *  \brief optimization algorithm related parameter
  *  \author ZhouYong
  */
 #ifndef OPENMIT_COMMON_PARAMETER_OPTIMIZER_PARAM_H_

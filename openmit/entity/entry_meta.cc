@@ -2,22 +2,27 @@
 
 namespace mit {
 
-EntryMeta::EntryMeta(const mit::CliParam & cli_param) {
-  model = cli_param.model;
+EntryMeta::EntryMeta(const mit::ModelParam & model_param) {
+  model = model_param.model;
   if (model == "fm" || model == "ffm") {
-    embedding_size = cli_param.embedding_size;
+    embedding_size = model_param.embedding_size;
   }
-  if (cli_param.data_format == "libfm" && model == "ffm") {
-    if (cli_param.field_combine_set == "" && cli_param.field_combine_pair == "") {
+  LOG(INFO) << "model_param.model: " << model_param.model;
+  LOG(INFO) << "model_param.data_format: " << model_param.data_format;
+  LOG(INFO) << "model_param.field_combine_set: " << model_param.field_combine_set;
+  LOG(INFO) << "model_param.field_combine_pair: " << model_param.field_combine_pair;
+
+  if (model_param.data_format == "libfm" && model == "ffm") {
+    if (model_param.field_combine_set == "" && model_param.field_combine_pair == "") {
       LOG(FATAL) << "parameter field_combine_XXX both empty.";
     }
-    if (cli_param.field_combine_set != "" && cli_param.field_combine_pair != "") {
+    if (model_param.field_combine_set != "" && model_param.field_combine_pair != "") {
       LOG(FATAL) << "parameter field_combine_XXX both value.";
     }
-    if (cli_param.field_combine_set != "") {
-      ProcessFieldCombineSet(cli_param.field_combine_set);
-    } else if (cli_param.field_combine_pair != "") {
-      ProcessFieldCombinePair(cli_param.field_combine_pair);
+    if (model_param.field_combine_set != "") {
+      ProcessFieldCombineSet(model_param.field_combine_set);
+    } else if (model_param.field_combine_pair != "") {
+      ProcessFieldCombinePair(model_param.field_combine_pair);
     } else {
       LOG(FATAL) << "parameter field_combine_XXX both empty.";
     }
@@ -34,6 +39,17 @@ EntryMeta::~EntryMeta() {
   }
 }
 
+int EntryMeta::FieldIndex(const mit_uint & fieldid, const mit_uint & rfieldid) {
+  if (fields_map.find(fieldid) == fields_map.end()) {
+    return -1;
+  } else {
+    auto * related_fields_list = fields_map[fieldid];
+    for (auto i = 0u; i < related_fields_list->size(); ++i) {
+      if ((*related_fields_list)[i] == rfieldid) return i;
+    }
+    return -1;
+  }
+}
 std::vector<mit_uint> * EntryMeta::CombineInfo(const mit_uint & fieldid) {
   if (fields_map.find(fieldid) == fields_map.end()) {
     return new std::vector<mit_uint>;

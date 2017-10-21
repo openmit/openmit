@@ -57,16 +57,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
     uint32_t max_epoch;
     /*! \brief number of splitted data block at each worker node. default 10 */
     uint32_t batch_size;
-    /*! \brief max feature dimension */
-    uint32_t max_dim;
     /*! \brief negative instances sampleing rate. [0, 1]. */
     float nsample_rate;
-    /*! \brief latent vector length for fm/ffm */
-    size_t embedding_size;
-    /*! \brief field combine set */
-    std::string field_combine_set;
-    /*! \brief field combine pair */
-    std::string field_combine_pair;
 
     // 3. job control 
     /*! \brief transaction level. default 1 */
@@ -78,16 +70,10 @@ class CliParam : public dmlc::Parameter<CliParam> {
     /*! \brief whether debug */
     bool debug;
 
-    /*! \brief alpha for ftrl learning rate */
-    float alpha;
-    /*! \brief beta for ftrl learning rate */
-    float beta;
-    /*! \brief l1 regularation */
-    float l1;
-    /*! \brief l2 regularation */
-    float l2;
     /*! \brief weight threshold value. 1e-8 */
     double w_minv;
+    size_t embedding_size;
+
 
     // tmp
     size_t save_peroid;
@@ -109,30 +95,23 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(sync_mode).set_default("asp");
       DMLC_DECLARE_FIELD(model).set_default("lr");
       DMLC_DECLARE_FIELD(optimizer).set_default("ftrl");
-      DMLC_DECLARE_FIELD(optimizer).set_default("");
+      DMLC_DECLARE_FIELD(optimizer_v).set_default("");
       DMLC_DECLARE_FIELD(loss).set_default("loss");
       DMLC_DECLARE_FIELD(metric).set_default("auc,logloss");
       
       DMLC_DECLARE_FIELD(max_epoch).set_default(2);
       DMLC_DECLARE_FIELD(batch_size).set_default(100);
-      DMLC_DECLARE_FIELD(max_dim).set_default(1e8);
       DMLC_DECLARE_FIELD(nsample_rate).set_default(0.0);
-      
-      DMLC_DECLARE_FIELD(embedding_size).set_default(4);
-      DMLC_DECLARE_FIELD(field_combine_set).set_default("");
-      DMLC_DECLARE_FIELD(field_combine_pair).set_default("");
       
       DMLC_DECLARE_FIELD(trans_level).set_default(1);
       DMLC_DECLARE_FIELD(is_progress).set_default(true);
       DMLC_DECLARE_FIELD(job_progress).set_default(10);
       DMLC_DECLARE_FIELD(debug).set_default(false);
-      
-      DMLC_DECLARE_FIELD(alpha).set_default(0.1);
-      DMLC_DECLARE_FIELD(beta).set_default(1.0);
-      DMLC_DECLARE_FIELD(l1).set_default(3);
-      DMLC_DECLARE_FIELD(l2).set_default(4);
+
       DMLC_DECLARE_FIELD(w_minv).set_default(1e-8);
+
       DMLC_DECLARE_FIELD(save_peroid).set_default(0);
+      DMLC_DECLARE_FIELD(embedding_size).set_default(4);
     }
 }; // class CliParam
 

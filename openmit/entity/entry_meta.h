@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include "openmit/common/base.h"
-#include "openmit/common/parameter/cli_param.h"
+#include "openmit/common/parameter/model_param.h"
 #include "openmit/tools/dstruct/dstring.h"
 #include "openmit/tools/util/type_conversion.h"
 
@@ -30,13 +30,16 @@ struct EntryMeta {
   std::string model;
 
   /*! \brief constructor */
-  EntryMeta(const mit::CliParam & cli_param);
+  EntryMeta(const mit::ModelParam & model_param);
 
   /*! \brief destructor */
   ~EntryMeta();
 
-  /*! \brief field combine */
+  /*! \brief get field-ralated combine list by fieldid */
   std::vector<mit_uint> * CombineInfo(const mit_uint & fieldid);
+
+  /*! \brief get field index id */
+  int FieldIndex(const mit_uint & fieldid, const mit_uint & rfieldid);
 
   /*! \brief process field combine set */
   void ProcessFieldCombineSet(const std::string field_combine_set);

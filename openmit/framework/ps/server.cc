@@ -23,7 +23,9 @@ void Server::Init(const mit::KWArgs & kwargs) {
   model_->InitOptimizer(kwargs);
 
   // entry_meta_
-  entry_meta_.reset(new mit::EntryMeta(cli_param_));
+  mit::ModelParam model_param;
+  model_param.InitAllowUnknown(kwargs);
+  entry_meta_.reset(new mit::EntryMeta(model_param));
 }
   
 Server::~Server() {

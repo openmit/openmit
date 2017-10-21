@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <random>
 #include <vector>
 #include "openmit/common/base.h"
 #include "openmit/common/parameter/cli_param.h"
@@ -38,8 +39,12 @@ struct Entry {
         << ", fieldid: " << fieldid; 
     }
     wv = new mit_float[length]();
-    // init 
-    for (auto i = 0u; i < length; ++i) { wv[i] = 0.0f; }
+
+    // initialize model Entry
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<float> dis(0, 0.01);
+    for (auto i = 0u; i < length; ++i) { wv[i] = dis(gen); }
   }
 
   ~Entry() {
@@ -86,6 +91,7 @@ struct Entry {
   /*! 
    * \brief i-th feild latent vector info 
    */
+   /*
   inline mit_float * GetV(const size_t & index) {
     return wv + (1 + index * embedding_size);
   }
@@ -96,6 +102,7 @@ struct Entry {
     auto offset = 1 + index * embedding_size + f;
     *(wv + offset) = value;
   }
+  */
 };  // struct Entry
 
 typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
