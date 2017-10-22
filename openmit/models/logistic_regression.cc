@@ -2,25 +2,18 @@
 
 namespace mit {
 
-LR::LR(const mit::KWArgs & kwargs) {
-  this->cli_param_.InitAllowUnknown(kwargs);
-}
-
 void LR::InitOptimizer(const mit::KWArgs & kwargs) {
   optimizer_.reset(mit::Optimizer::Create(kwargs));
 }
 
 void LR::Pull(ps::KVPairs<mit_float> & response, 
-              mit::EntryMeta * entry_meta, 
               mit::entry_map_type * weight) {
   for (auto i = 0u; i < response.keys.size(); ++i) {
     ps::Key key = response.keys[i];
     if (weight->find(key) == weight->end()) {
-      mit::Entry * entry = new mit::Entry(this->cli_param_);
+      mit::Entry * entry = mit::Entry::Create(
+        model_param_, entry_meta_.get(), random_.get());
       weight->insert(std::make_pair(key, entry));
-      if (this->cli_param_.debug) {
-        LOG(INFO) << "key:" << key << " not in weight, generate it.";
-      }
     }
     mit::Entry * entry = (*weight)[key];
     ps::SArray<mit_float> wv;
@@ -60,10 +53,11 @@ mit_float LR::Predict(const dmlc::Row<mit_uint> & row,
   for (auto idx = 0u; idx < row.length; ++idx) {
     mit_uint featid = row.get_index(idx);
     if (key2offset.find(featid) == key2offset.end()) {
-      LOG(FATAL) << "featid: " << featid << " not in keys (key2offset)";
+      LOG(FATAL) << featid << " not in keys (key2offset)";
     }
     auto offset_count = key2offset[featid];
-    CHECK(offset_count.second == 1) << "length of entry != 1 for lr model.";
+    CHECK(offset_count.second == 1) 
+      << "length of entry != 1 for lr model.";
     auto offset = offset_count.first;
     wTx += weights[offset] * row.get_value(idx);
   }

@@ -24,8 +24,10 @@ struct EntryMeta {
    * \brief map structure stored <fieldid, related_fields>
    */
   std::unordered_map<mit_uint, std::vector<mit_uint> * > fields_map;
-  /*! \brief embedding_size for fm/ffm */
+  
+  /*! \brief embedding_size of fm/ffm */
   size_t embedding_size;
+  
   /*! \brief model */
   std::string model;
 
@@ -49,8 +51,7 @@ struct EntryMeta {
 
   /*! \brief fill field info */
   void FillFieldInfo(mit_uint & field1, mit_uint & field2);
-};
+}; // struct EntryMeta
 
 } // namespace mit 
-
 #endif // OPENMIT_ENTITY_ENTRY_META_H_

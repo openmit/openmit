@@ -16,7 +16,7 @@ namespace mit {
 class FFM : public Model {
   public:
     /*! \brief default constructor */
-    FFM(const mit::KWArgs & kwargs);
+    FFM(const mit::KWArgs & kwargs) : Model(kwargs) {}
 
     /*! \brief destructor */
     ~FFM();
@@ -32,7 +32,6 @@ class FFM : public Model {
 
     /*! \brief pull request */
     void Pull(ps::KVPairs<mit_float> & response, 
-              mit::EntryMeta * entry_meta, 
               mit::entry_map_type * weight) override;
  
     /*! \brief update */
@@ -82,8 +81,6 @@ class FFM : public Model {
     std::unique_ptr<mit::Optimizer> optimizer_;   
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
-    /*! \brief entry meta info */
-    std::unique_ptr<mit::EntryMeta> entry_meta_;
 
 }; // class FFM 
 } // namespace mit

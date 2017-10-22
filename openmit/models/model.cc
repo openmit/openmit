@@ -16,13 +16,19 @@ Model * Model::Create(const mit::KWArgs & kwargs) {
     return mit::LR::Get(kwargs);
     //return mit::FM::Get(kwargs);
   } else if (model == "ffm") {
-    //return mit::LR::Get(kwargs);
     return mit::FFM::Get(kwargs);
   } else {
-    LOG(ERROR) <<
+    LOG(FATAL) <<
       "model not in [lr, fm, ffm], model: " << model;
     return nullptr;
   }
+}
+
+Model::Model(const mit::KWArgs & kwargs) {
+  cli_param_.InitAllowUnknown(kwargs);
+  model_param_.InitAllowUnknown(kwargs);
+  entry_meta_.reset(new mit::EntryMeta(model_param_));
+  random_.reset(mit::math::ProbDistr::Create(model_param_));
 }
 
 void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,

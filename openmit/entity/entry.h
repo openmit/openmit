@@ -10,69 +10,44 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <string>
 #include <random>
 #include <vector>
 #include "openmit/common/base.h"
-#include "openmit/common/parameter/cli_param.h"
+#include "openmit/common/parameter/model_param.h"
+#include "openmit/entity/entry_meta.h"
 #include "openmit/tools/dstruct/dstring.h"
+#include "openmit/tools/math/prob_distr.h"
 
 namespace mit {
 /*! 
  * \brief w + (v11 v12 v13 v14 v21 v22 ...)
  */
 struct Entry {
-  /*! \brief constructor */
-  Entry(const mit::CliParam & cli_param, size_t field_number = 0, mit_uint fieldid = 0l) {
-    embedding_size = cli_param.embedding_size;
-    // only w parameter. (lr || ffm that not cross field)
-    if (cli_param.model == "lr" || field_number == 0) {
-      length = 1;
-      embedding_size = 0;
-    } else if (cli_param.model == "fm") {
-      length = 1 + embedding_size;
-    } else if (cli_param.model == "ffm" && fieldid > 0l) {
-      length = 1 + field_number * embedding_size;
-      fieldid = fieldid;
-    } else {
-      LOG(FATAL) << "parameter error. model: " << cli_param.model 
-        << ", field_number: " << field_number 
-        << ", fieldid: " << fieldid; 
-    }
-    wv = new mit_float[length]();
+  /*! \brief create a entry */
+  static Entry * Create(const mit::ModelParam & model_param, 
+                        mit::EntryMeta * entry_meta, 
+                        mit::math::ProbDistr * distr, 
+                        mit_uint field = 0l);
 
-    // initialize model Entry
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<float> dis(0, 0.01);
-    for (auto i = 0u; i < length; ++i) { wv[i] = dis(gen); }
-  }
-
-  ~Entry() {
+  virtual ~Entry() {
     if (wv) { delete[] wv; wv = nullptr; }
   }
 
-  /*! \brief feild key */
-  mit_uint fieldid;
   /*! 
    * \brief entry information, it contains w and v 
    *  w: weight of feature; 
    *  v: latent vector of feature splited by field  
    */
   mit_float * wv;
+  
   /*! \brief length of the (w + v) */
   size_t length;
-  /*! \brief embedding size */
-  size_t embedding_size;
 
   /*! \brief length of entry */
-  size_t Size() const { return length; }
+  inline size_t Size() const { return length; }
 
-  /*! \brief field size */
-  inline size_t field_number() const {
-    return (length - 1) / embedding_size;
-  }
-
-  inline mit_float Get(size_t idx) {
+  inline mit_float Get(size_t idx = 0) {
     return *(wv + idx);
   }
 
@@ -82,28 +57,108 @@ struct Entry {
 
   inline mit_float * Data() { return wv; }
 
-  inline mit_float GetW() { return *wv; }
+  virtual std::string String(
+    mit::EntryMeta * entry_meta = NULL) = 0;
 
-  inline void SetW(const mit_float & weight) {
-    *wv = weight;
-  }
-
-  /*! 
-   * \brief i-th feild latent vector info 
-   */
-   /*
-  inline mit_float * GetV(const size_t & index) {
-    return wv + (1 + index * embedding_size);
-  }
-
-  inline void SetV(const size_t & index, 
-                   const size_t & f, 
-                   const mit_float & value) {
-    auto offset = 1 + index * embedding_size + f;
-    *(wv + offset) = value;
-  }
-  */
 };  // struct Entry
+
+/*! 
+ * \brief general linear regression entry 
+ */
+struct LREntry : Entry {
+  /*! \brief constructor */
+  LREntry(const mit::ModelParam & model_param, 
+          mit::EntryMeta * entry_meta,
+          mit::math::ProbDistr * distr) {
+    length = 1;
+    wv = new mit_float[length]();
+    wv[0] = distr->random();
+  }
+
+  ~LREntry() {}
+
+  /*! \brief String */
+  std::string String(mit::EntryMeta * entry_meta = NULL) override {
+    return std::to_string(*wv);
+  }
+}; // struct LREntry
+
+struct FMEntry : Entry {
+  /*! \brief length of latent factor */
+  size_t embedding_size;
+
+  /*! \brief constructor */
+  FMEntry(const mit::ModelParam & model_param, 
+          mit::EntryMeta * entry_meta, 
+          mit::math::ProbDistr * distr) {
+    embedding_size = model_param.embedding_size;
+    CHECK(embedding_size > 0) 
+      << "embedding_size should be > 0 for fm model.";
+    length = 1 + embedding_size;
+    wv = new mit_float[length]();
+    for (auto idx = 0u; idx < length; ++idx) {
+      wv[idx] = distr->random();
+    }
+  }
+
+  ~FMEntry() {}
+
+  /*! \brief entry info */
+  std::string String(mit::EntryMeta * entry_meta = NULL) override {
+    std::string info = std::to_string(wv[0]);
+    for (auto k = 0u; k < embedding_size; ++k) {
+      info += " " + std::to_string(wv[1 + k]);
+    }
+    return info;
+  }
+}; // struct FMEntry
+
+struct FFMEntry : Entry {
+  /*! \brief length of latent vector */
+  size_t embedding_size;
+
+  /*! \brief field id */
+  mit_uint fieldid;
+
+  /*! \brief constructor */
+  FFMEntry(const mit::ModelParam & model_param, 
+           mit::EntryMeta * entry_meta, 
+           mit::math::ProbDistr * distr, 
+           mit_uint field = 0l) {
+    embedding_size = model_param.embedding_size;
+    CHECK(embedding_size > 0) 
+      << "embedding_size should be > 0 for fm model.";
+    fieldid = field;
+    length = 1;
+    if (fieldid > 0l) {
+      auto rfield_cnt = entry_meta->CombineInfo(field)->size();
+      length += rfield_cnt * embedding_size;
+    }
+    wv = new mit_float[length]();
+    for (auto idx = 0u; idx < length; ++idx) {
+      wv[idx] = distr->random(); 
+    }
+  }
+
+  ~FFMEntry() {}
+  
+  /*! \brief str */
+  std::string String(mit::EntryMeta * entry_meta = NULL) override {
+    std::string info = std::to_string(*wv);
+    if (length == 1) return info;
+    auto * rfields = entry_meta->CombineInfo(fieldid);
+    for (auto i = 0u; i < rfields->size(); ++i) {
+      auto idx_begin = 1 + i * embedding_size;
+      info += " " + std::to_string((*rfields)[i]);
+      info += ":" + std::to_string(wv[idx_begin + 0]);
+      for (auto k = 1u; k < embedding_size; ++k) {
+        info += "," + std::to_string(wv[idx_begin + k]);
+      }
+    }
+    return info;
+  }
+  
+}; // struct FFMEntry
 
 typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
 

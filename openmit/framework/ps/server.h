@@ -23,7 +23,6 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/entity/entry.h"
-#include "openmit/entity/entry_meta.h"
 #include "openmit/models/model.h"
 #include "openmit/framework/ps/signal.h"
 
@@ -84,9 +83,6 @@ class Server {
 
     /*! \brief model */
     std::shared_ptr<mit::Model> model_;
-
-    /*! \brief entry meta info */
-    std::unique_ptr<mit::EntryMeta> entry_meta_;
 
     /*! \brief epoch complete worke number */
     //int epoch_complete_worker_num_;

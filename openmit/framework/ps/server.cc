@@ -21,11 +21,6 @@ void Server::Init(const mit::KWArgs & kwargs) {
   // model 
   model_.reset(mit::Model::Create(kwargs));
   model_->InitOptimizer(kwargs);
-
-  // entry_meta_
-  mit::ModelParam model_param;
-  model_param.InitAllowUnknown(kwargs);
-  entry_meta_.reset(new mit::EntryMeta(model_param));
 }
   
 Server::~Server() {
@@ -83,7 +78,7 @@ ProcessPullRequest(const ps::KVPairs<mit_float> & req_data,
   response.keys = req_data.keys;
   response.vals.clear();
   response.lens.clear();
-  model_->Pull(response, entry_meta_.get(), &weight_);
+  model_->Pull(response, &weight_);
   if (cli_param_.debug) {
     LOG(INFO) << "pull request vals info: " 
       << mit::DebugStr(response.vals.data(), 10); 

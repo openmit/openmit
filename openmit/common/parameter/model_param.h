@@ -24,6 +24,8 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
   std::string field_combine_set;
   /*! \brief field combine pair */
   std::string field_combine_pair;
+  /*! \brief nbit, merge(feature, key) shifting */
+  uint32_t nbit;
   /*! \brief model initialize random method name */
   std::string random_name;
   /*! \brief random mean. applied to normal distribution */
@@ -42,6 +44,7 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
     DMLC_DECLARE_FIELD(embedding_size).set_default(4);
     DMLC_DECLARE_FIELD(field_combine_set).set_default("");
     DMLC_DECLARE_FIELD(field_combine_pair).set_default("");
+    DMLC_DECLARE_FIELD(nbit).set_default(5);
       
     DMLC_DECLARE_FIELD(random_name).set_default("normal");
     DMLC_DECLARE_FIELD(random_mean).set_default(0.0);

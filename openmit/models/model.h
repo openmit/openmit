@@ -11,9 +11,12 @@
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
 #include "openmit/common/parameter/cli_param.h"
+#include "openmit/common/parameter/model_param.h"
 #include "openmit/entity/entry_meta.h"
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/math/basic_formula.h"
+#include "openmit/tools/math/prob_distr.h"
+
 namespace mit {
 typedef std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset_type;
 /*!
@@ -21,8 +24,11 @@ typedef std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset_type;
  */
 class Model {
   public:
-    /*! \brief constructor */
+    /*! \brief create a model */
     static Model * Create(const mit::KWArgs & kwargs);
+
+    /*! \brief constructor */
+    Model(const mit::KWArgs & kwargs);
 
     /*! \brief destructor */
     virtual ~Model() {}
@@ -81,7 +87,6 @@ class Model {
   public:  // method for server
     /*! \brief pull request */
     virtual void Pull(ps::KVPairs<mit_float> & response, 
-                      mit::EntryMeta * entry_meta, 
                       mit::entry_map_type * weight) = 0;
  
     /*! \brief initialize model optimizer */
@@ -95,14 +100,20 @@ class Model {
 
   public:
     /*! \brief get model type */
-    std::string ModelType() { return cli_param_.model; }
+    std::string ModelType() { return model_param_.model; }
     /*! \brief model parameter */
-    mit::CliParam Param() const { return cli_param_; }
+    mit::ModelParam Param() const { return model_param_; }
 
   protected:
-    /*! \brief model type */
+    /*! \brief client parameter */
     mit::CliParam cli_param_;
-
+    /*! \brief model parameter */
+    mit::ModelParam model_param_;
+    /*! \brief entry meta information */
+    std::unique_ptr<mit::EntryMeta> entry_meta_;
+    /*! \brief random initialize method */
+    std::unique_ptr<mit::math::ProbDistr> random_;
 }; // class Model
+
 } // namespace mit
 #endif // OPENMIT_MODELS_MODEL_H_

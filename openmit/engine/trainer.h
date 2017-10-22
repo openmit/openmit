@@ -16,7 +16,6 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
-#include "openmit/entity/entry_meta.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
 
@@ -74,8 +73,6 @@ class Trainer {
     /*! \brief loss function */
     //std::shared_ptr<mit::Loss> loss_;
     mit::Loss * loss_;
-    /*! \brief entry meta information */
-    std::unique_ptr<mit::EntryMeta> entry_meta_;
 
 }; // class Trainer
 

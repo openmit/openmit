@@ -17,7 +17,7 @@ namespace mit {
 class LR : public Model {
   public:
     /*! \brief default constructor */
-    LR(const mit::KWArgs & kwargs);
+    LR(const mit::KWArgs & kwargs) : Model(kwargs) {}
 
     /*! \brief destructor */
     ~LR() {}
@@ -30,7 +30,6 @@ class LR : public Model {
   public:  // method for server
     /*! \brief pull request */
     void Pull(ps::KVPairs<mit_float> & response, 
-              mit::EntryMeta * entry_meta, 
               mit::entry_map_type * weight) override;
  
     /*! \brief initialize model optimizer */
