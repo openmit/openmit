@@ -22,6 +22,7 @@ namespace mit {
 struct EntryMeta {
   /*! 
    * \brief map structure stored <fieldid, related_fields>
+   *        that applies to ffm model 
    */
   std::unordered_map<mit_uint, std::vector<mit_uint> * > fields_map;
   
@@ -41,7 +42,8 @@ struct EntryMeta {
   std::vector<mit_uint> * CombineInfo(const mit_uint & fieldid);
 
   /*! \brief get field index id */
-  int FieldIndex(const mit_uint & fieldid, const mit_uint & rfieldid);
+  int FieldIndex(const mit_uint & fieldid, 
+                 const mit_uint & rfieldid);
 
   /*! \brief process field combine set */
   void ProcessFieldCombineSet(const std::string field_combine_set);

@@ -1,6 +1,6 @@
-//#include "openmit/models/factorization_machine.h"
-#include "openmit/models/fieldaware_factorization_machine.h"
-#include "openmit/models/logistic_regression.h"
+#include "openmit/models/fm.h"
+#include "openmit/models/ffm.h"
+#include "openmit/models/lr.h"
 #include "openmit/models/model.h"
 
 namespace mit {

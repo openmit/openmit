@@ -1,4 +1,4 @@
-#include "openmit/models/logistic_regression.h"
+#include "openmit/models/lr.h"
 
 namespace mit {
 

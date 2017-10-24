@@ -21,7 +21,7 @@
 
 namespace mit {
 /*! 
- * \brief w + (v11 v12 v13 v14 v21 v22 ...)
+ * \brief entry model computational & store unit
  */
 struct Entry {
   /*! \brief create a entry */
@@ -35,13 +35,11 @@ struct Entry {
   }
 
   /*! 
-   * \brief entry information, it contains w and v 
-   *  w: weight of feature; 
-   *  v: latent vector of feature splited by field  
+   * \brief entry information, it contains w and embedding factor
    */
   mit_float * wv;
   
-  /*! \brief length of the (w + v) */
+  /*! \brief length of the w and embedding factor */
   size_t length;
 
   /*! \brief length of entry */
@@ -57,6 +55,7 @@ struct Entry {
 
   inline mit_float * Data() { return wv; }
 
+  /*! \brief string format entry info */
   virtual std::string String(
     mit::EntryMeta * entry_meta = NULL) = 0;
 
@@ -75,14 +74,18 @@ struct LREntry : Entry {
     wv[0] = distr->random();
   }
 
+  /*! \brief destructor */
   ~LREntry() {}
 
-  /*! \brief String */
+  /*! \brief string format entry info */
   std::string String(mit::EntryMeta * entry_meta = NULL) override {
     return std::to_string(*wv);
   }
 }; // struct LREntry
 
+/*! 
+ * \brief factorization machine model store unit 
+ */
 struct FMEntry : Entry {
   /*! \brief length of latent factor */
   size_t embedding_size;
@@ -101,9 +104,10 @@ struct FMEntry : Entry {
     }
   }
 
+  /*! \brief destructor */
   ~FMEntry() {}
 
-  /*! \brief entry info */
+  /*! \brief string format entry info */
   std::string String(mit::EntryMeta * entry_meta = NULL) override {
     std::string info = std::to_string(wv[0]);
     for (auto k = 0u; k < embedding_size; ++k) {
@@ -113,6 +117,9 @@ struct FMEntry : Entry {
   }
 }; // struct FMEntry
 
+/*
+ * \brief field-awared factorization machine model store unit 
+ */
 struct FFMEntry : Entry {
   /*! \brief length of latent vector */
   size_t embedding_size;
@@ -140,9 +147,10 @@ struct FFMEntry : Entry {
     }
   }
 
+  /*! \brief destructor */
   ~FFMEntry() {}
   
-  /*! \brief str */
+  /*! \brief string format entry info */
   std::string String(mit::EntryMeta * entry_meta = NULL) override {
     std::string info = std::to_string(*wv);
     if (length == 1) return info;
@@ -156,10 +164,10 @@ struct FFMEntry : Entry {
       }
     }
     return info;
-  }
-  
+  } 
 }; // struct FFMEntry
 
+// entry map type 
 typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
 
 } // namespace mit 

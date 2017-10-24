@@ -1,11 +1,11 @@
 /*!
  *  Copyright 2016 by Contributors
- *  \file fieldaware_factorization_machine.h
- *  \brief fieldaware factorization machine model
+ *  \file ffm.h
+ *  \brief field-aware factorization machine model
  *  \author ZhouYong, diffm
  */
-#ifndef OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
-#define OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
+#ifndef OPENMIT_MODELS_FFM_H_
+#define OPENMIT_MODELS_FFM_H_
 
 #include "openmit/models/model.h"
 
@@ -81,7 +81,7 @@ class FFM : public Model {
     std::unique_ptr<mit::Optimizer> optimizer_;   
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
-
 }; // class FFM 
+
 } // namespace mit
-#endif // OPENMIT_MODELS_FIELDAWARE_FACTORIZATION_MACHINE_H_
+#endif // OPENMIT_MODELS_FFM_H_

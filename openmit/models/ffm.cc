@@ -1,4 +1,4 @@
-#include "openmit/models/fieldaware_factorization_machine.h"
+#include "openmit/models/ffm.h"
 
 namespace mit {
 
