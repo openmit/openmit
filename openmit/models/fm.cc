@@ -64,10 +64,8 @@ mit_float FM::Predict(const dmlc::Row<mit_uint> & row,
                       const std::vector<mit_float> & weights, 
                       mit::key2offset_type & key2offset, 
                       bool is_norm) {
-  auto wTx = Linear(row, weights, key2offset) 
-           + Cross(row, weights, key2offset);
-  //LOG(INFO) << "fm linear: " << Linear(row, weights, key2offset) 
-  //          << ", cross: " << Cross(row, weights, key2offset);
+  auto wTx = Linear(row, weights, key2offset);
+  wTx += Cross(row, weights, key2offset);
   if (is_norm) return mit::math::sigmoid(wTx);
   return wTx;
 }
@@ -76,9 +74,10 @@ mit_float FM::Linear(const dmlc::Row<mit_uint> & row,
                      const std::vector<mit_float> & weights, 
                      mit::key2offset_type & key2offset) {
   mit_float wTx = 0.0f;
-  CHECK(key2offset.find(0) != key2offset.end())
-    << "intercept (key=0) not in key2offset";
-  wTx += weights[key2offset[0].first];
+  if (! cli_param_.is_contain_intercept) {
+    auto offset0 = key2offset[0].first;
+    wTx += weights[offset0];
+  }
   // TODO SMID Accelerated
   for (auto i = 0u; i < row.length; ++i) {
     auto key = row.index[i];
@@ -125,31 +124,36 @@ mit_float FM::Predict(const dmlc::Row<mit_uint> & row,
 }
 
 /**
- * for w0: residual * 1
- * for wi: residual * xi
- * for w(i,f): residual * (xi * \sum_{j=1}^{n} (v(j,f) * xj) - v(i,f) * xi^2)
+ * for w0: lossgrad_value * 1
+ * for wi: lossgrad_value * xi
+ * for w(i,f): lossgrad_value * (xi * \sum_{j=1}^{n} (v(j,f) * xj) - v(i,f) * xi^2)
  */
-void FM::Gradient(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, mit::key2offset_type & key2offset, std::vector<mit_float> * grads, const mit_float & lossgrad_value) {
+void FM::Gradient(const dmlc::Row<mit_uint> & row, 
+                  const std::vector<mit_float> & weights, 
+                  mit::key2offset_type & key2offset, 
+                  std::vector<mit_float> * grads, 
+                  const mit_float & lossgrad_value) {
   CHECK_EQ(weights.size(), grads->size());
   auto instweight = row.get_weight();
-  // 0-order intercept
-  (*grads)[key2offset[0].first] += lossgrad_value * 1 * instweight;
+  // 0-order intercept 
+  if (! cli_param_.is_contain_intercept) {
+    auto offset0 = key2offset[0].first;
+    (*grads)[offset0] += lossgrad_value * 1 * instweight; 
+  }
   // TODO SMID Accelerated 
   // 1-order linear item
   auto embedsize = model_param_.embedding_size;
   for (auto i = 0u; i < row.length; ++i) {
+    auto xi = row.get_value(i);
     auto key = row.index[i];
-    if (key == 0) continue;
-    CHECK(key2offset.find(key) != key2offset.end())
-      << key << " not in key2offset";
-    auto partial_wi = lossgrad_value * row.get_value(i) * instweight;
-    (*grads)[key2offset[key].first] += partial_wi;
+    auto offset = key2offset[key].first;
+    auto partial_wi = lossgrad_value * xi * instweight;
+    (*grads)[offset] += partial_wi;
   }
   // 2-order cross item 
   std::vector<mit_float> sum(embedsize, 0.0f);
   for (auto k = 0u; k < embedsize; ++k) {
     for (auto j = 0u; j < row.length; ++j) {
-      if (row.index[j] == 0) continue;
       auto xj = row.get_value(j);
       auto offsetj = key2offset[row.index[j]].first;
       sum[k] += weights[offsetj + 1 + k] * xj;

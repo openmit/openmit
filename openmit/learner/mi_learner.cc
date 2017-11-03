@@ -1,5 +1,5 @@
 #include "openmit/framework/mpi/admm.h"
-#include "openmit/framework/ps/parameter_server.h"
+#include "openmit/framework/ps/ps.h"
 #include "openmit/learner/mi_learner.h"
 
 namespace mit {

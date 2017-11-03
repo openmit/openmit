@@ -71,15 +71,20 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
                    const mit_float & lossgrad_value) { 
   auto max_length = weights.size();
   auto instweight = row.get_weight();
+  // 0-order intercept
+  if (! cli_param_.is_contain_intercept) {
+    auto offset0 = key2offset[0].first;
+    (*grads)[offset0] += lossgrad_value * 1 * instweight;
+  }
   // 1-order linear item 
   for (auto i = 0u; i < row.length; ++i) {
     mit_uint key = row.index[i] == 0 ? 0l : 
       mit::NewKey(row.index[i], row.field[i], model_param_.nbit);
-    
     CHECK(key2offset.find(key) != key2offset.end()) << 
       "key: " << key << " not in key2offset";
     auto offset = key2offset[key].first;
-    auto partial_wi = lossgrad_value * row.get_value(i) * instweight;
+    auto xi = row.get_value(i);
+    auto partial_wi = lossgrad_value * xi * instweight;
     (*grads)[offset] += partial_wi;
   }
   // 2-order cross item
@@ -130,7 +135,6 @@ mit_float FFM::Predict(const dmlc::Row<mit_uint> & row,
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
   if (is_norm) return mit::math::sigmoid(wTx);
-  LOG(INFO) << "wTx: " << wTx;
   return wTx;
 }
 
@@ -143,31 +147,28 @@ mit_float FFM::Linear(const dmlc::Row<mit_uint> & row,
                       const std::vector<mit_float> & weights, 
                       mit::key2offset_type & key2offset) {
   mit_float wTx = 0.0f;
-  bool is_exist_bias_index_in_row = false;
+  // intercept
+  if (! cli_param_.is_contain_intercept) {
+    wTx += weights[key2offset[0].first];
+  }
   // TODO SMID Accelated
   for (auto i = 0u; i < row.length; ++i) {
-    auto key = 0l;
-    if (row.index[i] != 0l) {
-      key = mit::NewKey(
-        row.index[i], row.field[i], model_param_.nbit);
-    } else {
-      is_exist_bias_index_in_row = true;
-    }
-    auto wi = key2offset.find(key) == key2offset.end() ? 
-      0.0 : weights[key2offset[key].first];
-    wTx += wi * row.get_value(i);
-  }
-  if (! is_exist_bias_index_in_row) {
-    if (key2offset.find(0) == key2offset.end()) {
-      LOG(FATAL) << "bias item (key=0) not in key2offset";
-    }
-    wTx += weights[key2offset[0].first];
+    auto keyi = row.index[i];
+    auto fid = row.field[i];
+    auto newkey = (keyi == 0l) ? 0l :
+      mit::NewKey(keyi, fid, model_param_.nbit);
+    CHECK(key2offset.find(newkey) != key2offset.end())
+      << "newkey: " << newkey << " not in key2offset." 
+      << "key: " << keyi << ", field: " << fid;
+    auto offseti = key2offset[newkey].first;
+    wTx += offseti * row.get_value(i);
   }
   return wTx;
 }
 
 mit_float FFM::Cross(const dmlc::Row<mit_uint> & row, 
                      const std::vector<mit_float> & weights, 
+                     A
                      mit::key2offset_type & key2offset) {
   mit_float cross = 0.0f;
   for (auto i = 0u; i < row.length - 1; ++i) {
@@ -188,16 +189,15 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint> & row,
       auto inprod = 0.0f;
 
       auto vifj_index = entry_meta_->FieldIndex(fi, fj);
-      if (vifj_index == -1) continue;
+      auto vjfi_index = entry_meta_->FieldIndex(fj, fi);
+      if (vifj_index == -1 || vifj_index == -1) continue;
+
       auto vifj_offset = key2offset[keyi].first + 
         (1 + vifj_index * cli_param_.embedding_size);
-
-      auto vjfi_index = entry_meta_->FieldIndex(fj, fi);
-      if (vifj_index == -1) continue;
       auto vjfi_offset = key2offset[keyj].first + 
         (1 + vjfi_index * cli_param_.embedding_size);  
       
-      // TODO SMID Accelated
+      // TODO SMID Accelerated
       for (auto k = 0u; k < cli_param_.embedding_size; ++k) {
         inprod += weights[vifj_offset+k] * weights[vjfi_offset+k];
       }

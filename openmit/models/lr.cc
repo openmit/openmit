@@ -44,49 +44,42 @@ void LR::Update(const ps::SArray<mit_uint> & keys,
   }
 }
 
-mit_float LR::Predict(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, bool is_norm) {
+mit_float LR::Predict(const dmlc::Row<mit_uint> & row, 
+                      const std::vector<mit_float> & weights, 
+                      mit::key2offset_type & key2offset, 
+                      bool is_norm) {
   mit_float wTx = 0;
-  bool is_exist_bias_index_in_row = false;
   for (auto idx = 0u; idx < row.length; ++idx) {
     mit_uint key = row.get_index(idx);
     if (key2offset.find(key) == key2offset.end()) {
       LOG(FATAL) << key << " not in key2offset";
     }
-    auto offset_count = key2offset[key];
-    CHECK(offset_count.second == 1) 
-      << "length of entry != 1 for lr model.";
-    auto offset = offset_count.first;
+    auto offset = key2offset[key].first;
     wTx += weights[offset] * row.get_value(idx);
-    if (key == 0) {
-      is_exist_bias_index_in_row = true;
-    }
   }
-  if (! is_exist_bias_index_in_row) {
-    wTx += weights[key2offset[0].first];
+  // intercept
+  if (! cli_param_.is_contain_intercept) {
+    wTx += weights[key2offset[0].first]; 
   }
   if (is_norm) return mit::math::sigmoid(wTx);
   return wTx;
 }
 
-void LR::Gradient(const dmlc::Row<mit_uint> & row, const std::vector<mit_float> & weights, mit::key2offset_type & key2offset, std::vector<mit_float> * grads, const mit_float & lossgrad_value) {
-  auto max_length = weights.size();
+void LR::Gradient(const dmlc::Row<mit_uint> & row, 
+                  const std::vector<mit_float> & weights, 
+                  mit::key2offset_type & key2offset, 
+                  std::vector<mit_float> * grads, 
+                  const mit_float & lossgrad_value) {
   auto instweight = row.get_weight();
-  bool is_exist_bias_index_in_row = false;
-  size_t offset = 0;
   for (auto idx = 0u; idx < row.length; ++idx) {
     auto key = row.get_index(idx);
-    CHECK(key2offset.find(key) != key2offset.end()) << 
-      "key: " << key << " not in key2offset";
-    auto offset_count = key2offset[key];
-    offset = offset_count.first;
-    CHECK(offset_count.second == 1) 
-      << "length of entry != 1 for lr model.";
-    if (key == 0l) is_exist_bias_index_in_row = true;
+    auto offset = key2offset[key].first;
     auto xi = row.get_value(idx);
     (*grads)[offset] += lossgrad_value * xi * instweight;
   }
-  if (! is_exist_bias_index_in_row) {
-    (*grads)[key2offset[0].first] += lossgrad_value * 1 * instweight;
+  if (! cli_param_.is_contain_intercept) {
+    auto index0 = key2offset[0].first;
+    (*grads)[index0] += lossgrad_value * 1 * instweight;
   }
 }
 

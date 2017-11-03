@@ -45,7 +45,7 @@ class LR : public Model {
     /*! \brief calcuate gradient based on one instance for ps */
     void Gradient(const dmlc::Row<mit_uint> & row, 
                   const std::vector<mit_float> & weights,
-                  std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
+                  mit::key2offset_type & key2offset,
                   std::vector<mit_float> * grads,
                   const mit_float & lossgrad_value) override; 
 
@@ -58,7 +58,7 @@ class LR : public Model {
     /*! \brief prediction based one instance for ps */
     mit_float Predict(const dmlc::Row<mit_uint> & row, 
                       const std::vector<mit_float> & weights, 
-                      std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset, 
+                      mit::key2offset_type & key2offset, 
                       bool is_norm) override;
 
     /*! \brief prediction based one instance for mpi */

@@ -31,9 +31,11 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string model_binary;
     /*! \brief model load input path (binary) */
     std::string model_in;
-    /*! \brief data format type. such as "auto" "libsvm", "libfm" */
+    /*! \brief data format type. such as "auto"/"libsvm"/"libfm" */
     std::string data_format;
-    /*! \brief nbit used to generate new_key by shifting operation. "libfm" */
+    /*! \brief whether instance data contains intercept */
+    bool is_contain_intercept;
+    /*! \brief nbit used to generate new_key by shifting operation */
     size_t nbit;
 
     // 2. task information
@@ -41,7 +43,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string task_type;
     /*! \brief computational framework. "mpi"/"ps" */
     std::string framework;
-    /*! \brief server global parameter update mode. "asp", "bsp", "ssp" */
+    /*! \brief server global parameter update mode */
     std::string sync_mode;
     /*! \brief model. "lr", "lasso", "fm". "ffm", "mf" */
     std::string model;
@@ -53,9 +55,9 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string loss;
     /*! \brief metric */
     std::string metric;
-    /*! \brief number of global iteration. it equals to number of global_weight updated */
+    /*! \brief number of global iteration */
     uint32_t max_epoch;
-    /*! \brief number of splitted data block at each worker node. default 10 */
+    /*! \brief number of computational unit */
     uint32_t batch_size;
     /*! \brief negative instances sampleing rate. [0, 1]. */
     float nsample_rate;
@@ -87,8 +89,12 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(model_dump).set_default("");
       DMLC_DECLARE_FIELD(model_binary).set_default("");
       DMLC_DECLARE_FIELD(model_in).set_default("");
-      DMLC_DECLARE_FIELD(data_format).set_default("libsvm");
-      DMLC_DECLARE_FIELD(nbit).set_default(4);
+      DMLC_DECLARE_FIELD(data_format).set_default("libsvm")
+        .describe("data format. it supports 'auto'/'libsvm'/'libfm'.");
+      DMLC_DECLARE_FIELD(is_contain_intercept).set_default(false)
+        .describe("whether instance data contains intercepts. such as '0:1'");
+      DMLC_DECLARE_FIELD(nbit).set_default(4)
+        .describe("number of bit used to key & field shifting op.");
 
       DMLC_DECLARE_FIELD(task_type).set_default("train");
       DMLC_DECLARE_FIELD(framework).set_default("ps");

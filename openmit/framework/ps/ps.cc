@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "openmit/framework/ps/parameter_server.h"
+#include "openmit/framework/ps/ps.h"
 #include "ps/ps.h"
 
 namespace mit {
