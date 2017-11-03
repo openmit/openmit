@@ -60,13 +60,6 @@ class Model {
 
 
   public: // gradient
-    /*! \brief gradient based on data block for ps */
-    void Gradient(const dmlc::RowBlock<mit_uint> & batch, 
-                  const std::vector<mit_float> & weights,
-                  key2offset_type & key2offset,
-                  const std::vector<mit_float> & preds,
-                  std::vector<mit_float> * grads);
-
     /*! \brief gradient based on batch data for mpi */
     void Gradient(const dmlc::RowBlock<mit_uint> & batch,
                   std::vector<mit_float> & preds,
@@ -76,8 +69,8 @@ class Model {
     virtual void Gradient(const dmlc::Row<mit_uint> & row, 
                           const std::vector<mit_float> & weights,
                           key2offset_type & key2offset,
-                          const mit_float & preds, 
-                          std::vector<mit_float> * grads) = 0;
+                          std::vector<mit_float> * grads,
+                          const mit_float & lossgrad_value) = 0;
 
     /*! \brief calculate gradient based one instance for mpi */
     virtual void Gradient(const dmlc::Row<mit_uint> & row,

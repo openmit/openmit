@@ -96,7 +96,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(model).set_default("lr");
       DMLC_DECLARE_FIELD(optimizer).set_default("ftrl");
       DMLC_DECLARE_FIELD(optimizer_v).set_default("");
-      DMLC_DECLARE_FIELD(loss).set_default("loss");
+      DMLC_DECLARE_FIELD(loss).set_default("logit");
       DMLC_DECLARE_FIELD(metric).set_default("auc,logloss");
       
       DMLC_DECLARE_FIELD(max_epoch).set_default(2);

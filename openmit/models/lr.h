@@ -46,8 +46,8 @@ class LR : public Model {
     void Gradient(const dmlc::Row<mit_uint> & row, 
                   const std::vector<mit_float> & weights,
                   std::unordered_map<mit_uint, std::pair<size_t, int> > & key2offset,
-                  const mit_float & preds, 
-                  std::vector<mit_float> * grads) override;
+                  std::vector<mit_float> * grads,
+                  const mit_float & lossgrad_value) override; 
 
     /*! \brief calculate model gradient based one instance for mpi */
     void Gradient(const dmlc::Row<mit_uint> & row,

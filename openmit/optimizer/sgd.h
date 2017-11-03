@@ -69,6 +69,7 @@ class SGDOptimizer : public Optimizer {
 SGDOptimizer::SGDOptimizer(const mit::KWArgs & kwargs) {
   param_.InitAllowUnknown(kwargs);
   this->param_w_.InitAllowUnknown(kwargs);
+  LOG(INFO) << "Learning rate: " << this->param_w_.lr;
 }
 
 SGDOptimizer::~SGDOptimizer() {}

@@ -13,8 +13,7 @@ Model * Model::Create(const mit::KWArgs & kwargs) {
   if (model == "lr") {
     return mit::LR::Get(kwargs);
   } else if (model == "fm") {
-    return mit::LR::Get(kwargs);
-    //return mit::FM::Get(kwargs);
+    return mit::FM::Get(kwargs);
   } else if (model == "ffm") {
     return mit::FFM::Get(kwargs);
   } else {
@@ -40,6 +39,7 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
   // TODO OpenMP?
   for (auto i = 0u; i < batch.size; ++i) {
     preds[i] = Predict(batch[i], weights, key2offset, is_norm);
+    //LOG(INFO) << "pred: " << preds[i] << ", label: " << batch[i].get_label();
   }
 }
 
@@ -54,37 +54,10 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
   }
 } // method Predict
 
-// implementation of gradient based on batch instance for ps
-void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
-                     const std::vector<mit_float> & weights, 
-                     key2offset_type & key2offset,
-                     const std::vector<mit_float> & preds, 
-                     std::vector<mit_float> * grads) {
-  CHECK_EQ(batch.size, preds.size()) << "block.size != preds.size()";
-  CHECK_EQ(weights.size(), grads->size()) << "weights.size() != grads.size()";
-  // \sum grad for w and v
-  for (auto i = 0u; i < batch.size; ++i) {
-    Gradient(batch[i], weights, key2offset, preds[i], grads);
-  }
-
-  // \frac{1}{batch.size} \sum grad 
-  for (auto i = 0u; i < grads->size(); ++i) {
-    (*grads)[i] /= batch.size;
-  }
-}
-
-void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
-                     std::vector<mit_float> & preds, 
-                     mit::SArray<mit_float> * grads) {
-  CHECK_EQ(batch.size, preds.size());
+void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, std::vector<mit_float> & preds, mit::SArray<mit_float> * grads) {
+  // TODO OpenMP ?
   for (auto i = 0u; i < batch.size; ++i) {
     Gradient(batch[i], preds[i], grads);
   }
-  if (batch.size == 1) return ;
-  CHECK(batch.size > 0) << "batch.size <= 0 in Model::Gradient";
-  for (auto j = 0u; j < grads->size(); ++j) {
-    (*grads)[j] /= batch.size;
-  }
-} // method Gradient 
-
+} // method Gradient
 } // namespace mit

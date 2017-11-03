@@ -34,7 +34,7 @@ class FM : public Model {
     FM(const mit::KWArgs & kwargs) : Model(kwargs) {}
 
     /*! \brief destructor */
-    ~FM();
+    ~FM() {}
 
     /*! \brief get fm model pointer */
     static FM * Get(const mit::KWArgs & kwargs) { 
@@ -60,8 +60,8 @@ class FM : public Model {
     void Gradient(const dmlc::Row<mit_uint> & row, 
                   const std::vector<mit_float> & weights,
                   mit::key2offset_type & key2offset,
-                  const mit_float & pred, 
-                  std::vector<mit_float> * grads) override;
+                  std::vector<mit_float> * grads,
+                  const mit_float & lossgrad_value) override; 
 
     /*! \brief calculate model gradient based one instance for mpi */
     void Gradient(const dmlc::Row<mit_uint> & row,

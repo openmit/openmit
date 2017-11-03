@@ -117,17 +117,9 @@ void Worker::Run() {
   kv_worker_->Wait(kv_worker_->Request(
         signal::WORKER_COMPLETE, "worker", ps::kScheduler));
 
-  //kv_worker_->Request(signal::WORKER_COMPLETE, "worker", ps::kScheduler);
-  
   // message to tell server job finish
-  /*
-  std::vector<ps::Key> keys(1,1);
-  B
-  std::vector<float> vals(1,1);
-  std::vector<int> lens(1,1);
   kv_worker_->Wait(
-      kv_worker_->Push(keys, vals, lens, mit::signal::FINISH));
-  */
+    kv_worker_->Push({1}, {}, {}, mit::signal::FINISH));
   mit::Transaction::End(trans.get());
   LOG(INFO) << "@worker[" << ps::MyRank() << "] epoch completation";
 } 

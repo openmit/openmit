@@ -35,37 +35,42 @@ void FFM::Pull(ps::KVPairs<mit_float> & response,
   }
 }
  
-void FFM::Update(const ps::SArray<mit_uint> & keys, const ps::SArray<mit_float> & vals, const ps::SArray<int> & lens, mit::entry_map_type * weight) {
+void FFM::Update(const ps::SArray<mit_uint> & keys, 
+                 const ps::SArray<mit_float> & vals, 
+                 const ps::SArray<int> & lens, 
+                 mit::entry_map_type * weight) {
   auto keys_length = keys.size();
   auto offset = 0u;
   for (auto i = 0u; i < keys_length; ++i) {
-    if (weight->find(keys[i]) == weight->end()) {
-      LOG(FATAL) << keys[i] << " not in weight structure";
+    auto key = keys[i];
+    if (weight->find(key) == weight->end()) {
+      LOG(FATAL) << key << " not in model structure";
     }
     // update_w (1-order linear item)
-    auto w = (*weight)[keys[i]]->Get(0);
+    auto w = (*weight)[key]->Get(0);
     auto g = vals[offset++];
-    optimizer_->Update(keys[i], 0, g, w, (*weight)[keys[i]]);
-    (*weight)[keys[i]]->Set(0, w);
+    optimizer_->Update(key, 0, g, w, (*weight)[key]);
+    (*weight)[key]->Set(0, w);
     // update_v (2-order cross item)
     if (lens[i] == 1) continue;
-    for (int idx = 1; idx < lens[i]; ++idx) {
-      auto w = (*weight)[keys[i]]->Get(idx);
+    for (int k = 1; k < lens[i]; ++k) {
+      auto v = (*weight)[key]->Get(k);
       auto g = vals[offset++]; 
-      optimizer_v_->Update(keys[i], idx, g, w, (*weight)[keys[i]]);
-      (*weight)[keys[i]]->Set(idx, w);
+      optimizer_v_->Update(key, k, g, v, (*weight)[key]);
+      (*weight)[key]->Set(k, v);
     }
   }
+  CHECK_EQ(offset, vals.size()) 
+    << "number of updated elem != vals.size";
 } // Update
 
 void FFM::Gradient(const dmlc::Row<mit_uint> & row, 
                    const std::vector<mit_float> & weights, 
                    mit::key2offset_type & key2offset, 
-                   const mit_float & pred, 
-                   std::vector<mit_float> * grads) {
+                   std::vector<mit_float> * grads,
+                   const mit_float & lossgrad_value) { 
   auto max_length = weights.size();
   auto instweight = row.get_weight();
-  auto residual = pred - row.get_label();
   // 1-order linear item 
   for (auto i = 0u; i < row.length; ++i) {
     mit_uint key = row.index[i] == 0 ? 0l : 
@@ -74,9 +79,7 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
     CHECK(key2offset.find(key) != key2offset.end()) << 
       "key: " << key << " not in key2offset";
     auto offset = key2offset[key].first;
-    CHECK(offset < max_length) << "offset: " << offset << 
-      " out of range. max_length: " << max_length;
-    auto partial_wi = residual * row.get_value(i) * instweight;
+    auto partial_wi = lossgrad_value * row.get_value(i) * instweight;
     (*grads)[offset] += partial_wi;
   }
   // 2-order cross item
@@ -108,9 +111,9 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
       // vifj * vjfi * xi * xj
       for (auto k = 0u; k < model_param_.embedding_size; ++k) {
         (*grads)[vifj_offset+k] += 
-          (weights[vjfi_offset+k] * xi * xj) * residual * instweight;
+          lossgrad_value * (weights[vjfi_offset+k] * xi * xj) * instweight;
         (*grads)[vjfi_offset+k] += 
-          (weights[vifj_offset+k] * xi * xj) * residual * instweight;
+          lossgrad_value * (weights[vifj_offset+k] * xi * xj) * instweight;
       }
     }
   } 
@@ -127,6 +130,7 @@ mit_float FFM::Predict(const dmlc::Row<mit_uint> & row,
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
   if (is_norm) return mit::math::sigmoid(wTx);
+  LOG(INFO) << "wTx: " << wTx;
   return wTx;
 }
 

@@ -28,7 +28,7 @@
 
 namespace mit {
 /*!
- * \brief server processsor for distributed computate framework 
+ * \brief server processsor for distributed computation framework 
  */
 class Server {
   public:
@@ -51,25 +51,35 @@ class Server {
      * \param req_data request data info
      * \param server 
      */
-    void KVRequestHandle(
-        const ps::KVMeta & req_meta, 
-        const ps::KVPairs<mit_float> & req_data,
-        ps::KVServer<mit_float> * server);
+    void KVRequestHandle(const ps::KVMeta & req_meta, 
+                         const ps::KVPairs<mit_float> & req_data, 
+                         ps::KVServer<mit_float> * server);
 
     /*! 
      * \brief process pull request (weight)
      * \param req_data pull request information
      * \param response request response information
      */
-    void ProcessPullRequest(const ps::KVPairs<mit_float> & req_data, 
-                            ps::KVPairs<mit_float> & response);
+    void PullRequest(const ps::KVPairs<mit_float> & req_data, 
+                     ps::KVPairs<mit_float> & response);
+
+    /*! 
+     * \brief logic for worker finish
+     */
+    void WorkerFinish();
 
   private:
     /*! \brief save model */
     void SaveModel(dmlc::Stream * fo);
 
+    /*! \brief binary model */
+    void SaveBinaryModel(dmlc::Stream * fo);
+
     /*! \brief dump model */
     void DumpModel(dmlc::Stream * fi, dmlc::Stream * fo);
+
+    /*! \brief load model used to prediction */
+    void LoadModel(dmlc::Stream * fi);
   
   private:
     /*! \brief client parameter info */
@@ -84,11 +94,11 @@ class Server {
     /*! \brief model */
     std::shared_ptr<mit::Model> model_;
 
-    /*! \brief epoch complete worke number */
-    //int epoch_complete_worker_num_;
+    /*! \brief mutex */
+    std::mutex mutex_;
 
     /*! \brief finalize after all worker done */
-    //int complete_worker_num_;
+    int complete_worker_number_;
 
     //DISALLOW_COPY_AND_ASSIGN(Server);
 

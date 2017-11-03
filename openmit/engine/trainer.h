@@ -16,6 +16,7 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data/data.h"
+#include "openmit/loss/loss.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
 
@@ -69,9 +70,8 @@ class Trainer {
     /*! \brief model */
     mit::Model * model_;
     /*! \brief metric */
-    std::vector<mit::Metric *> metrics_; 
-    /*! \brief loss function */
-    //std::shared_ptr<mit::Loss> loss_;
+    std::vector<mit::Metric *> metrics_;
+    /*! \brief loss function object */
     mit::Loss * loss_;
 
 }; // class Trainer

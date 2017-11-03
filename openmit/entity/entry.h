@@ -144,6 +144,7 @@ struct FFMEntry : Entry {
     wv = new mit_float[length]();
     for (auto idx = 0u; idx < length; ++idx) {
       wv[idx] = distr->random(); 
+      LOG(INFO) << "wv[" << idx << "]: " << wv[idx];
     }
   }
 

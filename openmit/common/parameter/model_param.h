@@ -48,8 +48,8 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
       
     DMLC_DECLARE_FIELD(random_name).set_default("normal");
     DMLC_DECLARE_FIELD(random_mean).set_default(0.0);
-    DMLC_DECLARE_FIELD(random_variance).set_default(0.01);
-    DMLC_DECLARE_FIELD(random_threshold).set_default(0.01);
+    DMLC_DECLARE_FIELD(random_variance).set_default(0.0001);
+    DMLC_DECLARE_FIELD(random_threshold).set_default(0.0001);
     
     DMLC_DECLARE_FIELD(data_format).set_default("auto");
   }

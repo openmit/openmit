@@ -10,8 +10,6 @@ void Trainer::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   model_ = mit::Model::Create(kwargs);
   loss_ = mit::Loss::Create(cli_param_.loss);
-  mit::ModelParam model_param;
-  model_param.InitAllowUnknown(kwargs);
   // metric 
   std::vector<std::string> metric_names;
   mit::string::Split(cli_param_.metric, &metric_names, ',');
@@ -25,10 +23,7 @@ void Trainer::Init(const mit::KWArgs & kwargs) {
   }
 }
 
-void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, 
-                  std::vector<ps::Key> & keys, 
-                  std::vector<mit_float> & weights, 
-                  std::vector<int> & lens, std::vector<mit_float> * grads) {
+void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> & keys, std::vector<mit_float> & weights, std::vector<int> & lens, std::vector<mit_float> * grads) {
   CHECK_EQ(keys.size(), lens.size());
   CHECK_EQ(weights.size(), grads->size());
 
@@ -36,24 +31,29 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch,
   // key -> (offset, count) 
   std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset;
   size_t offset = 0;
+  std::string str = "";
   for (size_t i = 0; i < nfeature; ++i) {
     key2offset[keys[i]] = std::make_pair(offset, lens[i]);
     offset += lens[i];
   }
+  
+  // TODO OpenMP 
+  for (auto i = 0u; i < batch.size; ++i) {
+    // value of model function 
+    auto mfunc_value = model_->Predict(batch[i], weights, key2offset, false);
+    // gradient of loss function 
+    auto lossgrad_value = loss_->gradient(batch[i].get_label(), mfunc_value);
+    // gradient of objective loss 
+    model_->Gradient(batch[i], weights, key2offset, grads, lossgrad_value);
+  }
 
-  // predict
-  std::vector<mit_float> preds(batch.size);
-  model_->Predict(batch, weights, key2offset, preds);
-
-  // gradient
-  model_->Gradient(batch, weights, key2offset, preds, grads);
+  // TODO OpenMP 
+  for (auto i = 0u; i < grads->size(); ++i) {
+    (*grads)[i] /= batch.size;
+  }
 }
 
-void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch, 
-                     std::vector<ps::Key> & keys, 
-                     std::vector<mit_float> & weights, 
-                     std::vector<int> & lens, 
-                     std::vector<float> & metrics_value) {
+void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> & keys, std::vector<mit_float> & weights, std::vector<int> & lens, std::vector<float> & metrics_value) {
   CHECK_EQ(keys.size(), lens.size());
   size_t nfeature = keys.size();
   // key --> (offset, count)
@@ -68,7 +68,12 @@ void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch,
   std::vector<mit_float> preds(batch.size);
   model_->Predict(batch, weights, key2offset, preds);
   std::vector<mit_float> labels(batch.label, batch.label + batch.size);
-
+  if (cli_param_.debug) {
+    LOG(INFO) << "metric preds: [" << preds.size() << "] "
+      << mit::DebugStr<mit_float>(preds.data(), 10, 10);
+    LOG(INFO) << "metric labels: " << labels.size() << "] "
+      << mit::DebugStr<mit_float>(labels.data(), 10, 10);
+  }
   // metric 
   auto metric_count = metrics_.size();
   metrics_value.resize(metric_count, 0.0f);

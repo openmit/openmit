@@ -40,7 +40,7 @@ struct OptimizerParam : public dmlc::Parameter<OptimizerParam> {
   /*! \brief declare field */
   DMLC_DECLARE_PARAMETER(OptimizerParam) {
     DMLC_DECLARE_FIELD(optimizer).set_default("sgd");
-    DMLC_DECLARE_FIELD(lr).set_default(0.1);
+    DMLC_DECLARE_FIELD(lr).set_default(0.001);
     DMLC_DECLARE_FIELD(l1).set_default(0.01);
     DMLC_DECLARE_FIELD(l2).set_default(0.01);
     DMLC_DECLARE_FIELD(alpha).set_default(0.001);
