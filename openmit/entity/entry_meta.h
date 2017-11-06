@@ -10,12 +10,14 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "dmlc/io.h"
 #include "openmit/common/base.h"
 #include "openmit/common/parameter/model_param.h"
 #include "openmit/tools/dstruct/dstring.h"
 #include "openmit/tools/util/type_conversion.h"
 
 namespace mit {
+typedef std::unordered_map<mit_uint, std::vector<mit_uint> * > entrymeta_map_type;
 /*!
  * \brief entry meta information 
  */
@@ -24,7 +26,8 @@ struct EntryMeta {
    * \brief map structure stored <fieldid, related_fields>
    *        that applies to ffm model 
    */
-  std::unordered_map<mit_uint, std::vector<mit_uint> * > fields_map;
+  //std::unordered_map<mit_uint, std::vector<mit_uint> * > fields_map;
+  entrymeta_map_type fields_map;
   
   /*! \brief embedding_size of fm/ffm */
   size_t embedding_size;
@@ -53,6 +56,12 @@ struct EntryMeta {
 
   /*! \brief fill field info */
   void FillFieldInfo(mit_uint & field1, mit_uint & field2);
+
+  /*! \brief save entry meta info */
+  void Save(dmlc::Stream * fo);
+
+  /*! \brief load entry meta info */
+  void Load(dmlc::Stream * fi);
 }; // struct EntryMeta
 
 } // namespace mit 

@@ -40,4 +40,8 @@ third_party/mxnet
 
 # tmp file
 test/ 
-learning/
+learning/ 
+
+# Data files
+part*
+part*

@@ -69,7 +69,6 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
                    mit::key2offset_type & key2offset, 
                    std::vector<mit_float> * grads,
                    const mit_float & lossgrad_value) { 
-  auto max_length = weights.size();
   auto instweight = row.get_weight();
   // 0-order intercept
   if (! cli_param_.is_contain_intercept) {
@@ -168,7 +167,6 @@ mit_float FFM::Linear(const dmlc::Row<mit_uint> & row,
 
 mit_float FFM::Cross(const dmlc::Row<mit_uint> & row, 
                      const std::vector<mit_float> & weights, 
-                     A
                      mit::key2offset_type & key2offset) {
   mit_float cross = 0.0f;
   for (auto i = 0u; i < row.length - 1; ++i) {

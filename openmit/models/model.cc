@@ -60,4 +60,5 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, std::vector<mit_flo
     Gradient(batch[i], preds[i], grads);
   }
 } // method Gradient
+
 } // namespace mit

@@ -38,32 +38,18 @@ KVRequestHandle(const ps::KVMeta & req_meta,
   if (req_meta.push) {
     int cmd = req_meta.cmd;
     switch(cmd) {
-      case signal::UPDATE: 
-        { 
-          Run(req_data); 
-        }
-        break;
+      case signal::UPDATE: Run(req_data); break;
       case signal::SAVEINFO:
         {
           std::string model_path = cli_param_.model_dump 
-            + "/iter=" + std::to_string(req_data.keys[0]) 
+          + "/iter=" + std::to_string(req_data.keys[0]) 
             + "/part." + std::to_string(ps::MyRank());
           auto * fo = dmlc::Stream::Create(model_path.c_str(), "w"); 
           SaveModel(fo);
+          delete fo;
         }
         break;
-      case signal::FINISH:
-        {
-          // model dump 
-          std::string model_path = cli_param_.model_dump 
-            + "/part." + std::to_string(ps::MyRank());
-          auto * foo = dmlc::Stream::Create(model_path.c_str(), "w");
-          //SaveModel(foo);
-          WorkerFinish();
-          // model binary
-          // TODO
-        }
-        break;
+      case signal::FINISH: WorkerFinish(); break;
       default:
         LOG(FATAL) << "cmd is not recoginized. " << req_meta.cmd;
     }
@@ -95,34 +81,31 @@ PullRequest(const ps::KVPairs<mit_float> & req_data,
 }
 
 void Server::WorkerFinish() {
-  LOG(INFO) << "worker finish.";
   mutex_.lock(); 
   complete_worker_number_++; 
   mutex_.unlock();
-  LOG(INFO) << "complete_worker_number_: " << complete_worker_number_ << ", ps::NumWorkers: " << ps::NumWorkers();
   if (complete_worker_number_ == ps::NumWorkers()) {
-    LOG(INFO) << "   worker finish.";
-    std::string dump_out = cli_param_.model_dump 
-      + "/part-" + std::to_string(ps::MyRank());
-    std::unique_ptr<dmlc::Stream> dumpfo(
-      dmlc::Stream::Create(dump_out.c_str(), "w"));
-    SaveModel(dumpfo.get());
-    std::string binary_out = cli_param_.model_binary + 
-      "/last/part-" + std::to_string(ps::MyRank());
-    std::unique_ptr<dmlc::Stream> binfo(
-      dmlc::Stream::Create(binary_out.c_str(), "w"));
-    SaveBinaryModel(binfo.get());
-    // BinaryModel
+    LOG(INFO) << "all workers completed. save model begin";
+    std::string dump_out = cli_param_.model_dump + "/part-" + std::to_string(ps::MyRank());
+    auto * dumpfo = dmlc::Stream::Create(dump_out.c_str(), "w");
+    SaveModel(dumpfo); delete dumpfo;
+    LOG(INFO) << "save model (text format) completed!";
+
+    std::string binary_out = cli_param_.model_binary + "/last/part-" + std::to_string(ps::MyRank());
+    auto * binfo = dmlc::Stream::Create(binary_out.c_str(), "w");
+    SaveBinaryModel(binfo); delete binfo;
+    LOG(INFO) << "save model (binary format) completed!";
+    LOG(INFO) << "save model done.";
   }
 }
 
 void Server::SaveModel(dmlc::Stream * fo) {
-  std::unique_ptr<Transaction> trans(
-    new Transaction(1, "server", "dump_out"));
+  std::unique_ptr<Transaction> trans(new Transaction(1, "server", "dump_out"));
+  mit::EntryMeta * entry_meta = model_->EntryMeta();
   dmlc::ostream oss(fo);
   for (auto & kv : weight_) {
     auto key = kv.first;
-    oss << key << "\t" << kv.second->String() << "\n";
+    oss << key << "\t" << kv.second->String(entry_meta) << "\n";
   }
   // force flush before fo destruct 
   oss.set_stream(nullptr);
@@ -130,17 +113,21 @@ void Server::SaveModel(dmlc::Stream * fo) {
 }
 
 void Server::SaveBinaryModel(dmlc::Stream * fo) {
-  std::unique_ptr<Transaction> trans(
-    new Transaction(1, "server", "binary_out"));
-  dmlc::ostream oss(fo);
-  for (auto & kv : weight_) {
-    auto key = kv.first;
-    oss << key << "\t" << kv.second->String() << "\n";
+  std::unique_ptr<Transaction> trans(new Transaction(1, "server", "binary_out"));
+  // save entry meta
+  mit::EntryMeta * entry_meta = model_->EntryMeta();
+  entry_meta->Save(fo);
+  // save model 
+  std::unordered_map<ps::Key, mit::Entry * >::iterator iter;
+  iter = weight_.begin();
+  while (iter != weight_.end()) {
+    // TODO  key special process
+    fo->Write((char *) &iter->first, sizeof(ps::Key));
+    iter->second->Save(fo, entry_meta);
+    iter++;
   }
-  // force flush before fo destruct 
-  oss.set_stream(nullptr);
   Transaction::End(trans.get());
-} // SaveBinaryModel
+} // method SaveBinaryModel
 
 void Server::DumpModel(dmlc::Stream * fi, dmlc::Stream * fo) {
   dmlc::ostream oss(fo);

@@ -16,8 +16,8 @@ namespace mit {
 struct ModelParam : public dmlc::Parameter<ModelParam> {
   /*! \brief model name */
   std::string model;
-  /*! \brief max feature dimension */
-  uint32_t max_dim;
+  /*! \brief max feature dimension id */
+  uint32_t max_key;
   /*! \brief latent vector length for fm/ffm */
   size_t embedding_size;
   /*! \brief field combine set */
@@ -40,7 +40,7 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
   // declare parameters 
   DMLC_DECLARE_PARAMETER(ModelParam) {
     DMLC_DECLARE_FIELD(model).set_default("lr");
-    DMLC_DECLARE_FIELD(max_dim).set_default(1e8);
+    DMLC_DECLARE_FIELD(max_key).set_default(1e8);
     DMLC_DECLARE_FIELD(embedding_size).set_default(4);
     DMLC_DECLARE_FIELD(field_combine_set).set_default("");
     DMLC_DECLARE_FIELD(field_combine_pair).set_default("");

@@ -34,12 +34,10 @@ struct Entry {
     if (wv) { delete[] wv; wv = nullptr; }
   }
 
-  /*! 
-   * \brief entry information, it contains w and embedding factor
-   */
+  /*! \brief entry contents */
   mit_float * wv;
   
-  /*! \brief length of the w and embedding factor */
+  /*! \brief length of model store unit */
   size_t length;
 
   /*! \brief length of entry */
@@ -57,6 +55,14 @@ struct Entry {
 
   /*! \brief string format entry info */
   virtual std::string String(
+    mit::EntryMeta * entry_meta = NULL) = 0;
+
+  /*! \brief save entry */
+  virtual void Save(dmlc::Stream * fo, 
+    mit::EntryMeta * entry_meta = NULL) = 0;
+
+  /*! \brief load entry */
+  virtual void Load(dmlc::Stream * fi,
     mit::EntryMeta * entry_meta = NULL) = 0;
 
 };  // struct Entry
@@ -80,6 +86,20 @@ struct LREntry : Entry {
   /*! \brief string format entry info */
   std::string String(mit::EntryMeta * entry_meta = NULL) override {
     return std::to_string(*wv);
+  }
+
+  /*! \brief save entry */
+  void Save(dmlc::Stream * fo, 
+            mit::EntryMeta * entry_meta = NULL) override {
+    fo->Write((char *) &wv[0], sizeof(mit_float));
+  }
+
+  /*! \brief load entry */
+  void Load(dmlc::Stream * fi, 
+            mit::EntryMeta * entry_meta = NULL) override {
+    mit_float w;
+    fi->Read(&w, sizeof(mit_float));
+    wv[0] = w;
   }
 }; // struct LREntry
 
@@ -115,6 +135,33 @@ struct FMEntry : Entry {
     }
     return info;
   }
+
+  /*! \brief save entry */
+  void Save(dmlc::Stream * fo, 
+            mit::EntryMeta * entry_meta = NULL) override {
+    LOG(INFO) << "FMEntry Save begin ...";
+    fo->Write((char *) &embedding_size, sizeof(size_t));
+    fo->Write((char *) &wv[0], sizeof(mit_float));
+    for (size_t k = 0; k < embedding_size; ++k) {
+      fo->Write((char *) &wv[1 + k], sizeof(mit_float));
+    }
+    LOG(INFO) << "FMEntry Save done.";
+  }
+
+  /*! \brief load entry */
+  void Load(dmlc::Stream * fi, 
+            mit::EntryMeta * entry_meta = NULL) override {
+    size_t embedsize; 
+    fi->Read(&embedsize, sizeof(size_t));
+    CHECK(embedding_size == embedsize && embedsize > 0);
+    mit_float value;
+    fi->Read(&value, sizeof(mit_float));
+    wv[0] = value;
+    for (size_t k = 0; k < embedsize; ++k) {
+      fi->Read(&value, sizeof(mit_float));
+      wv[1 + k] = value; 
+    }
+  }
 }; // struct FMEntry
 
 /*
@@ -144,7 +191,6 @@ struct FFMEntry : Entry {
     wv = new mit_float[length]();
     for (auto idx = 0u; idx < length; ++idx) {
       wv[idx] = distr->random(); 
-      LOG(INFO) << "wv[" << idx << "]: " << wv[idx];
     }
   }
 
@@ -153,6 +199,7 @@ struct FFMEntry : Entry {
   
   /*! \brief string format entry info */
   std::string String(mit::EntryMeta * entry_meta = NULL) override {
+    CHECK_NOTNULL(entry_meta);
     std::string info = std::to_string(*wv);
     if (length == 1) return info;
     auto * rfields = entry_meta->CombineInfo(fieldid);
@@ -166,6 +213,43 @@ struct FFMEntry : Entry {
     }
     return info;
   } 
+  
+  /*! \brief save entry */
+  void Save(dmlc::Stream * fo, 
+            mit::EntryMeta * entry_meta = NULL) override {
+    fo->Write((char *) &fieldid, sizeof(mit_uint));
+    fo->Write((char *) &embedding_size, sizeof(size_t));
+    fo->Write((char *) &wv[0], sizeof(mit_float));
+    auto * rfields = entry_meta->CombineInfo(fieldid);
+    for (auto i = 0u; i < rfields->size(); ++i) {
+      auto offset_begin = 1 + i * embedding_size;
+      mit_uint rfid = (*rfields)[i];
+      fo->Write((char *) &rfid, sizeof(mit_uint));
+      for (size_t k = 0; k < embedding_size; ++k) {
+        mit_float v = wv[offset_begin + k];
+        fo->Write((char *) &v, sizeof(mit_float));
+      }
+    }
+  } // method Save
+
+  /*! \brief save entry */
+  void Load(dmlc::Stream * fi, 
+            mit::EntryMeta * entry_meta = NULL) override {
+    fi->Read(&fieldid, sizeof(mit_uint));
+    fi->Read(&embedding_size, sizeof(size_t));
+    fi->Read(&wv[0], sizeof(mit_float));
+    auto *rfields = entry_meta->CombineInfo(fieldid);
+    size_t offset = 1;
+    for (auto i = 0u; i < rfields->size(); ++i) {
+      mit_uint rfid;
+      fi->Read(&rfid, sizeof(mit_uint));
+      CHECK_EQ(rfid, (*rfields)[i]) << "relerated fielid not match";
+      for (size_t k = 0; k < embedding_size; ++k) {
+        fi->Read(&wv[offset], sizeof(mit_float));
+        offset++;
+      }
+    }
+  } // method Load
 }; // struct FFMEntry
 
 // entry map type 

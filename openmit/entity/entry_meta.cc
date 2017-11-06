@@ -103,4 +103,55 @@ void EntryMeta::FillFieldInfo(mit_uint & field1, mit_uint & field2) {
   }
 }
 
+void EntryMeta::Save(dmlc::Stream * fo) {
+  // model 
+  size_t bytes_model = model.size();
+  fo->Write((char *) &bytes_model, sizeof(size_t));
+  fo->Write(model.c_str(), bytes_model);
+  fo->Write((char *) &embedding_size, sizeof(size_t));
+  // write fields_map 
+  size_t fields_map_size = fields_map.size();
+  fo->Write((char *) &fields_map_size, sizeof(size_t));
+  mit::entrymeta_map_type::iterator iter = fields_map.begin();
+  while (iter != fields_map.end()) {
+    fo->Write((char *) &iter->first, sizeof(mit_uint));
+    size_t vec_size = iter->second->size();
+    fo->Write((char *) &vec_size, sizeof(size_t));
+    for (auto i = 0u; i < vec_size; ++i) {
+      fo->Write((char *) &iter->second->at(i), sizeof(mit_uint));
+    }
+    iter++;
+  }
+} // method Save
+
+void EntryMeta::Load(dmlc::Stream * fi) {
+  size_t numerical;
+  // read : size of model string
+  fi->Read(&numerical, sizeof(size_t));
+  char * modelbytes = new char[numerical];
+  // read : model string
+  fi->Read(modelbytes, numerical);
+  model.assign(modelbytes, numerical);
+  // read : embedding_size 
+  fi->Read(&numerical, sizeof(size_t));
+  embedding_size = numerical;
+  // read fields map
+  fi->Read(&numerical, sizeof(size_t));
+  for (size_t i = 0; i < numerical; ++i) {
+    mit_uint fid; 
+    fi->Read(&fid, sizeof(mit_uint));
+    size_t vecsize;
+    fi->Read(&vecsize, sizeof(size_t));
+    std::vector<mit_uint> * vec = new std::vector<mit_uint>(vecsize);
+    mit_uint rfield_elem;
+    for (size_t j = 0; j < vecsize; ++j) {
+      fi->Read(&rfield_elem, sizeof(mit_uint));
+      (*vec)[j] = rfield_elem;
+    }
+    fields_map.insert(std::make_pair(fid, vec));
+  }
+  LOG(INFO) << "load entry meta done. model: " << model 
+    << ", fields_map.size: " << numerical;
+}
+
 }// namespace mit

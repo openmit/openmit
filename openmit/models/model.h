@@ -18,7 +18,9 @@
 #include "openmit/tools/math/prob_distr.h"
 
 namespace mit {
+
 typedef std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset_type;
+
 /*!
  * \brief model template for distributed machine learning framework
  */
@@ -93,9 +95,11 @@ class Model {
 
   public:
     /*! \brief get model type */
-    std::string ModelType() { return model_param_.model; }
+    inline std::string ModelType() { return model_param_.model; }
     /*! \brief model parameter */
-    mit::ModelParam Param() const { return model_param_; }
+    inline mit::ModelParam Param() const { return model_param_; }
+    /*! \brief entry meta info */
+    inline mit::EntryMeta * EntryMeta() { return entry_meta_.get(); }
 
   protected:
     /*! \brief client parameter */

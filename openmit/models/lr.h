@@ -1,18 +1,18 @@
 /*!
  *  Copyright 2016 by Contributors
- *  \file logistic_regression.h
- *  \brief logistic regression model
+ *  \file linear_regression.h
+ *  \brief linear regression model
  *  \author ZhouYong, diffm
  */
-#ifndef OPENMIT_MODEL_LOGISTIC_REGRESSION_H_
-#define OPENMIT_MODEL_LOGISTIC_REGRESSION_H_
+#ifndef OPENMIT_MODEL_LINEAR_REGRESSION_H_
+#define OPENMIT_MODEL_LINEAR_REGRESSION_H_
 
 #include <memory>
 #include "openmit/models/model.h"
 
 namespace mit {
 /*!
- * \brief the logistic regression model for worker phase
+ * \brief the linear regression model expression
  */
 class LR : public Model {
   public:

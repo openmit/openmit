@@ -7,6 +7,7 @@ using namespace mit;
 
 template <typename V>
 std::string VecInfo(std::vector<V> * vec) {
+  if (vec->size() == 0) return "";
   std::string value = std::to_string(vec->at(0));
   for (size_t i = 1; i < vec->size(); ++i) {
     value += " " + std::to_string(vec->at(i));
@@ -33,6 +34,17 @@ int main(int argc, char ** argv) {
   LOG(INFO) << "fieldid=3, size: " << result->size();
   LOG(INFO) << VecInfo<mit_uint>(result);
   if (result->size() == 0) delete result;
+  // test Save & Load 
+  dmlc::Stream * fo = dmlc::Stream::Create(argv[2], "w");
+  entry_meta->Save(fo);
+  int value = 1001; fo->Write(&value, sizeof(int));
+  delete fo;
+  dmlc::Stream * fi = dmlc::Stream::Create(argv[2], "r");
+  entry_meta->Load(fi);
+  int xx; fi->Read(&xx, sizeof(int));
+  LOG(INFO) << "load value: " << xx;
+  delete fi;
+
   delete entry_meta;
 
   return 0;

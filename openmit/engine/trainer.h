@@ -64,7 +64,7 @@ class Trainer {
               const std::vector<mit_float> * predict, 
               std::vector<mit_float> * loss);
 
-  protected:
+  private:
     /*! \brief parameter */
     mit::CliParam cli_param_;
     /*! \brief model */

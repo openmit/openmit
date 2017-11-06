@@ -19,7 +19,7 @@
 | | `optimizer` | 优化器，可选择`gd/adagrad/adadelta/adam/rmsprop`<br>`ftrl/ftml/lbfgs/als`等 | `"ftrl"` | 训练时必填 |
 | | `max_epoch` | 最大迭代次数 | `2` | 训练时必须 |
 | | `batch_size` | batch大小（样本数） | `100` |  必填 |
-| | `max_dim` | 最大特征维度 | `<uint64_t>::max()` | optional |
+| | `max_key` | 最大特征维度id | `<uint64_t>::max()` | optional |
 | | `nsample_rate` | 负样本采样率 | `0.0` | 默认不采样 |
 | ADMM算法框架 | `rho` | 增广拉格朗日系数（步长）| `1` | MPI框架使用 |
 | | `lambda_obj` | 拉格朗日对偶系数 | `0.05` | MPI框架使用 |

@@ -21,12 +21,12 @@ class PSParam : public dmlc::Parameter<PSParam> {
     /*! \brief framework */
     std::string framework;
     /*! \brief max feature dimension (default uint64::max) */
-    uint64_t max_dimension;
+    uint64_t max_key;
 
     /*! declare parameter field */
     DMLC_DECLARE_PARAMETER(PSParam) {
       DMLC_DECLARE_FIELD(framework).set_default("ps");
-      DMLC_DECLARE_FIELD(max_dimension).set_default(0l);
+      DMLC_DECLARE_FIELD(max_key).set_default(0l);
     }
 }; // class PSParam
 
