@@ -45,15 +45,21 @@ class Server {
     void Run(const ps::KVPairs<mit_float> & req_data);
 
   protected:
-    /** 
+    /*! 
      * \brief kv request handle logic 
      * \param req_meta request meta info
      * \param req_data request data info
      * \param server 
      */
-    void KVRequestHandle(const ps::KVMeta & req_meta, 
-                         const ps::KVPairs<mit_float> & req_data, 
-                         ps::KVServer<mit_float> * server);
+    void KVHandle(const ps::KVMeta & req_meta, 
+                  const ps::KVPairs<mit_float> & req_data, 
+                  ps::KVServer<mit_float> * server);
+
+    /*!
+     * \brief signal process handle logic
+     */
+    void CmdHandle(const ps::SimpleData & recved, 
+                   ps::SimpleApp * app);
 
     /*! 
      * \brief process pull request (weight)
@@ -70,9 +76,12 @@ class Server {
 
   private:
     /*! \brief save model */
-    void SaveModel(dmlc::Stream * fo);
+    void SaveModel(std::string epoch = "");
 
-    /*! \brief binary model */
+    /*! \brief save text model */
+    void SaveTextModel(dmlc::Stream * fo);
+
+    /*! \brief save binary model */
     void SaveBinaryModel(dmlc::Stream * fo);
 
     /*! \brief dump model */
@@ -88,8 +97,11 @@ class Server {
     /*! \brief global model weight */
     std::unordered_map<ps::Key, mit::Entry * > weight_;
     
-    /*! \brief process push & pull request */
-    ps::KVServer<mit_float> * kv_server_;
+    /*! \brief process kv request, such as pull/push */
+    std::shared_ptr<ps::KVServer<mit_float>> kv_server_; 
+
+    /*! \brief process request & response except kv */
+    std::shared_ptr<ps::SimpleApp> simple_app_;
 
     /*! \brief model */
     std::shared_ptr<mit::Model> model_;

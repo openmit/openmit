@@ -12,13 +12,19 @@ void Server::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
 
   // kv_server_
-  kv_server_ = new ps::KVServer<mit_float>(0);
+  kv_server_.reset(new ps::KVServer<mit_float>(0));
+  using namespace std::placeholders;
   kv_server_->set_request_handle(
-    std::bind(&Server::KVRequestHandle, this, 
-              std::placeholders::_1, 
-              std::placeholders::_2, 
-              std::placeholders::_3));
+    std::bind(&Server::KVHandle, this, _1, _2, _3));
 
+  // request & response process except kv logic_ 
+  simple_app_.reset(
+    static_cast<ps::SimpleApp *>(kv_server_.get()));
+  simple_app_->set_request_handle(
+    std::bind(&Server::CmdHandle, this, _1, _2));
+  simple_app_->set_response_handle(
+    std::bind(&Server::CmdHandle, this, _1, _2));
+  
   // model for update 
   model_.reset(mit::Model::Create(kwargs));
   model_->InitOptimizer(kwargs);
@@ -27,29 +33,19 @@ void Server::Init(const mit::KWArgs & kwargs) {
   complete_worker_number_ = 0;
 }
   
-Server::~Server() {
-  if (kv_server_) { delete kv_server_; }
-}
+Server::~Server() { }
 
-void Server::
-KVRequestHandle(const ps::KVMeta & req_meta, 
-                const ps::KVPairs<mit_float> & req_data, 
-                ps::KVServer<mit_float> * server) {
+void Server::KVHandle(const ps::KVMeta & req_meta, 
+                      const ps::KVPairs<mit_float> & req_data, 
+                      ps::KVServer<mit_float> * server) {
   if (req_meta.push) {
     int cmd = req_meta.cmd;
     switch(cmd) {
       case signal::UPDATE: Run(req_data); break;
-      case signal::SAVEINFO:
+      case signal::SAVE_EPOCH:
         {
-          std::string model_path = cli_param_.model_dump 
-          + "/iter=" + std::to_string(req_data.keys[0]) 
-            + "/part." + std::to_string(ps::MyRank());
-          auto * fo = dmlc::Stream::Create(model_path.c_str(), "w"); 
-          SaveModel(fo);
-          delete fo;
         }
         break;
-      case signal::FINISH: WorkerFinish(); break;
       default:
         LOG(FATAL) << "cmd is not recoginized. " << req_meta.cmd;
     }
@@ -58,6 +54,36 @@ KVRequestHandle(const ps::KVMeta & req_meta,
     ps::KVPairs<mit_float> response;
     PullRequest(req_data, response);
     server->Response(req_meta, response);
+  }
+}
+
+void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
+  ps::Message msg;
+  msg.meta.head           = recved.head;
+  msg.meta.body           = recved.body;
+  msg.meta.timestamp      = recved.timestamp;
+  msg.meta.request        = false;
+  msg.meta.simple_app     = true;
+  msg.meta.customer_id    = simple_app_->get_customer()->id();
+  msg.meta.recver         = recved.sender;
+  msg.meta.sender         = ps::Postoffice::Get()->van()->my_node().id;
+  // msg ready, send it 
+  ps::Postoffice::Get()->van()->Send(msg);
+
+  int cmd = recved.head;
+  switch(cmd) {
+    case signal::WORKER_FINISH:
+      {
+        WorkerFinish();
+      }
+      break;
+    case signal::SAVE_EPOCH:
+      {
+        SaveModel(recved.body);  // epoch
+      }
+      break;
+    default:
+      LOG(FATAL) << "cmd is not recoginized";
   }
 }
 
@@ -85,21 +111,34 @@ void Server::WorkerFinish() {
   complete_worker_number_++; 
   mutex_.unlock();
   if (complete_worker_number_ == ps::NumWorkers()) {
-    LOG(INFO) << "all workers completed. save model begin";
-    std::string dump_out = cli_param_.model_dump + "/part-" + std::to_string(ps::MyRank());
-    auto * dumpfo = dmlc::Stream::Create(dump_out.c_str(), "w");
-    SaveModel(dumpfo); delete dumpfo;
-    LOG(INFO) << "save model (text format) completed!";
-
-    std::string binary_out = cli_param_.model_binary + "/last/part-" + std::to_string(ps::MyRank());
-    auto * binfo = dmlc::Stream::Create(binary_out.c_str(), "w");
-    SaveBinaryModel(binfo); delete binfo;
-    LOG(INFO) << "save model (binary format) completed!";
-    LOG(INFO) << "save model done.";
+    SaveModel();
   }
 }
 
-void Server::SaveModel(dmlc::Stream * fo) {
+void Server::SaveModel(std::string epoch) {
+  std::string myrank = std::to_string(ps::MyRank());
+  LOG(INFO) << "@server[" + myrank + "] save model begin";
+  std::string dump_out = cli_param_.model_dump;
+  std::string bin_out = cli_param_.model_binary;
+  if (epoch == "") {
+    dump_out += "/part-" + myrank;
+    bin_out += "/last/part-" + myrank;
+  } else {   // save middle result by epoch
+    std::string postfix = "/iter-" + epoch + "/part-" + myrank;
+    dump_out += ".middle" + postfix;
+    bin_out += postfix;
+  }
+  std::unique_ptr<dmlc::Stream> dumpfo(
+    dmlc::Stream::Create(dump_out.c_str(), "w"));
+  SaveTextModel(dumpfo.get());
+  std::unique_ptr<dmlc::Stream> binfo(
+    dmlc::Stream::Create(bin_out.c_str(), "w"));
+  SaveBinaryModel(binfo.get());
+  LOG(INFO) << "@server[" + myrank + "] save model done.";
+}
+
+
+void Server::SaveTextModel(dmlc::Stream * fo) {
   std::unique_ptr<Transaction> trans(new Transaction(1, "server", "dump_out"));
   mit::EntryMeta * entry_meta = model_->EntryMeta();
   dmlc::ostream oss(fo);
@@ -113,7 +152,8 @@ void Server::SaveModel(dmlc::Stream * fo) {
 }
 
 void Server::SaveBinaryModel(dmlc::Stream * fo) {
-  std::unique_ptr<Transaction> trans(new Transaction(1, "server", "binary_out"));
+  std::unique_ptr<Transaction> trans(
+    new Transaction(1, "server", "binary_out"));
   // save entry meta
   mit::EntryMeta * entry_meta = model_->EntryMeta();
   entry_meta->Save(fo);

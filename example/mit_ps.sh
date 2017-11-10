@@ -2,7 +2,7 @@
 cd $(dirname `ls -ls $0 | awk '{print $NF;}'`)/..
 wk_dir=`pwd`
 
-num_workers=1
+num_workers=3
 num_servers=5
 
   #train_path = example/data/libfm/train.txt \

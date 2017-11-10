@@ -139,13 +139,11 @@ struct FMEntry : Entry {
   /*! \brief save entry */
   void Save(dmlc::Stream * fo, 
             mit::EntryMeta * entry_meta = NULL) override {
-    LOG(INFO) << "FMEntry Save begin ...";
     fo->Write((char *) &embedding_size, sizeof(size_t));
     fo->Write((char *) &wv[0], sizeof(mit_float));
     for (size_t k = 0; k < embedding_size; ++k) {
       fo->Write((char *) &wv[1 + k], sizeof(mit_float));
     }
-    LOG(INFO) << "FMEntry Save done.";
   }
 
   /*! \brief load entry */

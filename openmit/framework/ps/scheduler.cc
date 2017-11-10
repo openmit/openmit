@@ -12,12 +12,12 @@ Scheduler::~Scheduler() {
 
 void Scheduler::Init(const mit::KWArgs & kwargs) {
   scheduler_.reset(new ps::SimpleApp(0));
-
-  scheduler_->set_request_handle(std::bind(&Scheduler::Handle, 
-        this, std::placeholders::_1, std::placeholders::_2));
-  
-  scheduler_->set_response_handle(std::bind(&Scheduler::Handle, 
-        this, std::placeholders::_1, std::placeholders::_2));
+  // register request processing func
+  using namespace std::placeholders;
+  scheduler_->set_request_handle(
+    std::bind(&Scheduler::Handle, this, _1, _2));
+  scheduler_->set_response_handle(
+    std::bind(&Scheduler::Handle, this, _1, _2));
   
   complete_worker_number_ = 0;
   complete_server_number_ = 0;
@@ -28,30 +28,31 @@ void Scheduler::Run() {
   cond_.wait(lock, [this] { return exit_ == true; });
 }
 
-void Scheduler::Handle(const ps::SimpleData & reqinfo, 
+void Scheduler::Handle(const ps::SimpleData & recved, 
                        ps::SimpleApp * app) {
   ps::Message msg;
-  msg.meta.head = reqinfo.head;
-  if (reqinfo.body.size() > 0)
-    msg.meta.body = reqinfo.body;
-  msg.meta.timestamp = reqinfo.timestamp;
+  msg.meta.head = recved.head;
+  if (recved.body.size() > 0)
+    msg.meta.body = recved.body;
+  msg.meta.timestamp = recved.timestamp;
   msg.meta.request = false;
   msg.meta.simple_app = true;
   msg.meta.customer_id = scheduler_->get_customer()->id();
-  msg.meta.recver = reqinfo.sender;
+  msg.meta.recver = recved.sender;
   msg.meta.sender = ps::Postoffice::Get()->van()->my_node().id;
+  // msg ready, send it
   ps::Postoffice::Get()->van()->Send(msg);
 
-  int cmd = reqinfo.head;
+  int cmd = recved.head;
   switch(cmd) {
     case signal::METRIC:
       {
         mutex_.lock();
-        UpdateMetric(reqinfo);
+        UpdateMetric(recved);
         mutex_.unlock();
       }
       break;
-    case signal::WORKER_COMPLETE:
+    case signal::WORKER_FINISH:
       {
         mutex_.lock();
         complete_worker_number_++;

@@ -36,25 +36,14 @@ void Worker::Init(const mit::KWArgs & kwargs) {
     
     InitFSet(train_.get(), & train_fset_);
     InitFSet(valid_.get(), & valid_fset_);
-    //std::unordered_set<ps::Key> fset;
-    //fset.insert(0);
-    //valid_->BeforeFirst();
-    //while (valid_->Next()) {
-    //  const auto & block = valid_->Value();
-    //  fset.insert(
-    //    block.index + block.offset[0], 
-    //    block.index + block.offset[block.size]);
-    //}
-    //.insert(valid_fset_.end(), fset.begin(), fset.end());
-    //sort(.begin(), valid_fset_.end());
   } else if (cli_param_.task_type == "predict") {
     CHECK_NE(cli_param_.test_path, "")
       << " test_path is empty! need test_path.";
     test_.reset(new mit::DMatrix(
           cli_param_.test_path, partid, npart, cli_param_.data_format));
   }
-
   mit::Transaction::End(trans.get());
+  LOG(INFO) << "ps worker init done";
 }
 
 void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
@@ -74,7 +63,7 @@ void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
 void Worker::Run() {
   std::unique_ptr<mit::Transaction> trans(
     mit::Transaction::Create(1, "ps", "worker"));
-  CHECK_GT(cli_param_.batch_size, 0) << "[ERROR] batch_size <= 0."; 
+  CHECK_GT(cli_param_.batch_size, 0) << " batch_size <= 0."; 
   size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
   for (auto epoch = 0u; epoch < cli_param_.max_epoch; ++epoch) {
     uint64_t progress = 0u;
@@ -100,7 +89,7 @@ void Worker::Run() {
     } 
     // TODO Barrier
     if (cli_param_.save_peroid != 0 && epoch % cli_param_.save_peroid == 0) {
-      kv_worker_->Push({epoch}, {}, {}, signal::SAVEINFO);
+      kv_worker_->Push({epoch}, {}, {}, signal::SAVE_EPOCH);
     }
 
     // metric 
@@ -110,18 +99,20 @@ void Worker::Run() {
     std::string metric_info = std::to_string(epoch);
     metric_info += ";train:" + metric_train_info + ";valid:" + metric_valid_info;
     static_cast<ps::SimpleApp *>(kv_worker_)->Request(
-        mit::signal::METRIC, metric_info, ps::kScheduler);
+      mit::signal::METRIC, 
+      metric_info, 
+      ps::kScheduler);
 
-  } // end for epoch
+  } // end for epochs
   
+  // send signal to tell server & scheduler worker finish.
   kv_worker_->Wait(kv_worker_->Request(
-        signal::WORKER_COMPLETE, "worker", ps::kScheduler));
+    signal::WORKER_FINISH, 
+    "worker finish", 
+    ps::kScheduler + ps::kServerGroup));
 
-  // message to tell server job finish
-  kv_worker_->Wait(
-    kv_worker_->Push({1}, {}, {}, mit::signal::FINISH));
   mit::Transaction::End(trans.get());
-  LOG(INFO) << "@worker[" << ps::MyRank() << "] epoch completation";
+  LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
 } 
 
 void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
@@ -214,7 +205,7 @@ void Worker::KeySet(const dmlc::RowBlock<mit_uint> & batch,
     fset.insert(batch.index + batch.offset[0], 
                 batch.index + batch.offset[batch.size]);
   }
-  fset.insert(0);  // for bias
+  fset.insert(0);  // for intercept
 } // method Worker::KeySet
 
 } // namespace mit

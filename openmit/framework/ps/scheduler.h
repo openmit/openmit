@@ -35,7 +35,7 @@ class Scheduler {
     /*! \brief run main logic */
     void Run();
 
-    /*! \brief scheduler processing logic */
+    /*! \brief request processing logic */
     void Handle(const ps::SimpleData & recved, ps::SimpleApp * app);
 
   private:
