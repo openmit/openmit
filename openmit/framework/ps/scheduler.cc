@@ -7,7 +7,7 @@ Scheduler::Scheduler(const mit::KWArgs & kwargs) {
 }
 
 Scheduler::~Scheduler() {
-  // TODO
+  LOG(INFO) << "~Scheduler()";
 }
 
 void Scheduler::Init(const mit::KWArgs & kwargs) {
@@ -26,6 +26,7 @@ void Scheduler::Init(const mit::KWArgs & kwargs) {
 void Scheduler::Run() {
   std::unique_lock<std::mutex> lock(mutex_);
   cond_.wait(lock, [this] { return exit_ == true; });
+  LOG(INFO) << "role scheduler task finish.";
 }
 
 void Scheduler::Handle(const ps::SimpleData & recved, 
@@ -40,13 +41,14 @@ void Scheduler::Handle(const ps::SimpleData & recved,
   msg.meta.customer_id = scheduler_->get_customer()->id();
   msg.meta.recver = recved.sender;
   msg.meta.sender = ps::Postoffice::Get()->van()->my_node().id;
-  // msg ready, send it
-  ps::Postoffice::Get()->van()->Send(msg);
 
   int cmd = recved.head;
   switch(cmd) {
     case signal::METRIC:
       {
+        // msg ready, send it 
+        ps::Postoffice::Get()->van()->Send(msg);
+        LOG(INFO) << "receive signal::METRIC from worker-" << recved.sender;
         mutex_.lock();
         UpdateMetric(recved);
         mutex_.unlock();
@@ -54,9 +56,17 @@ void Scheduler::Handle(const ps::SimpleData & recved,
       break;
     case signal::WORKER_FINISH:
       {
-        mutex_.lock();
-        complete_worker_number_++;
-        mutex_.unlock();
+        ps::Postoffice::Get()->van()->Send(msg);
+        LOG(INFO) << "receive signal::WORKER_FINISH from worker-" << recved.sender;
+        mutex_.lock(); complete_worker_number_++; mutex_.unlock();
+        ExitCondition();
+      }
+      break;
+    case signal::SERVER_FINISH:
+      {
+        LOG(INFO) << "receive signal::SERVER_FINISH from server-" << recved.sender;
+        mutex_.lock(); complete_server_number_++; mutex_.unlock();
+        ExitCondition();
       }
       break;
     default:
@@ -65,11 +75,15 @@ void Scheduler::Handle(const ps::SimpleData & recved,
 }
 
 void Scheduler::ExitCondition() {
-  if (complete_worker_number_ == ps::NumWorkers()) {
+  LOG(INFO) << "test2. " << complete_worker_number_  <<  ", " << ps::NumWorkers() << ", " << complete_server_number_ << ", " << ps::NumServers();
+  //if (complete_server_number_ == ps::NumServers() && complete_worker_number_ == ps::NumWorkers()) {
+  if (complete_server_number_ == ps::NumServers()) {
     mutex_.lock();
     exit_ = true;
     mutex_.unlock();
+    LOG(INFO) << "test3. " << complete_server_number_ << ", " << ps::NumServers();
     cond_.notify_all();
+    LOG(INFO) << "test4. " << complete_server_number_ << ", " << ps::NumServers();
   }
 }
 

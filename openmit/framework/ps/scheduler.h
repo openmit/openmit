@@ -50,9 +50,9 @@ class Scheduler {
     std::shared_ptr<ps::SimpleApp> scheduler_;
     /*! \brief mutex */
     std::mutex mutex_;
-    /*! \biref condition variable */
+    /*! \brief control task exit condition */
     std::condition_variable cond_;
-
+    /*! \brief task exit tag */
     bool exit_ = false;
     /*! 
      * \brief metric info 

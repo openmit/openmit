@@ -41,8 +41,8 @@ class Server {
     /*! \brief initialize */
     void Init(const mit::KWArgs & kwargs);
 
-    /*! \brief server core processing logic. */
-    void Run(const ps::KVPairs<mit_float> & req_data);
+    /*! \brief main process logic. */
+    void Run();
 
   protected:
     /*! 
@@ -72,7 +72,7 @@ class Server {
     /*! 
      * \brief logic for worker finish
      */
-    void WorkerFinish();
+    void ExitCondition();
 
   private:
     /*! \brief save model */
@@ -95,19 +95,21 @@ class Server {
     mit::CliParam cli_param_;
     
     /*! \brief global model weight */
-    std::unordered_map<ps::Key, mit::Entry * > weight_;
+    std::unordered_map<ps::Key, mit::Entry *> weight_;
     
     /*! \brief process kv request, such as pull/push */
-    std::shared_ptr<ps::KVServer<mit_float>> kv_server_; 
-
-    /*! \brief process request & response except kv */
-    std::shared_ptr<ps::SimpleApp> simple_app_;
+    ps::KVServer<mit_float> * kv_server_; 
 
     /*! \brief model */
     std::shared_ptr<mit::Model> model_;
 
     /*! \brief mutex */
     std::mutex mutex_;
+
+    /*! \brief control task exit condition */
+    std::condition_variable cond_;
+    /*! \brief task exit tag */
+    bool exit_ = false;
 
     /*! \brief finalize after all worker done */
     int complete_worker_number_;

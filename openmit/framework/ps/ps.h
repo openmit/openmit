@@ -13,23 +13,6 @@
 #include "openmit/framework/ps/worker.h"
 
 namespace mit {
-/*! 
- * \brief parameter server computational platform parameter
- */
-class PSParam : public dmlc::Parameter<PSParam> {
-  public:
-    /*! \brief framework */
-    std::string framework;
-    /*! \brief max feature dimension (default uint64::max) */
-    uint64_t max_key;
-
-    /*! declare parameter field */
-    DMLC_DECLARE_PARAMETER(PSParam) {
-      DMLC_DECLARE_FIELD(framework).set_default("ps");
-      DMLC_DECLARE_FIELD(max_key).set_default(0l);
-    }
-}; // class PSParam
-
 /*!
  * \brief parameter server framework for
  *        distributed machine learning tasks.
@@ -56,10 +39,10 @@ class PS : public MILearner {
     /*! \brief worker launcher */
     void LaunchWorker();
   private:
-    /*! \brief */
+    /*! \brief kwargs */
     mit::KWArgs kwargs_;
-    /*! \brief */
-    PSParam param_;
+    /*! \brief client parameter */
+    CliParam cli_param_;
 }; // class PS
 } // namespace mit
 

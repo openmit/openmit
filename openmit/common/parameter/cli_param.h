@@ -59,6 +59,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
     uint32_t max_epoch;
     /*! \brief number of computational unit */
     uint32_t batch_size;
+    /*! \brief max feature dimension id */
+    uint32_t max_key;
     /*! \brief negative instances sampleing rate. [0, 1]. */
     float nsample_rate;
 
@@ -107,6 +109,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
       
       DMLC_DECLARE_FIELD(max_epoch).set_default(2);
       DMLC_DECLARE_FIELD(batch_size).set_default(100);
+      DMLC_DECLARE_FIELD(max_key).set_default(1e8);
       DMLC_DECLARE_FIELD(nsample_rate).set_default(0.0);
       
       DMLC_DECLARE_FIELD(trans_level).set_default(1);

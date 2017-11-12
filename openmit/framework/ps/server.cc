@@ -12,17 +12,15 @@ void Server::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
 
   // kv_server_
-  kv_server_.reset(new ps::KVServer<mit_float>(0));
+  kv_server_ = new ps::KVServer<mit_float>(0);
   using namespace std::placeholders;
   kv_server_->set_request_handle(
     std::bind(&Server::KVHandle, this, _1, _2, _3));
 
   // request & response process except kv logic_ 
-  simple_app_.reset(
-    static_cast<ps::SimpleApp *>(kv_server_.get()));
-  simple_app_->set_request_handle(
+  static_cast<ps::SimpleApp *>(kv_server_)->set_request_handle(
     std::bind(&Server::CmdHandle, this, _1, _2));
-  simple_app_->set_response_handle(
+  static_cast<ps::SimpleApp *>(kv_server_)->set_response_handle(
     std::bind(&Server::CmdHandle, this, _1, _2));
   
   // model for update 
@@ -33,7 +31,25 @@ void Server::Init(const mit::KWArgs & kwargs) {
   complete_worker_number_ = 0;
 }
   
-Server::~Server() { }
+Server::~Server() { 
+  if (kv_server_) {
+    delete kv_server_; kv_server_ = nullptr;
+  }
+  std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
+  iter = weight_.begin();
+  while (iter != weight_.end()) {
+    if (iter->second) {
+      delete iter->second; iter->second = nullptr;
+    }
+    iter++;
+  }
+}
+
+void Server::Run() { 
+  std::unique_lock<std::mutex> lock(mutex_);
+  cond_.wait(lock, [this] { return exit_ == true; });
+  LOG(INFO) << "role @server[" << ps::MyRank() << "] task finish.";
+}
 
 void Server::KVHandle(const ps::KVMeta & req_meta, 
                       const ps::KVPairs<mit_float> & req_data, 
@@ -41,11 +57,15 @@ void Server::KVHandle(const ps::KVMeta & req_meta,
   if (req_meta.push) {
     int cmd = req_meta.cmd;
     switch(cmd) {
-      case signal::UPDATE: Run(req_data); break;
-      case signal::SAVE_EPOCH:
-        {
+      case signal::UPDATE: {
+        if (cli_param_.debug) {
+          LOG(INFO) << "@server[" << ps::MyRank() 
+            << "] number of weight: " << weight_.size() 
+            << ", grads: " << mit::DebugStr(req_data.vals.data(), 10);
         }
-        break;
+        model_->Update(
+          req_data.keys, req_data.vals, req_data.lens, &weight_);
+      } break;
       default:
         LOG(FATAL) << "cmd is not recoginized. " << req_meta.cmd;
     }
@@ -64,7 +84,7 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
   msg.meta.timestamp      = recved.timestamp;
   msg.meta.request        = false;
   msg.meta.simple_app     = true;
-  msg.meta.customer_id    = simple_app_->get_customer()->id();
+  msg.meta.customer_id    = kv_server_->get_customer()->id();
   msg.meta.recver         = recved.sender;
   msg.meta.sender         = ps::Postoffice::Get()->van()->my_node().id;
   // msg ready, send it 
@@ -74,7 +94,7 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
   switch(cmd) {
     case signal::WORKER_FINISH:
       {
-        WorkerFinish();
+        ExitCondition();
       }
       break;
     case signal::SAVE_EPOCH:
@@ -83,18 +103,8 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
       }
       break;
     default:
-      LOG(FATAL) << "cmd is not recoginized";
+      LOG(FATAL) << "cmd is not recoginized. cmd: " << cmd;
   }
-}
-
-void Server::Run(const ps::KVPairs<mit_float> & req_data) { 
-  if (cli_param_.debug) {
-    LOG(INFO) << "@server[" << ps::MyRank() 
-      << "] number of weight: " << weight_.size() 
-      << ", grads: " << mit::DebugStr(req_data.vals.data(), 10);
-  }
-  model_->Update(
-    req_data.keys, req_data.vals, req_data.lens, &weight_);
 }
 
 void Server::
@@ -106,12 +116,22 @@ PullRequest(const ps::KVPairs<mit_float> & req_data,
   model_->Pull(response, &weight_);
 }
 
-void Server::WorkerFinish() {
+void Server::ExitCondition() {
   mutex_.lock(); 
   complete_worker_number_++; 
   mutex_.unlock();
   if (complete_worker_number_ == ps::NumWorkers()) {
     SaveModel();
+    std::string rank = std::to_string(ps::MyRank());
+    LOG(INFO) << "Server::ExitCondition finish. 0  " << ps::MyRank();
+    //kv_server_->Wait(kv_server_->Request(
+    //  signal::SERVER_FINISH, rank, ps::kScheduler));
+    kv_server_->Request(signal::SERVER_FINISH, rank, ps::kScheduler);
+    LOG(INFO) << "Server::ExitCondition finish. 1  " << ps::MyRank();
+    mutex_.lock(); exit_ = true; mutex_.unlock();
+    LOG(INFO) << "Server::ExitCondition finish. 2  " << ps::MyRank();
+    cond_.notify_all();
+    LOG(INFO) << "Server::ExitCondition finish. 3  " << ps::MyRank();
   }
 }
 

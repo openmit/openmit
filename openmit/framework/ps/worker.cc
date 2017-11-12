@@ -63,9 +63,10 @@ void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
 void Worker::Run() {
   std::unique_ptr<mit::Transaction> trans(
     mit::Transaction::Create(1, "ps", "worker"));
-  CHECK_GT(cli_param_.batch_size, 0) << " batch_size <= 0."; 
-  size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
-  for (auto epoch = 0u; epoch < cli_param_.max_epoch; ++epoch) {
+  CHECK_GT(cli_param_.batch_size, 0); 
+  size_t progress_interval = 
+    cli_param_.batch_size * cli_param_.job_progress;
+  for (auto epoch = 1u; epoch <= cli_param_.max_epoch; ++epoch) {
     uint64_t progress = 0u;
     train_->BeforeFirst();
     while (train_->Next()) { 
@@ -109,7 +110,8 @@ void Worker::Run() {
   kv_worker_->Wait(kv_worker_->Request(
     signal::WORKER_FINISH, 
     "worker finish", 
-    ps::kScheduler + ps::kServerGroup));
+    ps::kServerGroup));
+    //ps::kScheduler + ps::kServerGroup));
 
   mit::Transaction::End(trans.get());
   LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
