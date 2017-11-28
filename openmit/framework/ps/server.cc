@@ -25,16 +25,14 @@ void Server::Init(const mit::KWArgs & kwargs) {
   
   // model for update 
   model_.reset(mit::Model::Create(kwargs));
-  model_->InitOptimizer(kwargs);
 
   // parameter 
   complete_worker_number_ = 0;
 }
   
 Server::~Server() { 
-  if (kv_server_) {
-    delete kv_server_; kv_server_ = nullptr;
-  }
+  if (kv_server_) { delete kv_server_; kv_server_ = nullptr; }
+
   std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
   iter = weight_.begin();
   while (iter != weight_.end()) {
@@ -123,15 +121,9 @@ void Server::ExitCondition() {
   if (complete_worker_number_ == ps::NumWorkers()) {
     SaveModel();
     std::string rank = std::to_string(ps::MyRank());
-    LOG(INFO) << "Server::ExitCondition finish. 0  " << ps::MyRank();
-    //kv_server_->Wait(kv_server_->Request(
-    //  signal::SERVER_FINISH, rank, ps::kScheduler));
     kv_server_->Request(signal::SERVER_FINISH, rank, ps::kScheduler);
-    LOG(INFO) << "Server::ExitCondition finish. 1  " << ps::MyRank();
     mutex_.lock(); exit_ = true; mutex_.unlock();
-    LOG(INFO) << "Server::ExitCondition finish. 2  " << ps::MyRank();
     cond_.notify_all();
-    LOG(INFO) << "Server::ExitCondition finish. 3  " << ps::MyRank();
   }
 }
 

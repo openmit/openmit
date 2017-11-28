@@ -51,6 +51,10 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> &
   for (auto i = 0u; i < grads->size(); ++i) {
     (*grads)[i] /= batch.size;
   }
+  if (cli_param_.debug) {
+    LOG(INFO) << "Trainer::Run grads: [" << grads->size() << "] "
+      << mit::DebugStr<mit_float>(grads->data(), 10, 10);
+  }
 }
 
 void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> & keys, std::vector<mit_float> & weights, std::vector<int> & lens, std::vector<float> & metrics_value) {

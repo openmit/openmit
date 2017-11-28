@@ -2,16 +2,6 @@
 
 namespace mit {
 
-FFM::~FFM() { 
-  // TODO 
-}
-
-void FFM::InitOptimizer(const mit::KWArgs & kwargs) {
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
-  optimizer_v_.reset(
-    mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
-}
-
 void FFM::Pull(ps::KVPairs<mit_float> & response, 
                mit::entry_map_type * weight) {
   for (auto i = 0u; i < response.keys.size(); ++i) {
@@ -60,8 +50,7 @@ void FFM::Update(const ps::SArray<mit_uint> & keys,
       (*weight)[key]->Set(k, v);
     }
   }
-  CHECK_EQ(offset, vals.size()) 
-    << "number of updated elem != vals.size";
+  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
 } // Update
 
 void FFM::Gradient(const dmlc::Row<mit_uint> & row, 

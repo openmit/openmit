@@ -76,13 +76,13 @@ void Worker::Run() {
         end = i + cli_param_.batch_size >= block.size ? 
           block.size : i + cli_param_.batch_size;
         if (progress % progress_interval == 0 && cli_param_.is_progress) {
-          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress \
-                    <epoch, inst>: <" << epoch << ", "<< progress << ">";
+          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress "
+                    << "<epoch, inst>: <" << epoch << ", "<< progress << ">";
         }
         progress += (end - i);
         if ((end - i) != cli_param_.batch_size && cli_param_.is_progress) {
-          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress \
-                    <epoch, inst>: <" << epoch << ", "<< progress << ">";
+          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress "
+                    << "<epoch, inst>: <" << epoch << ", "<< progress << ">";
         }
         const auto batch = block.Slice(i, end);
         MiniBatch(batch);
@@ -110,8 +110,8 @@ void Worker::Run() {
   kv_worker_->Wait(kv_worker_->Request(
     signal::WORKER_FINISH, 
     "worker finish", 
-    ps::kServerGroup));
-    //ps::kScheduler + ps::kServerGroup));
+    ps::kScheduler + ps::kServerGroup));
+    //ps::kServerGroup));
 
   mit::Transaction::End(trans.get());
   LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
@@ -126,8 +126,7 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   // pull operation (weight)
   std::vector<mit_float> weights;
   std::vector<int> lens; 
-  kv_worker_->Wait(
-    kv_worker_->Pull(keys, &weights, &lens));
+  kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
 
   if (cli_param_.debug) {
     LOG(INFO) << "weights from server: " 

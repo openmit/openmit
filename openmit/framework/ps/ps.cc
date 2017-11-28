@@ -1,7 +1,7 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include "openmit/framework/ps/ps.h"
 #include "ps/ps.h"
-
 namespace mit {
 
 PS::PS(const mit::KWArgs & kwargs) {
@@ -16,50 +16,67 @@ PS::PS(const mit::KWArgs & kwargs) {
 }
 
 void PS::Run() {
-  LOG(INFO) << "ps task begin.";
+  dmlc::InitLogging("openmit-ps\0");
+
+  LOG(INFO) << "ps task begin. ";
   ps::Start();
-  
+  std::string nodeinfo = ps::IsServer() ? "@server[" : (ps::IsWorker() ? "@worker[" : "@scheduler[");
+  nodeinfo += std::to_string(ps::MyRank()) + "] ";
+
+  LOG(INFO) << "sleep(1) LaunchScheduler. " << nodeinfo;
+  sleep(1);
   LaunchScheduler();
+  LOG(INFO) << "sleep(1) LaunchServer. " << nodeinfo;
+  sleep(1);
   LaunchServer();
+  LOG(INFO) << "sleep(1) LaunchWorker. " << nodeinfo;
+  sleep(1);
   LaunchWorker();
 
-  std::string exitinfo = (ps::IsServer() ? 
-    "@server[" : (ps::IsWorker() ? "@worker[" : "@scheduler[")) 
-    + std::to_string(ps::MyRank()) + "] task has completed.";
-  LOG(INFO) << exitinfo << " start callback finalize op.";
+  nodeinfo += "task has completed.";
+  LOG(INFO) << nodeinfo << " start callback finalize op.";
   ps::Finalize(false);
-  LOG(INFO) << exitinfo << " finalize successfully!!!";
+  LOG(INFO) << nodeinfo << " finalize successfully!!!";
 }
 
 void PS::LaunchScheduler() {
+  std::string nodeinfo = ps::IsServer() ? "@server " : (ps::IsWorker() ? "@worker " : "@scheduler ");
   if (!ps::IsScheduler()) return;
-  LOG(INFO) << "launch scheduler begin.";
+  LOG(INFO) << nodeinfo << "launch scheduler begin.";
   auto scheduler = new mit::Scheduler(kwargs_);
-  ps::RegisterExitCallback([scheduler]() { 
+  ps::RegisterExitCallback([scheduler]() {
+    std::string nodeinfo = ps::IsServer() ? "@server " : (ps::IsWorker() ? "@worker " : "@scheduler ");
+    LOG(INFO) << nodeinfo << "delete scheduler begin.";
     delete scheduler; 
-    LOG(INFO) << "delete scheduler done";
+    LOG(INFO) << nodeinfo << "delete scheduler done";
   });
   scheduler->Run();
 }
 
 void PS::LaunchServer() {
   if (!ps::IsServer()) return;
-  LOG(INFO) << "launch server begin.";
+  std::string nodeinfo = ps::IsServer() ? "@server[" : (ps::IsWorker() ? "@worker[" : "@scheduler[");
+  LOG(INFO) << nodeinfo << "launch server begin.";
   auto server = new mit::Server(kwargs_);
   ps::RegisterExitCallback([server]() { 
+    std::string nodeinfo = ps::IsServer() ? "@server " : (ps::IsWorker() ? "@worker " : "@scheduler ");
+    LOG(INFO) << nodeinfo << "delete server begin.";
     delete server; 
-    LOG(INFO) << "delete server done.";
+    LOG(INFO) << nodeinfo << "delete server done.";
   });
   server->Run();
 }
 
 void PS::LaunchWorker() {
+  std::string nodeinfo = ps::IsServer() ? "@server[" : (ps::IsWorker() ? "@worker[" : "@scheduler[");
   if (!ps::IsWorker()) return;
-  LOG(INFO) << "launch worker begin.";
+  LOG(INFO) << nodeinfo << "launch worker begin.";
   auto worker = new mit::Worker(kwargs_);
   ps::RegisterExitCallback([worker]() {
+    std::string nodeinfo = ps::IsServer() ? "@server " : (ps::IsWorker() ? "@worker " : "@scheduler ");
+    LOG(INFO) << nodeinfo << "delete worker begin.";
     delete worker;
-    LOG(INFO) << "delete worker done.";
+    LOG(INFO) << nodeinfo << "delete worker done.";
   });
   worker->Run();
 }

@@ -2,10 +2,6 @@
 
 namespace mit {
 
-void LR::InitOptimizer(const mit::KWArgs & kwargs) {
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
-}
-
 void LR::Pull(ps::KVPairs<mit_float> & response, 
               mit::entry_map_type * weight) {
   for (auto i = 0u; i < response.keys.size(); ++i) {
@@ -21,26 +17,6 @@ void LR::Pull(ps::KVPairs<mit_float> & response,
     // fill response.vals and response.lens 
     response.vals.append(wv);
     response.lens.push_back(entry->Size());
-  }
-}
-
-void LR::Update(const ps::SArray<mit_uint> & keys, 
-                const ps::SArray<mit_float> & vals, 
-                const ps::SArray<int> & lens, 
-                mit::entry_map_type * weight) {
-  auto keys_length = keys.size();
-  auto offset = 0u;
-  for (auto i = 0u; i < keys_length; ++i) {
-    CHECK_EQ(lens[i], 1) 
-      << "length of vals[" << i << "] should be 1 for lr model.";
-    if (weight->find(keys[i]) == weight->end()) {
-      LOG(FATAL) << keys[i] << " not in weight structure";
-    }
-    auto w = (*weight)[keys[i]]->Get(0);    // 0: index of w
-    auto g = vals[offset];
-    optimizer_->Update(keys[i], 0, g, w, (*weight)[keys[i]]);
-    (*weight)[keys[i]]->Set(0, w);
-    offset++;
   }
 }
 
@@ -71,6 +47,7 @@ void LR::Gradient(const dmlc::Row<mit_uint> & row,
                   std::vector<mit_float> * grads, 
                   const mit_float & lossgrad_value) {
   auto instweight = row.get_weight();
+  // TODO OpenMP
   for (auto idx = 0u; idx < row.length; ++idx) {
     auto key = row.get_index(idx);
     auto offset = key2offset[key].first;

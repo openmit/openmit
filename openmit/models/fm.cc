@@ -3,17 +3,11 @@
 
 namespace mit {
 
-void FM::InitOptimizer(const mit::KWArgs & kwargs) {
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
-  optimizer_v_.reset(
-    mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
-}
-
 void FM::Update(const ps::SArray<mit_uint> & keys, 
                 const ps::SArray<mit_float> & vals, 
                 const ps::SArray<int> & lens, 
                 mit::entry_map_type * weight) {
-  auto len_lens_item = 1 + model_param_.embedding_size;
+  auto entry_size = 1 + model_param_.embedding_size;
   auto keys_length = keys.size();
   auto offset = 0u;
   for (auto i = 0u; i < keys_length; ++i) {
@@ -26,7 +20,7 @@ void FM::Update(const ps::SArray<mit_uint> & keys,
     optimizer_->Update(key, 0, g, w, (*weight)[key]);
     (*weight)[key]->Set(0, w);
     if (keys[i] == 0) continue;
-    CHECK_EQ(lens[i], len_lens_item) 
+    CHECK_EQ(lens[i], entry_size) 
       << "lens[i] != 1+embedding_size for fm model";
     // update_v (2-order cross item)
     for (int k = 1; k < lens[i]; ++k) {
@@ -36,6 +30,7 @@ void FM::Update(const ps::SArray<mit_uint> & keys,
       (*weight)[key]->Set(k, v);
     }
   }
+  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
 }
 
 void FM::Pull(ps::KVPairs<mit_float> & response, 

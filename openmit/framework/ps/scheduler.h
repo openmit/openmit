@@ -1,7 +1,7 @@
 /*!
  *  Copyright (c) 2017 by Contributors
  *  \file scheduler.h
- *  \brief scheduler logic for parameter server
+ *  \brief scheduler node logic for parameter server
  *  \author ZhouYong
  */
 #ifndef OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
@@ -55,11 +55,9 @@ class Scheduler {
     /*! \brief task exit tag */
     bool exit_ = false;
     /*! 
-     * \brief metric info 
-     *        stats worker complete numbers each epoch
-     *        <datatype_metrictype, <epoch, completed_number>>
-     *        "train-auc", <1, 2>
-     *        "valid-logloss", <2, 2>
+     * \brief metric info stats worker complete numbers each epoch
+     *  <datatype_metrictype, <epoch, completed_number>>
+     *  "train-auc", <1, 2> / "valid-logloss", <2, 2>
      */
     std::unordered_map<std::string, 
       std::unordered_map<int, int> > epoch_metric_number_;

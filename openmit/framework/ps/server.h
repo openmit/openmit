@@ -22,6 +22,7 @@
 
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
+//#include "openmit/engine/updater.h"
 #include "openmit/entity/entry.h"
 #include "openmit/models/model.h"
 #include "openmit/framework/ps/signal.h"
@@ -93,21 +94,21 @@ class Server {
   private:
     /*! \brief client parameter info */
     mit::CliParam cli_param_;
-    
-    /*! \brief global model weight */
-    std::unordered_map<ps::Key, mit::Entry *> weight_;
-    
     /*! \brief process kv request, such as pull/push */
     ps::KVServer<mit_float> * kv_server_; 
-
-    /*! \brief model */
+    /*! \brief global model weight */
+    std::unordered_map<ps::Key, mit::Entry *> weight_;
+    /*! \brief model for pull request */
     std::shared_ptr<mit::Model> model_;
+    /*! \brief updater used for parameter update */
+    //std::unique_ptr<mit::Updater> updater_;
 
     /*! \brief mutex */
     std::mutex mutex_;
 
     /*! \brief control task exit condition */
     std::condition_variable cond_;
+
     /*! \brief task exit tag */
     bool exit_ = false;
 

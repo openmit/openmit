@@ -14,22 +14,22 @@ namespace mit {
  * \brief the field-aware factorization machine model
  */
 class FFM : public Model {
-  public:
-    /*! \brief default constructor */
-    FFM(const mit::KWArgs & kwargs) : Model(kwargs) {}
+public:
+  /*! \brief default constructor */
+  FFM(const mit::KWArgs & kwargs) : Model(kwargs) {
+    optimizer_v_.reset(mit::Optimizer::Create(
+      kwargs, cli_param_.optimizer_v));
+  }
 
-    /*! \brief destructor */
-    ~FFM();
+  /*! \brief destructor */
+  virtual ~FFM() {};
 
-    /*! \brief get ffm-model pointer */
-    static FFM * Get(const mit::KWArgs & kwargs) { 
-      return new FFM(kwargs); 
-    }
+  /*! \brief get ffm-model pointer */
+  static FFM * Get(const mit::KWArgs & kwargs) { 
+    return new FFM(kwargs); 
+  }
 
   public:  // method for server
-    /*! \brief initialize model optimizer */
-    void InitOptimizer(const mit::KWArgs & kwargs) override;
-
     /*! \brief pull request */
     void Pull(ps::KVPairs<mit_float> & response, 
               mit::entry_map_type * weight) override;
@@ -77,8 +77,6 @@ class FFM : public Model {
                     mit::key2offset_type & key2offset);
 
   private:
-    /*! \brief lr model optimizer for w */
-    std::unique_ptr<mit::Optimizer> optimizer_;   
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
 }; // class FFM 

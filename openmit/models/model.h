@@ -83,16 +83,15 @@ class Model {
     /*! \brief pull request */
     virtual void Pull(ps::KVPairs<mit_float> & response, 
                       mit::entry_map_type * weight) = 0;
- 
-    /*! \brief initialize model optimizer */
-    virtual void InitOptimizer(const mit::KWArgs & kwargs) = 0;
 
-    /*! \brief model updater */
+    /*! 
+     * \brief model updater. virtual not pure-virtual
+     */
     virtual void Update(const ps::SArray<mit_uint> & keys, 
                         const ps::SArray<mit_float> & vals, 
                         const ps::SArray<int> & lens, 
-                        mit::entry_map_type * weight) = 0;
-
+                        mit::entry_map_type * weight);
+  
   public:
     /*! \brief get model type */
     inline std::string ModelType() { return model_param_.model; }
@@ -110,6 +109,8 @@ class Model {
     std::unique_ptr<mit::EntryMeta> entry_meta_;
     /*! \brief random initialize method */
     std::unique_ptr<mit::math::ProbDistr> random_;
+    /*! \brief model optimizer (default) */
+    std::unique_ptr<mit::Optimizer> optimizer_;
 }; // class Model
 
 } // namespace mit

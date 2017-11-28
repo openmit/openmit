@@ -31,10 +31,13 @@ namespace mit {
 class FM : public Model {
   public:
     /*! \brief default constructor */
-    FM(const mit::KWArgs & kwargs) : Model(kwargs) {}
+    FM(const mit::KWArgs & kwargs) : Model(kwargs) {
+      optimizer_v_.reset(mit::Optimizer::Create(
+            kwargs, cli_param_.optimizer_v));
+    }
 
     /*! \brief destructor */
-    ~FM() {}
+    virtual ~FM() {}
 
     /*! \brief get fm model pointer */
     static FM * Get(const mit::KWArgs & kwargs) { 
@@ -42,9 +45,6 @@ class FM : public Model {
     }
 
   public:  // method for server
-    /*! \brief initialize model optimizer */
-    void InitOptimizer(const mit::KWArgs & kwargs) override;
-
     /*! \brief pull request */
     void Pull(ps::KVPairs<mit_float> & response, 
               mit::entry_map_type * weight) override;
@@ -92,8 +92,6 @@ class FM : public Model {
                     mit::key2offset_type & key2offset);
 
   private:
-    /*! \brief lr model optimizer for w */
-    std::unique_ptr<mit::Optimizer> optimizer_;   
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
 }; // class FM 

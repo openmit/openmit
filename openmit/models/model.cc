@@ -28,6 +28,7 @@ Model::Model(const mit::KWArgs & kwargs) {
   model_param_.InitAllowUnknown(kwargs);
   entry_meta_.reset(new mit::EntryMeta(model_param_));
   random_.reset(mit::math::ProbDistr::Create(model_param_));
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
 }
 
 void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
@@ -61,4 +62,24 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, std::vector<mit_flo
   }
 } // method Gradient
 
+void Model::Update(const ps::SArray<mit_uint> & keys, 
+                   const ps::SArray<mit_float> & vals, 
+                   const ps::SArray<int> & lens, 
+                   mit::entry_map_type * weight) {
+  CHECK_EQ(keys.size(), lens.size());
+  auto offset = 0u;
+  for (auto i = 0u; i < keys.size(); ++i) {
+    auto key = keys[i];
+    CHECK(weight->find(key) != weight->end());
+    auto entrysize = (*weight)[key]->Size();
+    CHECK_EQ(entrysize, (size_t)lens[i]);
+    for (auto idx = 0u; idx < entrysize; ++idx) {
+      auto w = (*weight)[key]->Get(idx);
+      auto g = vals[offset++];
+      optimizer_->Update(key, idx, g, w, (*weight)[key]);
+      (*weight)[key]->Set(idx, w);
+    }
+  }
+  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
+}
 } // namespace mit
