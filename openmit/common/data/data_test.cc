@@ -25,6 +25,10 @@ void MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
 }
 
 int main(int argc, char ** argv) {
+  if (argc < 2) {
+    LOG(INFO) << "Usage: filename";
+    return 1;
+  }
   char * file = argv[1];
   LOG(INFO) << "file: " << file;
   mit::DMatrix * data = new mit::DMatrix(std::string(file), 0, 1, "libsvm");
