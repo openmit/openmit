@@ -35,23 +35,42 @@ void FM::Update(const ps::SArray<mit_uint> & keys,
 
 void FM::Pull(ps::KVPairs<mit_float> & response, 
               mit::entry_map_type * weight) {
-  for (auto i = 0u; i < response.keys.size(); ++i) {
+  size_t entry_size = 1 + model_param_.embedding_size;
+  size_t keys_size = response.keys.size();
+  size_t vals_size = 1 + (keys_size - 1) * entry_size;
+  response.vals.resize(vals_size);
+  response.lens.resize(keys_size, entry_size);
+  
+  // intercept 
+  CHECK(response.keys[0] == 0) << "index of intercept != 0.";
+  if (weight->find(0) == weight->end()) {
+    auto * entry = mit::Entry::Create(
+      model_param_, entry_meta_.get(), random_.get());
+    weight->insert(std::make_pair(0, entry));
+  }
+  response.vals[0] = (*weight)[0]->Get();
+  response.lens[0] = 1;
+
+  // feature
+  omp_set_num_threads(cli_param_.num_thread);
+  size_t blocksize = (keys_size - 1) / cli_param_.num_thread;
+  if ((keys_size - 1) % cli_param_.num_thread != 0) blocksize += 1;
+  #pragma omp parallel for schedule(static, blocksize)
+  for (auto i = 1u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
-    ps::SArray<mit_float> mvalue;;
     if (weight->find(key) == weight->end()) {
       mit::Entry * entry = mit::Entry::Create(
         model_param_, entry_meta_.get(), random_.get());
-      weight->insert(std::make_pair(key, entry));
+      #pragma omp critical
+      {
+        weight->insert(std::make_pair(key, entry));
+      }
     }
     mit::Entry * entry = (*weight)[key];
-    if (key == 0) {  // intercept
-      mvalue.push_back(entry->Get());
-    } else {
-      mvalue.CopyFrom(entry->Data(), entry->Size());
+    for (auto idx = 0u; idx < entry_size; ++idx) {
+      auto index = 1 + (i - 1) * entry_size + idx;
+      response.vals[index] = entry->Get(idx);
     }
-    // fill vals and lens of response
-    response.vals.append(mvalue);
-    response.lens.push_back(mvalue.size());
   }
 }
 

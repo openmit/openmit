@@ -63,6 +63,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
     uint32_t max_key;
     /*! \brief negative instances sampleing rate. [0, 1]. */
     float nsample_rate;
+    /*! \brief number of threads */
+    uint32_t num_thread;
 
     // 3. job control 
     /*! \brief transaction level. default 1 */
@@ -111,6 +113,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(batch_size).set_default(100);
       DMLC_DECLARE_FIELD(max_key).set_default(1e8);
       DMLC_DECLARE_FIELD(nsample_rate).set_default(0.0);
+      DMLC_DECLARE_FIELD(num_thread).set_default(4);
       
       DMLC_DECLARE_FIELD(trans_level).set_default(1);
       DMLC_DECLARE_FIELD(is_progress).set_default(true);

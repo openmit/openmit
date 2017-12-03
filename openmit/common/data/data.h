@@ -16,7 +16,7 @@ namespace mit {
 /*!
  * \brief dataset structure 
  * \begincode
- *    std::string uri = "hdfs://uri1,hdfs://uri2,..."
+ *    std::string uri = "hdfs://path1,hdfs://path2,..."
  *    int partid = ps->MyRank();
  *    int npart = ps->NumWorkers();
  *    DMatrix * dm = new DMatrix(uri, partid, npart, "libsvm");
@@ -52,7 +52,7 @@ class DMatrix {
      * \param partid id of current node that are involved in data computing
      * \param npart total data computing node numbers 
      * \param data_format it supports two format. "libsvm","libfm"
-     * */
+     */
     DMatrix(const std::string& uri, int partid, int npart, std::string data_format) {
       if (data_format == "auto") data_format = "libsvm";
       std::vector<std::string> uri_items; 

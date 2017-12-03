@@ -4,6 +4,7 @@
 #ifndef OPENMIT_MODELS_MODEL_H_
 #define OPENMIT_MODELS_MODEL_H_
 
+#include <omp.h>
 #include <string>
 #include <vector>
 #include "dmlc/logging.h"

@@ -21,6 +21,7 @@
 | | `batch_size` | batch大小（样本数） | `100` |  必填 |
 | | `max_key` | 最大特征维度id | `<uint64_t>::max()` | optional |
 | | `nsample_rate` | 负样本采样率 | `0.0` | 默认不采样 |
+| | `num_threads` | 线程数（或CPU核数)，用于并行计算 | `4` | CPU支持OpenMP/OpenCL加速 |
 | ADMM算法框架 | `rho` | 增广拉格朗日系数（步长）| `1` | MPI框架使用 |
 | | `lambda_obj` | 拉格朗日对偶系数 | `0.05` | MPI框架使用 |
 | 模型 | `embedding_size` | 隐向量长度 | `4` | FM／FFM模型使用 |
