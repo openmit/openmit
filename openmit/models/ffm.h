@@ -17,8 +17,8 @@ class FFM : public Model {
 public:
   /*! \brief default constructor */
   FFM(const mit::KWArgs & kwargs) : Model(kwargs) {
-    optimizer_v_.reset(mit::Optimizer::Create(
-      kwargs, cli_param_.optimizer_v));
+    optimizer_v_.reset(
+      mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
   }
 
   /*! \brief destructor */

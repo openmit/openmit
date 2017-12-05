@@ -2,6 +2,7 @@
 
 namespace mit {
 
+/*
 void FFM::Pull(ps::KVPairs<mit_float> & response, 
                mit::entry_map_type * weight) {
   for (auto i = 0u; i < response.keys.size(); ++i) {
@@ -22,6 +23,55 @@ void FFM::Pull(ps::KVPairs<mit_float> & response,
     // fill response.vals and response.lens 
     response.vals.append(wv);
     response.lens.push_back(entry->Size());
+  }
+}
+*/
+void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
+  size_t keys_size = response.keys.size();
+  response.lens.resize(keys_size);
+
+  // intercept
+  CHECK_EQ(response.keys[0], 0);
+  if (weight->find(0) == weight->end()) {
+    weight->insert(std::make_pair(0, mit::Entry::Create(
+      model_param_, entry_meta_.get(), random_.get(), 0)));
+  }
+  response.vals.push_back((*weight)[0]->Get());
+  response.lens[0] = 1;
+
+  // feature
+  std::vector<std::vector<mit_float>* > vals_thread(cli_param_.num_thread);
+  for (auto i = 0u; i < cli_param_.num_thread; ++i) {
+    vals_thread[i] = new std::vector<mit_float>();
+  }
+  int blocksize = (keys_size - 1) / cli_param_.num_thread;
+  if ((keys_size - 1) % cli_param_.num_thread != 0) blocksize += 1;
+  #pragma omp parallel for schedule(static, blocksize)
+  for (auto i = 1u; i < keys_size; ++i) {
+    ps::Key key = response.keys[i];
+    if (weight->find(key) == weight->end()) {
+      auto fid = mit::DecodeField(key, model_param_.nbit);  // fid 
+      CHECK(fid > 0);
+      auto * entry = mit::Entry::Create(
+        model_param_, entry_meta_.get(), random_.get(), fid);
+      #pragma omp critical
+      weight->insert(std::make_pair(key, entry));
+    }
+    auto * entry = (*weight)[key];
+    for (auto idx = 0u; idx < entry->Size(); ++idx) {
+      vals_thread[omp_get_thread_num()]->push_back(entry->Get(idx));
+    }
+    response.lens[i] = entry->Size();
+  }
+
+  // merge multi-thread result
+  for (auto i = 0u; i < cli_param_.num_thread; ++i) {
+    ps::SArray<mit_float> sarray(
+      vals_thread[i]->data(), vals_thread[i]->size());
+    response.vals.append(sarray);
+    if (vals_thread[i] != NULL) {
+      delete vals_thread[i]; vals_thread[i] = NULL;
+    }
   }
 }
  

@@ -2,21 +2,24 @@
 
 namespace mit {
 
-void LR::Pull(ps::KVPairs<mit_float> & response, 
-              mit::entry_map_type * weight) {
-  for (auto i = 0u; i < response.keys.size(); ++i) {
+void LR::Pull(ps::KVPairs<mit_float>& response, 
+              mit::entry_map_type* weight) {
+  size_t keys_size = response.keys.size();
+  response.vals.resize(keys_size, 0.0f);;
+  response.lens.resize(keys_size, 1);
+
+  omp_set_num_threads(cli_param_.num_thread);
+  int blocksize = keys_size / cli_param_.num_thread;
+  if (keys_size % cli_param_.num_thread != 0) blocksize += 1;
+  #pragma omp parallel for schedule(static, blocksize)
+  for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     if (weight->find(key) == weight->end()) {
-      mit::Entry * entry = mit::Entry::Create(
-        model_param_, entry_meta_.get(), random_.get());
-      weight->insert(std::make_pair(key, entry));
+      #pragma omp critical
+      weight->insert(std::make_pair(key, mit::Entry::Create(
+        model_param_, entry_meta_.get(), random_.get())));
     }
-    mit::Entry * entry = (*weight)[key];
-    ps::SArray<mit_float> wv;
-    wv.CopyFrom(entry->Data(), entry->Size());
-    // fill response.vals and response.lens 
-    response.vals.append(wv);
-    response.lens.push_back(entry->Size());
+    response.vals[i] = (*weight)[key]->Get();
   }
 }
 

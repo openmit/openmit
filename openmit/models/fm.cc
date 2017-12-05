@@ -62,9 +62,7 @@ void FM::Pull(ps::KVPairs<mit_float> & response,
       mit::Entry * entry = mit::Entry::Create(
         model_param_, entry_meta_.get(), random_.get());
       #pragma omp critical
-      {
-        weight->insert(std::make_pair(key, entry));
-      }
+      weight->insert(std::make_pair(key, entry));
     }
     mit::Entry * entry = (*weight)[key];
     for (auto idx = 0u; idx < entry_size; ++idx) {

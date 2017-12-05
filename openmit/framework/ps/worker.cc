@@ -14,33 +14,29 @@ Worker::~Worker() {
 void Worker::Init(const mit::KWArgs & kwargs) {
   std::unique_ptr<mit::Transaction> trans(
     mit::Transaction::Create(2, "worker", "init"));
-  // 1. param_
   cli_param_.InitAllowUnknown(kwargs);
-  // 2. kv_worker_
   kv_worker_ = new ps::KVWorker<mit_float>(0);
-  // 3. trainer_
   trainer_.reset(new mit::Trainer(kwargs));
-  // 5. data
+  
   int partid = ps::MyRank();
   int npart = ps::NumWorkers();
   LOG(INFO) << "partid: " << partid << ", npart: " << npart;
   if (cli_param_.task_type == "train") {
-    CHECK_NE(cli_param_.train_path, "") 
-      << " train_path is empty! need train_path.";
+    CHECK_NE(cli_param_.train_path, "") << " train_path empty.";
     train_.reset(new mit::DMatrix(
-          cli_param_.train_path, partid, npart, cli_param_.data_format));
-    CHECK_NE(cli_param_.valid_path, "") 
-      << " valid_path is empty! need evalution_path.";
+      cli_param_.train_path, partid, npart, cli_param_.data_format));
+    CHECK_NE(cli_param_.valid_path, "") << " valid_path empty.";
     valid_.reset(new mit::DMatrix(
-          cli_param_.valid_path, partid, npart, cli_param_.data_format));
+      cli_param_.valid_path, partid, npart, cli_param_.data_format));
+
+    LOG(INFO) << "max key of train: " << train_->NumCol();
+    LOG(INFO) << "max key of valid: " << valid_->NumCol();
     
-    InitFSet(train_.get(), & train_fset_);
-    InitFSet(valid_.get(), & valid_fset_);
   } else if (cli_param_.task_type == "predict") {
-    CHECK_NE(cli_param_.test_path, "")
-      << " test_path is empty! need test_path.";
+    CHECK_NE(cli_param_.test_path, "") << " test_path empty.";
     test_.reset(new mit::DMatrix(
-          cli_param_.test_path, partid, npart, cli_param_.data_format));
+      cli_param_.test_path, partid, npart, cli_param_.data_format));
+    LOG(INFO) << "max key of test: " << test_->NumCol();
   }
   mit::Transaction::End(trans.get());
   LOG(INFO) << "ps worker init done";
@@ -126,6 +122,14 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   // pull operation (weight)
   std::vector<mit_float> weights;
   std::vector<int> lens; 
+
+  // test begin
+  lens.resize(keys.size());
+  for (size_t i = 0; i < lens.size(); ++i) {
+    lens[i] = i * 10 + 1;
+  }
+  printf("Worker::MiniBatch pull lens[11]: %d, keys[11]: %d\n", lens[11], keys[11]);
+  // test end
   kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
 
   if (cli_param_.debug) {

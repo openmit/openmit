@@ -105,12 +105,18 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
   }
 }
 
-void Server::
-PullRequest(const ps::KVPairs<mit_float> & req_data, 
-            ps::KVPairs<mit_float> & response) {
+void Server::PullRequest(const ps::KVPairs<mit_float> & req_data, ps::KVPairs<mit_float> & response) {
   response.keys = req_data.keys;
+  // test begin
+  if (req_data.lens.size() > 0) {
+    printf("Server::PullRequest lens.size: %d, lens[11]: %d, keys[11]: %d\n", req_data.lens.size(), req_data.lens[11], req_data.keys[11]);
+  } else {
+    printf("Server::PullRequest lens.size = 0");
+  }
+  response.lens = req_data.lens;
+  // test end
   response.vals.clear();
-  response.lens.clear();
+  //response.lens.clear();
   model_->Pull(response, &weight_);
 }
 
