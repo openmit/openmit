@@ -16,6 +16,8 @@ GXX=`which g++`
 
 # env conf
 source $wk_dir/make/config.mk
+export JAVA_HOME=$JAVA_HOME 
+export LD_LIBRARY_PATH=$JAVA_HOME/jre/lib/amd64/server:$LD_LIBRARY_PATH
 export HADOOP_HOME=$HADOOP_HOME
 export HADOOP_HDFS_HOME=$HADOOP_HOME
 export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH

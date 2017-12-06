@@ -7,12 +7,12 @@ third_party_dir=$wk_dir/third_party
 set -o pipefail
 set -o errexit
 
-#git submodule init
-#git submodule update
+git submodule init
+git submodule update
 
 # env config.mk
 if [ "x$HADOOP_HOME" == "x" ]; then
-  source $wk_dir/make/openmit.mk
+  source $wk_dir/make/config.mk
 fi
 export HADOOP_HOME=$HADOOP_HOME
 if [ "x$HADOOP_HOME" == "x" ]; then
@@ -34,8 +34,9 @@ cp -r $HADOOP_HOME/lib/native/* $third_party_dir/hadoop/lib
 
 echo "[INFO] build openmit/ps-lite begin ..."
 cd $third_party_dir/ps-lite
+git stash || true
 git checkout master 
-#git pull origin master  
+git pull origin master  
 make -j4 \
   && cp -r include/* $third_party_dir/include \
   && cp -r build/libps.a $third_party_dir/lib \
