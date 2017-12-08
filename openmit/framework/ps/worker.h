@@ -8,14 +8,12 @@
 #define OPENMIT_FRAMEWORK_PS_WORKER_H_
 
 #include <memory>
-
 #include "dmlc/logging.h"
 #include "dmlc/parameter.h"
 #include "ps/ps.h"
-
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data/data.h"
+#include "openmit/common/data.h"
 #include "openmit/engine/trainer.h"
 #include "openmit/engine/predictor.h"
 #include "openmit/metric/metric.h"

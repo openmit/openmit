@@ -230,12 +230,12 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint> & row,
       if (vifj_index == -1 || vifj_index == -1) continue;
 
       auto vifj_offset = key2offset[keyi].first + 
-        (1 + vifj_index * cli_param_.embedding_size);
+        (1 + vifj_index * model_param_.embedding_size);
       auto vjfi_offset = key2offset[keyj].first + 
-        (1 + vjfi_index * cli_param_.embedding_size);  
+        (1 + vjfi_index * model_param_.embedding_size);  
       
       // TODO SMID Accelerated
-      for (auto k = 0u; k < cli_param_.embedding_size; ++k) {
+      for (auto k = 0u; k < model_param_.embedding_size; ++k) {
         inprod += weights[vifj_offset+k] * weights[vjfi_offset+k];
       }
       cross += inprod * xi * xj;

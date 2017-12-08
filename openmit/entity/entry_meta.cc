@@ -1,14 +1,13 @@
 #include "openmit/entity/entry_meta.h"
 
 namespace mit {
-
-EntryMeta::EntryMeta(const mit::ModelParam & model_param) {
+EntryMeta::EntryMeta(const mit::ModelParam& model_param) {
   model = model_param.model;
   if (model == "fm" || model == "ffm") {
     embedding_size = model_param.embedding_size;
   }
 
-  if (model_param.data_format == "libfm" && model == "ffm") {
+  if (model == "ffm") {
     if (model_param.field_combine_set == "" 
         && model_param.field_combine_pair == "") {
       LOG(FATAL) << "parameter field_combine_XXX both empty.";

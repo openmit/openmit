@@ -122,19 +122,9 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   // pull operation (weight)
   std::vector<mit_float> weights;
   std::vector<int> lens; 
-
-  // test begin
-  lens.resize(keys.size());
-  for (size_t i = 0; i < lens.size(); ++i) {
-    lens[i] = i * 10 + 1;
-  }
-  printf("Worker::MiniBatch pull lens[11]: %d, keys[11]: %d\n", lens[11], keys[11]);
-  // test end
   kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
-
   if (cli_param_.debug) {
-    LOG(INFO) << "weights from server: " 
-      << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+    LOG(INFO) << "weights from server: " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
   }
   
   // worker computing 

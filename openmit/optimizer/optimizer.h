@@ -8,11 +8,9 @@
 #define OPENMIT_OPTIMIZER_OPTIMIZER_H_
 
 #include "ps/ps.h"
-
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data/data.h"
-#include "openmit/common/parameter/optimizer_param.h"
+#include "openmit/common/parameter.h"
 #include "openmit/entity/entry.h"
 #include "openmit/tools/dstruct/sarray.h"
 

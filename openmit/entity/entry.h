@@ -14,7 +14,7 @@
 #include <random>
 #include <vector>
 #include "openmit/common/base.h"
-#include "openmit/common/parameter/model_param.h"
+#include "openmit/common/parameter.h"
 #include "openmit/entity/entry_meta.h"
 #include "openmit/tools/dstruct/dstring.h"
 #include "openmit/tools/math/prob_distr.h"

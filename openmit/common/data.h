@@ -4,8 +4,8 @@
  *  \brief data instance set structure
  *  \author ZhouYong
  */
-#ifndef OPENMIT_COMMON_DATA_DATA_H_
-#define OPENMIT_COMMON_DATA_DATA_H_
+#ifndef OPENMIT_COMMON_DATA_H_
+#define OPENMIT_COMMON_DATA_H_
 
 #include <string>
 #include "dmlc/data.h"
@@ -114,4 +114,4 @@ void DMatrix::BeforeFirst() {
 }
 
 } // namespace mit
-#endif // OPENMIT_COMMON_DATA_DATA_H_
+#endif // OPENMIT_COMMON_DATA_H_

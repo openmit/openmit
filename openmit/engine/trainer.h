@@ -15,7 +15,6 @@
 #include "ps/base.h"
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data/data.h"
 #include "openmit/loss/loss.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
