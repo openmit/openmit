@@ -2,11 +2,10 @@
 #define OPENMIT_FRAMEWORK_MPI_SERVER_H_
 
 #include <memory>
-
 #include "rabit/rabit.h"
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/parameter/admm_param.h"
+#include "openmit/common/parameter.h"
 #include "openmit/tools/dstruct/sarray.h"
 
 namespace mit {

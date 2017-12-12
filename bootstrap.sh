@@ -34,6 +34,7 @@ cp -r $HADOOP_HOME/lib/native/* $third_party_dir/hadoop/lib
 
 echo "[INFO] build openmit/ps-lite begin ..."
 cd $third_party_dir/ps-lite
+git stash || true
 git checkout master 
 git pull origin master  
 make -j4 \
@@ -49,7 +50,7 @@ make all \
 
 cd $third_party_dir/dmlc-core
 make all DMLC_ENABLE_STD_THREAD=1 USE_HDFS=1 DMLC_USE_REGEX=1 \
-         #DMLC_USE_GLOG=1 \
+         DMLC_USE_GLOG=1 \
          HDFS_INC_PATH=$HADOOP_HOME/include HDFS_LIB_PATH=$HADOOP_HOME/lib/native \
   && cp -r include/dmlc $third_party_dir/include \
   && cp libdmlc.a $third_party_dir/lib
@@ -59,9 +60,12 @@ cmake . && make \
   && cp -r googletest/include/gtest $third_party_dir/include \
   && cp googlemock/gtest/libgtest* $third_party_dir/lib 
 
+#echo "[INFO] build third_party/glog begin"
 #cd $third_party_dir/glog
-#automake --add-missing && ./configure \
+##automake --add-missing && ./configure \
+#./configure \
 #    && sed -i 's/aclocal-1.14/aclocal/g;s/automake-1.14/automake/g' Makefile \
 #    && make \
 #    && cp -r src/glog $third_party_dir/include \
 #    && cp .libs/libglog.a $third_party_dir/lib
+#echo "[INFO] build third_party/glog done"

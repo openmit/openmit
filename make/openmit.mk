@@ -1,5 +1,5 @@
 # JAVA HOME
-JAVA_HOME=""
+JAVA_HOME="/home/parallels/software/jdk1.8.0_151"
 # path to hadoop path 
 HADOOP_HOME=""
 # hadoop user 

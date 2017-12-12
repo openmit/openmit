@@ -4,111 +4,114 @@
 #ifndef OPENMIT_MODELS_MODEL_H_
 #define OPENMIT_MODELS_MODEL_H_
 
+#include <omp.h>
 #include <string>
 #include <vector>
 #include "dmlc/logging.h"
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data/data.h"
-#include "openmit/entity/unit.h"
+#include "openmit/common/data.h"
+#include "openmit/common/parameter.h"
+#include "openmit/entity/entry_meta.h"
+#include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/math/basic_formula.h"
+#include "openmit/tools/math/prob_distr.h"
 
 namespace mit {
 
-/*!
- * \brief model related parameter
- */
-class ModelParam : public dmlc::Parameter<ModelParam> {
-  public:
-    /*! \brief model type */
-    std::string model_type;
-    /*! \brief number of field */
-    mit_uint field_num;
-    /*! \brief length of latent factor */
-    mit_uint k;
-    /*!
-     * \brief whether to add linear item,
-     *  This parameter is valid only for fm or ffm model.
-     */
-    bool is_linear;
-
-    /*! \brief declare parameters */
-    DMLC_DECLARE_PARAMETER(ModelParam) {
-      DMLC_DECLARE_FIELD(model_type).set_default("lr");
-      DMLC_DECLARE_FIELD(field_num).set_default(0);
-      DMLC_DECLARE_FIELD(k).set_default(0);
-      DMLC_DECLARE_FIELD(is_linear).set_default(true);
-    }
-}; // class ModelParam
+typedef std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset_type;
 
 /*!
  * \brief model template for distributed machine learning framework
  */
 class Model {
   public:
-    /*! \brief constructor */
+    /*! \brief create a model */
     static Model * Create(const mit::KWArgs & kwargs);
+
+    /*! \brief constructor */
+    Model(const mit::KWArgs & kwargs);
 
     /*! \brief destructor */
     virtual ~Model() {}
 
+  public: // predict 
     /*! \brief prediction based on data block for ps */
-    void Predict(const dmlc::RowBlock<mit_uint> & row_block,
-                 mit::PMAPT & weight,
-                 std::vector<mit_float> * preds,
+    void Predict(const dmlc::RowBlock<mit_uint> & batch, 
+                 const std::vector<mit_float> & weights,
+                 key2offset_type & key2offset,
+                 std::vector<mit_float> & preds,
                  bool is_norm = true);
-    
-    /*! \brief gradient based on data block for ps */
-    void Gradient(const dmlc::RowBlock<mit_uint> & row_block,
-                  std::vector<mit_float> & preds,
-                  PMAPT & weight, PMAPT * grad);
 
-    /*! 
-     * \brief prediction based on batch data for mpi  
-     */
+    /*! \brief prediction based on batch data for mpi */
     void Predict(const dmlc::RowBlock<mit_uint> & batch,
                  mit::SArray<mit_float> & weight, 
                  std::vector<mit_float> * preds,
                  bool is_norm = true);
 
-    /*!
-     * \brief gradient based on batch data for mpi
-     */
-    void Gradient(const dmlc::RowBlock<mit_uint> & batch,
-                  std::vector<mit_float> & preds,
-                  mit::SArray<mit_float> * grads);
+    /*! \brief prediction based one instance */
+    virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                              const std::vector<mit_float> & weights, 
+                              key2offset_type & key2offset,
+                              bool is_norm) = 0;
 
-
-  public:
     /*! \brief prediction based one instance for mpi */
     virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
                               const mit::SArray<mit_float> & weight,
                               bool is_norm) = 0;
 
-    /*! \brief calculate model gradient based one instance for mpi */
+
+  public: // gradient
+    /*! \brief gradient based on batch data for mpi */
+    void Gradient(const dmlc::RowBlock<mit_uint> & batch,
+                  std::vector<mit_float> & preds,
+                  mit::SArray<mit_float> * grads);
+
+    /*! \brief calcuate gradient based on one instance for ps */
+    virtual void Gradient(const dmlc::Row<mit_uint> & row, 
+                          const std::vector<mit_float> & weights,
+                          key2offset_type & key2offset,
+                          std::vector<mit_float> * grads,
+                          const mit_float & lossgrad_value) = 0;
+
+    /*! \brief calculate gradient based one instance for mpi */
     virtual void Gradient(const dmlc::Row<mit_uint> & row,
                           const mit_float & pred,
                           mit::SArray<mit_float> * grad) = 0;
 
-    /*! \brief prediction based on one instance for ps */
-    virtual mit_float Predict(const dmlc::Row<mit_uint> & row, 
-                              mit::PMAPT & weight,
-                              bool is_norm) = 0;
+  public:  // method for server
+    /*! \brief pull request */
+    virtual void Pull(ps::KVPairs<mit_float> & response, 
+                      mit::entry_map_type * weight) = 0;
 
-    /*! \brief calcuate gradient based on one instance for ps */
-    virtual void Gradient(const dmlc::Row<mit_uint> & row,
-                          const mit_float & pred,
-                          PMAPT & weight, PMAPT * grad) = 0;
-
+    /*! 
+     * \brief model updater. virtual not pure-virtual
+     */
+    virtual void Update(const ps::SArray<mit_uint> & keys, 
+                        const ps::SArray<mit_float> & vals, 
+                        const ps::SArray<int> & lens, 
+                        mit::entry_map_type * weight);
+  
+  public:
     /*! \brief get model type */
-    std::string ModelType() { return param_.model_type; }
+    inline std::string ModelType() { return model_param_.model; }
     /*! \brief model parameter */
-    ModelParam Param() const { return param_; }
+    inline mit::ModelParam Param() const { return model_param_; }
+    /*! \brief entry meta info */
+    inline mit::EntryMeta * EntryMeta() { return entry_meta_.get(); }
 
   protected:
-    /*! \brief model type */
-    ModelParam param_;
-
+    /*! \brief client parameter */
+    mit::CliParam cli_param_;
+    /*! \brief model parameter */
+    mit::ModelParam model_param_;
+    /*! \brief entry meta information */
+    std::unique_ptr<mit::EntryMeta> entry_meta_;
+    /*! \brief random initialize method */
+    std::unique_ptr<mit::math::ProbDistr> random_;
+    /*! \brief model optimizer (default) */
+    std::unique_ptr<mit::Optimizer> optimizer_;
 }; // class Model
+
 } // namespace mit
 #endif // OPENMIT_MODELS_MODEL_H_

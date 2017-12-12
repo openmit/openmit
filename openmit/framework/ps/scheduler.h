@@ -1,18 +1,17 @@
 /*!
  *  Copyright (c) 2017 by Contributors
  *  \file scheduler.h
- *  \brief scheduler logic for parameter server
+ *  \brief scheduler node logic for parameter server
  *  \author ZhouYong
  */
 #ifndef OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
 #define OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
 
+#include <condition_variable>
 #include <cstdlib>
 #include <memory>
-#include <unordered_map>
 #include <mutex>
-#include <condition_variable>
-
+#include <unordered_map>
 #include "ps/ps.h"
 #include "openmit/common/arg.h"
 #include "openmit/framework/ps/signal.h"
@@ -33,45 +32,37 @@ class Scheduler {
     /*! \brief initialize scheduler */
     void Init(const mit::KWArgs & kwargs);
 
-
+    /*! \brief run main logic */
     void Run();
 
-    /*! \brief scheduler processing logic */
+    /*! \brief request processing logic */
     void Handle(const ps::SimpleData & recved, ps::SimpleApp * app);
 
   private:
+    /*! \brief update metric stats info */
     void UpdateMetric(const ps::SimpleData & recved);
-    
-    void MetricInfo(const std::string & data_type, 
-                               const std::string & metric_type,
-                               int epoch, 
-                               float metric_value);
+
+    /*! \brief app complete exit condition */
     void ExitCondition();
 
   private:
     /*! \brief ps simple app */
     std::shared_ptr<ps::SimpleApp> scheduler_;
-
+    /*! \brief mutex */
     std::mutex mutex_;
-
+    /*! \brief control task exit condition */
     std::condition_variable cond_;
-
+    /*! \brief task exit tag */
     bool exit_ = false;
-    
     /*! 
-     * \brief metric info 
-     *        stats worker complete numbers each epoch
-     *        <type, <epoch, completed_number>>
-     *        metric type: "logloss"/"auc"
+     * \brief metric info stats worker complete numbers each epoch
+     *  <datatype_metrictype, <epoch, completed_number>>
+     *  "train-auc", <1, 2> / "valid-logloss", <2, 2>
      */
     std::unordered_map<std::string, 
-      std::unordered_map<int, int> > epoch_metric_number_train_;
+      std::unordered_map<int, int> > epoch_metric_number_;
     std::unordered_map<std::string, 
-      std::unordered_map<int, float> > metric_sum_train_;
-    std::unordered_map<std::string, 
-      std::unordered_map<int, int> > epoch_metric_number_eval_;
-    std::unordered_map<std::string, 
-      std::unordered_map<int, float> > metric_sum_eval_;
+      std::unordered_map<int, float> > metric_sum_;
     /*! \brief worker complete number */
     int complete_worker_number_ = 0;
     /*! \brief server complete number */
@@ -81,5 +72,4 @@ class Scheduler {
 
 }; // class Scheduler
 } // namespace mit
-
 #endif // OPENMIT_FRAMEWORK_PS_SCHEDULER_H_

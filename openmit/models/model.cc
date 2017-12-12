@@ -1,60 +1,48 @@
-#include "openmit/models/factorization_machine.h"
-#include "openmit/models/fieldaware_factorization_machine.h"
-#include "openmit/models/logistic_regression.h"
+#include "openmit/models/fm.h"
+#include "openmit/models/ffm.h"
+#include "openmit/models/lr.h"
 #include "openmit/models/model.h"
 
 namespace mit {
-
-DMLC_REGISTER_PARAMETER(ModelParam);
-
 Model * Model::Create(const mit::KWArgs & kwargs) {
-  ModelParam tmp_param_;
-  tmp_param_.InitAllowUnknown(kwargs);
-  if (tmp_param_.model_type == "lr") {
+  std::string model = "lr";
+  for (auto & kv : kwargs) {
+    if (kv.first != "model") continue;
+    model = kv.second;
+  }
+  if (model == "lr") {
     return mit::LR::Get(kwargs);
-  } else if (tmp_param_.model_type == "fm") {
+  } else if (model == "fm") {
     return mit::FM::Get(kwargs);
-  } else if (tmp_param_.model_type == "ffm") {
+  } else if (model == "ffm") {
     return mit::FFM::Get(kwargs);
   } else {
-    LOG(ERROR) <<
-      "model_type not in [lr, fm, ffm], model_type: " << tmp_param_.model_type;
+    LOG(FATAL) <<
+      "model not in [lr, fm, ffm], model: " << model;
     return nullptr;
   }
 }
 
-// implementation of prediction based on batch instance for ps
-void Model::Predict(const dmlc::RowBlock<mit_uint> & row_block,
-                    mit::PMAPT & weight,
-                    std::vector<mit_float> * preds,
-                    bool is_norm) {
-  CHECK_EQ(row_block.size, preds->size());
-  // TODO OpenMP?
-  for (auto i = 0u; i < row_block.size; ++i) {
-    (*preds)[i] = Predict(row_block[i], weight, is_norm);
-  }
+Model::Model(const mit::KWArgs & kwargs) {
+  cli_param_.InitAllowUnknown(kwargs);
+  model_param_.InitAllowUnknown(kwargs);
+  entry_meta_.reset(new mit::EntryMeta(model_param_));
+  random_.reset(mit::math::ProbDistr::Create(model_param_));
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
 }
 
-// implementation of gradient based on batch instance for ps
-void Model::Gradient(
-    const dmlc::RowBlock<mit_uint> & block,
-    std::vector<mit_float> & preds,
-    PMAPT & weight,
-    PMAPT * grad) {
-
-  CHECK_EQ(block.size,  preds.size());
-  CHECK_EQ(weight.size(), grad->size());
-  // \sum grad
-  for (auto i = 0u; i < block.size; ++i) {
-    Gradient(block[i], preds[i], weight, grad);
+void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
+                    const std::vector<mit_float> & weights, 
+                    key2offset_type & key2offset,
+                    std::vector<mit_float> & preds, 
+                    bool is_norm) {
+  CHECK_EQ(batch.size, preds.size());
+  // TODO OpenMP?
+  for (auto i = 0u; i < batch.size; ++i) {
+    preds[i] = Predict(batch[i], weights, key2offset, is_norm);
+    //LOG(INFO) << "pred: " << preds[i] << ", label: " << batch[i].get_label();
   }
-  // \frac{1}{block.size} \sum grad
-  for (auto kunit : *grad) {
-    auto feati = kunit.first;
-    auto batch_grad = 1.0 * (*grad)[feati]->Get(0) / block.size;
-    (*grad)[feati]->Set(0, batch_grad);
-  }
-} // method Gradient
+}
 
 void Model::Predict(const dmlc::RowBlock<mit_uint> & batch, 
                     mit::SArray<mit_float> & weight,
@@ -67,18 +55,31 @@ void Model::Predict(const dmlc::RowBlock<mit_uint> & batch,
   }
 } // method Predict
 
-void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, 
-                     std::vector<mit_float> & preds, 
-                     mit::SArray<mit_float> * grads) {
-  CHECK_EQ(batch.size, preds.size());
+void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, std::vector<mit_float> & preds, mit::SArray<mit_float> * grads) {
+  // TODO OpenMP ?
   for (auto i = 0u; i < batch.size; ++i) {
     Gradient(batch[i], preds[i], grads);
   }
-  if (batch.size == 1) return ;
-  CHECK(batch.size > 0) << "batch.size <= 0 in Model::Gradient";
-  for (auto j = 0u; j < grads->size(); ++j) {
-    (*grads)[j] /= batch.size;
-  }
-} // method Gradient 
+} // method Gradient
 
+void Model::Update(const ps::SArray<mit_uint> & keys, 
+                   const ps::SArray<mit_float> & vals, 
+                   const ps::SArray<int> & lens, 
+                   mit::entry_map_type * weight) {
+  CHECK_EQ(keys.size(), lens.size());
+  auto offset = 0u;
+  for (auto i = 0u; i < keys.size(); ++i) {
+    auto key = keys[i];
+    CHECK(weight->find(key) != weight->end());
+    auto entrysize = (*weight)[key]->Size();
+    CHECK_EQ(entrysize, (size_t)lens[i]);
+    for (auto idx = 0u; idx < entrysize; ++idx) {
+      auto w = (*weight)[key]->Get(idx);
+      auto g = vals[offset++];
+      optimizer_->Update(key, idx, g, w, (*weight)[key]);
+      (*weight)[key]->Set(idx, w);
+    }
+  }
+  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
+}
 } // namespace mit

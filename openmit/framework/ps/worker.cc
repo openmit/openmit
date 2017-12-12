@@ -3,8 +3,6 @@
 
 namespace mit {
 
-DMLC_REGISTER_PARAMETER(WorkerParam);
-
 Worker::Worker(const mit::KWArgs & kwargs) {
   Init(kwargs);
 }
@@ -14,47 +12,34 @@ Worker::~Worker() {
 }
 
 void Worker::Init(const mit::KWArgs & kwargs) {
-  mit::Transaction * trans = mit::Transaction::Create(1, "ps-worker", "init");
-  // 1. param_
-  param_.InitAllowUnknown(kwargs);
-  // 2. kv_worker_
+  std::unique_ptr<mit::Transaction> trans(
+    mit::Transaction::Create(2, "worker", "init"));
+  cli_param_.InitAllowUnknown(kwargs);
   kv_worker_ = new ps::KVWorker<mit_float>(0);
-  // 3. trainer_
   trainer_.reset(new mit::Trainer(kwargs));
-  // 5. data
+  
   int partid = ps::MyRank();
   int npart = ps::NumWorkers();
   LOG(INFO) << "partid: " << partid << ", npart: " << npart;
-  if (param_.task_type == "train") {
-    CHECK_NE(param_.train_path, "") 
-      << " train_path is empty! need train_path.";
-    train_set_.reset(new mit::DMatrix(
-          param_.train_path, partid, npart, param_.data_format));
-    CHECK_NE(param_.valid_path, "") 
-      << " valid_path is empty! need evalution_path.";
-    valid_set_.reset(new mit::DMatrix(
-          param_.valid_path, partid, npart, param_.data_format));
+  if (cli_param_.task_type == "train") {
+    CHECK_NE(cli_param_.train_path, "") << " train_path empty.";
+    train_.reset(new mit::DMatrix(
+      cli_param_.train_path, partid, npart, cli_param_.data_format));
+    CHECK_NE(cli_param_.valid_path, "") << " valid_path empty.";
+    valid_.reset(new mit::DMatrix(
+      cli_param_.valid_path, partid, npart, cli_param_.data_format));
+
+    LOG(INFO) << "max key of train: " << train_->NumCol();
+    LOG(INFO) << "max key of valid: " << valid_->NumCol();
     
-    InitFSet(train_set_.get(), & train_fset_);
-    InitFSet(valid_set_.get(), & valid_fset_);
-    //std::unordered_set<ps::Key> fset;
-    //fset.insert(0);
-    //valid_set_->BeforeFirst();
-    //while (valid_set_->Next()) {
-    //  const auto & block = valid_set_->Value();
-    //  fset.insert(
-    //    block.index + block.offset[0], 
-    //    block.index + block.offset[block.size]);
-    //}
-    //.insert(valid_fset_.end(), fset.begin(), fset.end());
-    //sort(.begin(), valid_fset_.end());
-  } else if (param_.task_type == "predict") {
-    CHECK_NE(param_.test_path, "")
-      << " test_path is empty! need test_path.";
-    test_set_.reset(new mit::DMatrix(
-          param_.test_path, partid, npart, param_.data_format));
+  } else if (cli_param_.task_type == "predict") {
+    CHECK_NE(cli_param_.test_path, "") << " test_path empty.";
+    test_.reset(new mit::DMatrix(
+      cli_param_.test_path, partid, npart, cli_param_.data_format));
+    LOG(INFO) << "max key of test: " << test_->NumCol();
   }
-  mit::Transaction::End(trans);
+  mit::Transaction::End(trans.get());
+  LOG(INFO) << "ps worker init done";
 }
 
 void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
@@ -72,85 +57,150 @@ void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
 }
 
 void Worker::Run() {
-  mit::Transaction * trans = mit::Transaction::Create(1, "ps-worker", "run");
-  CHECK_GT(param_.batch_size, 0) << " error: batch_size <= 0."; 
-  for (auto iter = 0u; iter < param_.max_epoch; ++iter) {
-    // training based on epoch
-    train_set_->BeforeFirst();
-    while (train_set_->Next()) { 
-      const dmlc::RowBlock<mit_uint> & block = train_set_->Value();
-      int end = 0;
-      for (auto i = 0u; i < block.size; i += param_.batch_size) {
-        if (i + param_.batch_size <= block.size) {
-          end = i + param_.batch_size;
-        } else {
-          end = block.size;
+  std::unique_ptr<mit::Transaction> trans(
+    mit::Transaction::Create(1, "ps", "worker"));
+  CHECK_GT(cli_param_.batch_size, 0); 
+  size_t progress_interval = 
+    cli_param_.batch_size * cli_param_.job_progress;
+  for (auto epoch = 1u; epoch <= cli_param_.max_epoch; ++epoch) {
+    uint64_t progress = 0u;
+    train_->BeforeFirst();
+    while (train_->Next()) { 
+      auto & block = train_->Value();
+      uint32_t end = 0;
+      for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
+        end = i + cli_param_.batch_size >= block.size ? 
+          block.size : i + cli_param_.batch_size;
+        if (progress % progress_interval == 0 && cli_param_.is_progress) {
+          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress "
+                    << "<epoch, inst>: <" << epoch << ", "<< progress << ">";
+        }
+        progress += (end - i);
+        if ((end - i) != cli_param_.batch_size && cli_param_.is_progress) {
+          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress "
+                    << "<epoch, inst>: <" << epoch << ", "<< progress << ">";
         }
         const auto batch = block.Slice(i, end);
         MiniBatch(batch);
       }
     } 
     // TODO Barrier
-    if (param_.save_peroid != 0 && iter % param_.save_peroid == 0) {
-      kv_worker_->Push({iter}, {}, {}, signal::SAVEINFO);
+    if (cli_param_.save_peroid != 0 && epoch % cli_param_.save_peroid == 0) {
+      kv_worker_->Push({epoch}, {}, {}, signal::SAVE_EPOCH);
     }
-    
-    // evaluation based on lastest model
-    float metric_train = Metric(train_set_.get(), train_fset_);
-    float metric_eval = Metric(valid_set_.get(), valid_fset_);
-    
-    std::string metric_info = 
-      param_.metric + "," + std::to_string(iter) + "," + std::to_string(metric_train) 
-      + "," + param_.metric + "," + std::to_string(iter) + "," + std::to_string(metric_eval);
-    
-    static_cast<ps::SimpleApp *>(kv_worker_)->Request(
-        mit::signal::METRIC, metric_info, ps::kScheduler);
-  } // end for iter
-  
-  kv_worker_->Wait(kv_worker_->Request(
-        signal::WORKER_COMPLETE, "worker", ps::kScheduler));
 
-  //kv_worker_->Request(signal::WORKER_COMPLETE, "worker", ps::kScheduler);
+    // metric 
+    std::string metric_train_info = Metric(train_.get());
+    std::string metric_valid_info = Metric(valid_.get());
+    // format: "epoch;train:auc^0.80,logloss^0.1;valid:auc^0.78,logloss^0.11"
+    std::string metric_info = std::to_string(epoch);
+    metric_info += ";train:" + metric_train_info + ";valid:" + metric_valid_info;
+    static_cast<ps::SimpleApp *>(kv_worker_)->Request(
+      mit::signal::METRIC, 
+      metric_info, 
+      ps::kScheduler);
+
+  } // end for epochs
   
-  // message to tell server job finish
-  /*
-  std::vector<ps::Key> keys(1,1);
-  std::vector<float> vals(1,1);
-  std::vector<int> lens(1,1);
-  kv_worker_->Wait(
-      kv_worker_->Push(keys, vals, lens, mit::signal::FINISH));
-  */
-  mit::Transaction::End(trans);
+  // send signal to tell server & scheduler worker finish.
+  kv_worker_->Wait(kv_worker_->Request(
+    signal::WORKER_FINISH, 
+    "worker finish", 
+    ps::kScheduler + ps::kServerGroup));
+    //ps::kServerGroup));
+
+  mit::Transaction::End(trans.get());
+  LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
 } 
 
-float Worker::Metric(mit::DMatrix * data, std::vector<ps::Key> & feat_set) {
-  // pull (weight)
-  std::vector<mit_float> rets;
-  kv_worker_->Wait(kv_worker_->Pull(feat_set, & rets));
-  // worker metric
-  float metric = trainer_->Eval(data, feat_set, rets);
-  return metric;
-}
-
 void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
-  std::unordered_set<mit_uint> fset(
-      batch.index + batch.offset[0], batch.index + batch.offset[batch.size]);
-  fset.insert(0);  // for bias
+  std::unordered_set<mit_uint> fset;
+  KeySet(batch, fset);
   std::vector<ps::Key> keys(fset.begin(), fset.end());
   sort(keys.begin(), keys.end());
   
   // pull operation (weight)
-  std::vector<int> lens(keys.size(), param_.field_num * param_.embedding_size + 1);
-  std::vector<mit_float> rets;
-  kv_worker_->Wait(kv_worker_->Pull(keys, &rets));
+  std::vector<mit_float> weights;
+  std::vector<int> lens; 
+  kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
+  if (cli_param_.debug) {
+    LOG(INFO) << "weights from server: " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+  }
   
   // worker computing 
-  std::vector<mit_float> vals;
-  trainer_->Run(batch, keys, rets, &vals);
+  std::vector<mit_float> grads(weights.size(), 0.0f);
+  trainer_->Run(batch, keys, weights, lens, &grads);
 
   // push operation (gradient)
   kv_worker_->Wait(
-      kv_worker_->Push(keys, vals, lens, mit::signal::UPDATE));
+    kv_worker_->Push(keys, grads, lens, mit::signal::UPDATE));
 }
+
+std::string Worker::Metric(mit::DMatrix * data) {
+  std::vector<float> metrics(trainer_->MetricInfo().size(), 0.0f);
+  std::vector<float> batch_metric(metrics.size(), 0.0f);
+  auto metric_batch = cli_param_.batch_size * 100;
+  auto metric_batch_count = 0l;
+  data->BeforeFirst();
+  while (data->Next()) {
+    auto & block = data->Value();
+    uint32_t end = 0;
+    for (auto i = 0u; i < block.size; i += metric_batch) {
+      end = i + metric_batch > block.size ? block.size : i + metric_batch;
+      const auto batch = block.Slice(i, end);
+      MetricBatch(batch, batch_metric);
+      for (auto idx = 0u; idx < batch_metric.size(); ++idx) {
+        metrics[idx] += batch_metric[idx];
+      }
+      metric_batch_count += 1;
+    }
+  } // while 
+  for (auto & metric_value : metrics) {
+    metric_value /= metric_batch_count;
+  }
+  std::string metric_info("");
+  for (auto i = 0u; i < metrics.size(); ++i) {
+    metric_info += 
+      const_cast<char *>(trainer_->MetricInfo()[i]->Name()) 
+      + std::string("^") + std::to_string(metrics[i]);
+    if (i != metrics.size() - 1) metric_info += ",";
+  }
+  return metric_info;
+}
+
+void Worker::MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
+                         std::vector<float> & metrics_value) {
+  std::unordered_set<mit_uint> fset;
+  KeySet(batch, fset);
+  std::vector<ps::Key> keys(fset.begin(), fset.end());
+  sort(keys.begin(), keys.end());
+
+  // pull operation 
+  std::vector<mit_float> weights;
+  std::vector<int> lens; 
+  kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
+
+  // metric computing 
+  metrics_value.clear();
+  trainer_->Metric(batch, keys, weights, lens, metrics_value);
+}
+
+void Worker::KeySet(const dmlc::RowBlock<mit_uint> & batch, 
+                    std::unordered_set<mit_uint> & fset) {
+  if (cli_param_.data_format == "libfm") {
+    for (auto i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
+      mit_uint new_key = batch.index[i];
+      if (new_key > 0) {
+        new_key = mit::NewKey(
+          batch.index[i], batch.field[i], cli_param_.nbit);
+      }
+      fset.insert(new_key);   
+    }
+  } else { // data_format in ["auto", "libsvm"]
+    fset.insert(batch.index + batch.offset[0], 
+                batch.index + batch.offset[batch.size]);
+  }
+  fset.insert(0);  // for intercept
+} // method Worker::KeySet
 
 } // namespace mit

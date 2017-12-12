@@ -10,7 +10,6 @@ else
 fi
 
 echo "num_workers: $num_workers"
-
 ${wk_dir}/tracker/dmlc-submit \
   --cluster local \
   --num-workers ${num_workers} \

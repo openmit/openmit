@@ -72,11 +72,11 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
     weight_.resize(max_dim + 1, 0.0f);
     dual_.resize(max_dim + 1, 0.0f);
     // optimizer
-    opt_.reset(mit::Opt::Create(kwargs, cli_param_.optimizer));
-    opt_->Init(max_dim);
+    optimizer_.reset(mit::Optimizer::Create(kwargs));
+    optimizer_->Init(max_dim);
     LOG(INFO) << "@worker[" <<  rabit::GetRank() 
       << "] mpiworker init done for train task.";
-  } if (cli_param_.task_type == "predict") {
+  } else if (cli_param_.task_type == "predict") {
     // TODO Load Model for prediction
   } else {
     LOG(ERROR) << "task_type not in [train, predict].";
@@ -91,7 +91,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
   metrics_.clear();
   for (auto i = 0u; i < metric_names.size(); ++i) {
     mit::Metric * metric = mit::Metric::Create(metric_names[i]);
-    CHECK(metric) << "Metric::Create(" << metric_names[i] << ") return null.";
+    CHECK(metric) << "Metric::Create(" << metric_names[i] << ")";
     metrics_.push_back(metric);
   }
 }
@@ -105,36 +105,28 @@ void MPIWorker::Run(mit_float * global,
   weight_.clear(); 
   weight_.CopyFrom(global, size);
 
-  size_t progress = 0;
+  uint64_t progress = 0u;
   CHECK(cli_param_.job_progress > 0) << "parameter job_progress > 0";
   size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
   train_->BeforeFirst();
   while (train_->Next()) {
     auto & block = train_->Value();
     // TODO optimized to matrix/vector computation
-    size_t end = 0;
-    if (block.size <= cli_param_.batch_size) {
-      MiniBatch(block);
-    } else {
-      for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
-        end = i + cli_param_.batch_size >= block.size ? 
-          block.size : i + cli_param_.batch_size;
-        const auto batch = block.Slice(i, end);
-        if (cli_param_.is_progress) {
-          if (progress % progress_interval == 0) {
-            LOG(INFO) << "@worker[" << rabit::GetRank() 
-              << "] progress <epoch, inst>: <" 
-              << epoch << ", " << progress << ">";
-          }
-          progress += (end - i);
-          if ((end - i) != cli_param_.batch_size) {
-            LOG(INFO) << "@worker[" << rabit::GetRank() 
-              << "] progress <epoch, inst>: <" 
-              << epoch << ", " << end << ">";
-          }
-        }
-        MiniBatch(batch);
+    uint32_t end = 0;
+    for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
+      end = i + cli_param_.batch_size >= block.size ? 
+        block.size : i + cli_param_.batch_size;
+      if (progress % progress_interval == 0 && cli_param_.is_progress) {
+        LOG(INFO) << "@worker[" << rabit::GetRank() << "] progress \
+                  <epoch, inst>: <" << epoch << ", " << progress << ">";
       }
+      progress += (end - i);
+      if ((end - i) != cli_param_.batch_size && cli_param_.is_progress) {
+        LOG(INFO) << "@worker[" << rabit::GetRank() << "] progress \
+                  <epoch, inst>: <" << epoch << ", " << end << ">";
+      }
+      const auto batch = block.Slice(i, end);
+      MiniBatch(batch);
     }
   } // while
 }
@@ -147,7 +139,7 @@ void MPIWorker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   mit::SArray<mit_float> grads(weight_.size(), 0.0f);
   model_->Gradient(batch, preds, &grads);
   // optimizer : weight_
-  opt_->Run(grads, &weight_);
+  optimizer_->Run(grads, &weight_);
 }
 
 // dual_[j] <-- dual_[j] + \rho * (w_[j] - \theta[j])
@@ -159,7 +151,9 @@ void MPIWorker::UpdateDual(mit_float * global, const size_t size) {
   }
 }
 
-std::string MPIWorker::Metric(const std::string & data_type, mit_float * global, const size_t size) {
+std::string MPIWorker::Metric(const std::string & data_type, 
+                              mit_float * global, 
+                              const size_t size) {
   // predict
   std::vector<float> preds;
   std::vector<float> labels;
@@ -185,6 +179,7 @@ std::string MPIWorker::Metric(const std::string & data_type, mit_float * global,
     metric_partial[i] /= rabit::GetWorldSize();
   }
   rabit::Broadcast(metric_partial.data(), sizeof(mit_float) * metric_count, 0);
+
   // metric result
   std::string result;
   for (auto i = 0u; i < metrics_.size(); ++i) {

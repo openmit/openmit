@@ -39,4 +39,9 @@ third_party/lib/
 third_party/mxnet
 
 # tmp file
-test/
+test/ 
+learning/ 
+
+# Data files
+part*
+part*
