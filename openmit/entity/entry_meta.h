@@ -12,7 +12,7 @@
 #include <vector>
 #include "dmlc/io.h"
 #include "openmit/common/base.h"
-#include "openmit/common/parameter.h"
+#include "openmit/common/parameter/model_param.h"
 #include "openmit/tools/dstruct/dstring.h"
 #include "openmit/tools/util/type_conversion.h"
 

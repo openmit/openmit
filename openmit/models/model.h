@@ -10,8 +10,9 @@
 #include "dmlc/logging.h"
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data.h"
-#include "openmit/common/parameter.h"
+#include "openmit/common/data/data.h"
+#include "openmit/common/parameter/cli_param.h"
+#include "openmit/common/parameter/model_param.h"
 #include "openmit/entity/entry_meta.h"
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/math/basic_formula.h"
@@ -60,7 +61,14 @@ class Model {
                               const mit::SArray<mit_float> & weight,
                               bool is_norm) = 0;
 
-
+    virtual mit_float Predict(const std::vector<mit_float> & user_weights,
+                              const size_t user_offset,
+                              const std::vector<mit_float> & item_weights,
+                              size_t item_offset,
+                              size_t factor_len) {
+        return 0.0;
+    };
+    
   public: // gradient
     /*! \brief gradient based on batch data for mpi */
     void Gradient(const dmlc::RowBlock<mit_uint> & batch,
@@ -78,7 +86,17 @@ class Model {
     virtual void Gradient(const dmlc::Row<mit_uint> & row,
                           const mit_float & pred,
                           mit::SArray<mit_float> * grad) = 0;
+    /*! \brief calcuate gradient based on one instance for ps (for mf model) */
 
+    virtual void Gradient(const mit_float lossgrad_value,
+                          const std::vector<mit_float> & user_weights,
+                          const size_t user_offset,
+                          const std::vector<mit_float> & item_weights,
+                          const size_t item_offset,
+                          const mit_uint factor_len,
+                          std::vector<mit_float> * user_grads,
+                          std::vector<mit_float> * item_grads) {
+    }
   public:  // method for server
     /*! \brief pull request */
     virtual void Pull(ps::KVPairs<mit_float> & response, 

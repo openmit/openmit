@@ -8,7 +8,7 @@
 #define OPENMIT_TOOLS_MATH_PROB_DISTR_H_
 
 #include <random>
-#include "openmit/common/parameter.h"
+#include "openmit/common/parameter/model_param.h"
 
 namespace mit {
 namespace math {
@@ -20,7 +20,7 @@ struct ProbDistr {
   std::default_random_engine gen;
 
   /*! \brief create a probability distr */
-  static ProbDistr * Create(mit::ModelParam& model_param);
+  static ProbDistr * Create(mit::ModelParam & model_param);
 
   /*! \brief fetch random value */
   virtual float random() = 0;

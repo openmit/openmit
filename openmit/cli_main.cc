@@ -9,10 +9,7 @@ int main(int argc, char * argv[]) {
   if (strcmp(argv[1], "none")) parser.ReadFile(argv[1]);
   parser.ReadArgs(argc - 2, argv + 2);
   const mit::KWArgs kwargs = parser.GetKWArgs();
-
-  mit::MILearner* milearner = mit::MILearner::Create(kwargs);
+  std::unique_ptr<mit::MILearner> milearner(mit::MILearner::Create(kwargs)); 
   milearner->Run();
-  delete milearner; 
-  milearner = NULL;
   return 0;
 }

@@ -107,6 +107,14 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
 
 void Server::PullRequest(const ps::KVPairs<mit_float> & req_data, ps::KVPairs<mit_float> & response) {
   response.keys = req_data.keys;
+  // test begin
+  if (req_data.lens.size() > 0) {
+    printf("Server::PullRequest lens.size: %d, lens[11]: %d, keys[11]: %d\n", req_data.lens.size(), req_data.lens[11], req_data.keys[11]);
+  } else {
+    printf("Server::PullRequest lens.size = 0");
+  }
+  response.lens = req_data.lens;
+  // test end
   response.vals.clear();
   //response.lens.clear();
   model_->Pull(response, &weight_);
@@ -117,7 +125,12 @@ void Server::ExitCondition() {
   complete_worker_number_++; 
   mutex_.unlock();
   if (complete_worker_number_ == ps::NumWorkers()) {
-    SaveModel();
+    if ("mf" == cli_param_.model){
+      SaveModel("", "item-");
+    }
+    else{
+      SaveModel();
+    }
     std::string rank = std::to_string(ps::MyRank());
     kv_server_->Request(signal::SERVER_FINISH, rank, ps::kScheduler);
     mutex_.lock(); exit_ = true; mutex_.unlock();
@@ -125,16 +138,16 @@ void Server::ExitCondition() {
   }
 }
 
-void Server::SaveModel(std::string epoch) {
+void Server::SaveModel(std::string epoch, std::string prefix) {
   std::string myrank = std::to_string(ps::MyRank());
   LOG(INFO) << "@server[" + myrank + "] save model begin";
   std::string dump_out = cli_param_.model_dump;
   std::string bin_out = cli_param_.model_binary;
   if (epoch == "") {
-    dump_out += "/part-" + myrank;
-    bin_out += "/last/part-" + myrank;
+    dump_out += ("/" + prefix + "part-" + myrank);
+    bin_out += ("/last/" + prefix + "part-" + myrank);
   } else {   // save middle result by epoch
-    std::string postfix = "/iter-" + epoch + "/part-" + myrank;
+    std::string postfix = "/" + prefix + "iter-" + epoch + "/part-" + myrank;
     dump_out += ".middle" + postfix;
     bin_out += postfix;
   }

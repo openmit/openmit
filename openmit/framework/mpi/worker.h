@@ -5,8 +5,9 @@
 
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data.h"
-#include "openmit/common/parameter.h"
+#include "openmit/common/data/data.h"
+#include "openmit/common/parameter/admm_param.h"
+#include "openmit/common/parameter/cli_param.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
 #include "openmit/optimizer/optimizer.h"

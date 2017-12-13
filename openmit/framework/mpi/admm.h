@@ -1,7 +1,7 @@
 /*!
  *  Copyright (c) 2016 by Contributors
  *  \file admm.h
- *  \brief alternating-direction-multipler-method algorithm framework
+ *  \brief alternating-direction-multipler-method framework
  *        for distributed computing
  *  \author ZhouYong
  */
@@ -9,7 +9,8 @@
 #define OPENMIT_FRAMEWORK_MPI_ADMM_H_
 
 #include "dmlc/io.h"
-#include "openmit/common/parameter.h"
+#include "openmit/common/parameter/admm_param.h"
+#include "openmit/common/parameter/cli_param.h"
 #include "openmit/framework/mpi/server.h"
 #include "openmit/framework/mpi/worker.h"
 #include "openmit/learner/mi_learner.h"

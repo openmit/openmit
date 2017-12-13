@@ -8,12 +8,14 @@
 #define OPENMIT_FRAMEWORK_PS_WORKER_H_
 
 #include <memory>
+
 #include "dmlc/logging.h"
 #include "dmlc/parameter.h"
 #include "ps/ps.h"
+
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data.h"
+#include "openmit/common/data/data.h"
 #include "openmit/engine/trainer.h"
 #include "openmit/engine/predictor.h"
 #include "openmit/metric/metric.h"
@@ -42,7 +44,10 @@ class Worker {
     void RunTrain();
     /*! \brief predict based ps */
     void RunPredict();
-    
+    /* brief save model in the worker node*/
+    void SaveModel(std::string epoch="", std::string prefix="user-");
+    void SaveBinaryModel(dmlc::Stream * fo);
+    void SaveTextModel(dmlc::Stream * fo); 
   private:
     /*! \brief initialize feature set if size of feature < 1e6 */
     void InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set);
@@ -50,7 +55,9 @@ class Worker {
     void MiniBatch(const dmlc::RowBlock<mit_uint> & batch);
     /*! \brief key set */
     void KeySet(const dmlc::RowBlock<mit_uint> & batch, 
-                std::unordered_set<mit_uint> & fset);
+                std::unordered_set<mit_uint> & fset,
+                std::unordered_set<mit_uint> & user_set,
+                std::unordered_map<ps::Key, mit::mit_float> & rating_map);
 
   private:
     /*! \brief metric method */
@@ -58,7 +65,7 @@ class Worker {
     
     void MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
                      std::vector<float> & metrics_value);
-
+  
   private:
     /*! \brief kv worker */
     ps::KVWorker<float> * kv_worker_;
@@ -80,6 +87,12 @@ class Worker {
     std::vector<ps::Key> valid_fset_;  
     /*! \brief validation data set */
     std::shared_ptr<mit::DMatrix> test_;
+    /*! \brief user latent vector for matrix factorization*/
+    std::unordered_map<ps::Key, mit::Entry *> user_weight_;
+    /*! \brief rating map for matrix factorization*/
+    std::unordered_map<ps::Key, mit::mit_float> rating_map;
+    /*! \brief model for pull request */
+    std::shared_ptr<mit::Model> model_;
 }; // class Worker
 } // namespace mit
 

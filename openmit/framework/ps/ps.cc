@@ -19,6 +19,7 @@ void PS::Run() {
   dmlc::InitLogging("openmit-ps\0");
 
   LOG(INFO) << "ps task begin. ";
+  LOG(INFO) << "ps task begin for matrix fatorization";
   ps::Start();
   std::string nodeinfo = ps::IsServer() ? "@server[" : (ps::IsWorker() ? "@worker[" : "@scheduler[");
   nodeinfo += std::to_string(ps::MyRank()) + "] ";

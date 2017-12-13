@@ -15,6 +15,7 @@
 #include "ps/base.h"
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
+#include "openmit/common/data/data.h"
 #include "openmit/loss/loss.h"
 #include "openmit/metric/metric.h"
 #include "openmit/models/model.h"
@@ -43,14 +44,29 @@ class Trainer {
              std::vector<mit_float> & weights, 
              std::vector<int> & lens, 
              std::vector<mit_float> * grads);
-
+    void Run(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
+             std::vector<ps::Key> & user_keys,
+             std::vector<mit_float> & user_weights,
+             std::vector<int> & user_lens,
+             std::vector<ps::Key> & item_keys,
+             std::vector<mit_float> & item_weights,
+             std::vector<int> & item_lens,
+             std::vector<mit_float> * user_grads,
+             std::vector<mit_float> * item_grads);
     /*! \brief metric logic for ps interface */
     void Metric(const dmlc::RowBlock<mit_uint> & batch, 
                 std::vector<ps::Key> & keys, 
                 std::vector<mit_float> & weights, 
                 std::vector<int> & lens, 
                 std::vector<float> & metrics_value);
-
+    void Metric(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
+                std::vector<ps::Key> & user_keys,
+                std::vector<mit_float> & user_weights,
+                std::vector<int> & user_lens,
+                std::vector<ps::Key> & item_keys,
+                std::vector<mit_float> & item_weights,
+                std::vector<int> & item_lens,
+                std::vector<float> & metrics_value);
     inline std::vector<mit::Metric *> MetricInfo() const {
       return metrics_;
     }

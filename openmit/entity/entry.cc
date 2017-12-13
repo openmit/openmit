@@ -15,6 +15,9 @@ Entry * Entry::Create(const mit::ModelParam & model_param,
   } else if (model_param.model == "ffm") {
     return new mit::FFMEntry(
       model_param, entry_meta, distr, field);
+  } else if (model_param.model == "mf") {
+    return new mit::MFEntry(
+      model_param, entry_meta, distr);
   } else {
     LOG(FATAL) << "model '" << model_param.model 
       << "' is not supported in openmit.";

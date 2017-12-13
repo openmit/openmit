@@ -1,9 +1,9 @@
-#include <string>
 #include "openmit/common/arg.h"
-#include "openmit/common/parameter.h"
+#include "openmit/common/parameter/model_param.h"
 #include "openmit/entity/entry_meta.h"
 #include "openmit/common/base.h"
 using namespace mit;
+#include <string>
 
 template <typename V>
 std::string VecInfo(std::vector<V> * vec) {

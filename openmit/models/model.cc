@@ -1,6 +1,7 @@
 #include "openmit/models/fm.h"
 #include "openmit/models/ffm.h"
 #include "openmit/models/lr.h"
+#include "openmit/models/mf.h"
 #include "openmit/models/model.h"
 
 namespace mit {
@@ -16,6 +17,9 @@ Model * Model::Create(const mit::KWArgs & kwargs) {
     return mit::FM::Get(kwargs);
   } else if (model == "ffm") {
     return mit::FFM::Get(kwargs);
+  } else if (model == "mf") {
+    //return mit::FM::Get(kwargs);
+    return mit::MF::Get(kwargs);
   } else {
     LOG(FATAL) <<
       "model not in [lr, fm, ffm], model: " << model;
