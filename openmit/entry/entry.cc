@@ -1,4 +1,4 @@
-#include "openmit/entity/entry.h"
+#include "openmit/entry/entry.h"
 
 namespace mit {
 

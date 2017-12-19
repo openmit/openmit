@@ -5,8 +5,8 @@
  *        model interface and optimization algorithm interface
  *  \author ZhouYong
  */
-#ifndef OPENMIT_ENTITY_ENTRY_H_
-#define OPENMIT_ENTITY_ENTRY_H_ 
+#ifndef OPENMIT_ENTRY_ENTRY_H_
+#define OPENMIT_ENTRY_ENTRY_H_ 
 
 #include <stdint.h>
 #include <stddef.h>
@@ -15,7 +15,7 @@
 #include <vector>
 #include "openmit/common/base.h"
 #include "openmit/common/parameter.h"
-#include "openmit/entity/entry_meta.h"
+#include "openmit/entry/entry_meta.h"
 #include "openmit/tools/dstruct/dstring.h"
 #include "openmit/tools/math/prob_distr.h"
 
@@ -254,4 +254,4 @@ struct FFMEntry : Entry {
 typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
 
 } // namespace mit 
-#endif // OPENMIT_ENTITY_ENTRY_H_
+#endif // OPENMIT_ENTRY_ENTRY_H_

@@ -1,17 +1,15 @@
 cmake_minimum_required(VERSION 2.8)
 
 aux_source_directory(common SRCS_COMMON)
-aux_source_directory(common/data SRCS_COMMON_DATA)
-aux_source_directory(common/io SRCS_COMMON_IO)
-aux_source_directory(common/parameter SRCS_COMMON_PARAMETER)
-aux_source_directory(engine SRCS_ENGINE)
-aux_source_directory(entity SRCS_ENTITY)
+aux_source_directory(executor SRCS_EXECUTOR)
+aux_source_directory(entry SRCS_ENTRY)
 aux_source_directory(framework/mpi SRCS_FRAMEWORK_MPI)
 aux_source_directory(framework/ps SRCS_FRAMEWORK_PS)
-aux_source_directory(learner SRCS_LEARNER)
 aux_source_directory(loss SRCS_LOSS)
 aux_source_directory(metric SRCS_METRIC)
-aux_source_directory(models SRCS_MODELS)
+aux_source_directory(model SRCS_MODEL)
+aux_source_directory(model/mpimodel SRCS_MODEL_MPIMODEL)
+aux_source_directory(model/psmodel SRCS_MODEL_PSMODEL)
 aux_source_directory(optimizer SRCS_OPTIMIZER)
 aux_source_directory(tools/dstruct SRCS_TOOLS_DSTRUCT)
 aux_source_directory(tools/dstore SRCS_TOOLS_DSTORE)
@@ -23,17 +21,15 @@ aux_source_directory(tools/monitor SRCS_TOOLS_MONITOR)
 
 set(mit_SRCS
   ${SRCS_COMMON}
-  ${SRCS_COMMON_DATA}
-  ${SRCS_COMMON_IO}
-  ${SRCS_COMMON_PARAMETER}
-  ${SRCS_ENGINE}
-  ${SRCS_ENTITY}
+  ${SRCS_EXECUTOR}
+  ${SRCS_ENTRY}
   ${SRCS_FRAMEWORK_MPI}
   ${SRCS_FRAMEWORK_PS}
-  ${SRCS_LEARNER}
   ${SRCS_LOSS}
   ${SRCS_METRIC}
-  ${SRCS_MODELS}
+  ${SRCS_MODEL}
+  ${SRCS_MODEL_MPIMODEL}
+  ${SRCS_MODEL_PSMODEL}
   ${SRCS_OPTIMIZER}
   ${SRCS_TOOLS_DSTRUCT}
   ${SRCS_TOOLS_DSTORE}
@@ -50,7 +46,7 @@ set_target_properties(${static_lib} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${static_lib} dmlc ps rabit)
 
 set(exec_name "openmit")
-add_executable(${exec_name} "cli_main.cc")
+add_executable(${exec_name} "learner.h" "learner.cc" "cli_main.cc")
 
 set(openmit_LINKER_LIBS "")
 list(APPEND openmit_LINKER_LIBS ${static_lib})

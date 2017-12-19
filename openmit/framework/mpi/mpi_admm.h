@@ -1,34 +1,34 @@
 /*!
  *  Copyright (c) 2016 by Contributors
- *  \file admm.h
+ *  \file mpi_admm.h
  *  \brief alternating-direction-multipler-method algorithm framework
  *        for distributed computing
  *  \author ZhouYong
  */
-#ifndef OPENMIT_FRAMEWORK_MPI_ADMM_H_
-#define OPENMIT_FRAMEWORK_MPI_ADMM_H_
+#ifndef OPENMIT_FRAMEWORK_MPI_MPI_ADMM_H_
+#define OPENMIT_FRAMEWORK_MPI_MPI_ADMM_H_
 
 #include "dmlc/io.h"
 #include "openmit/common/parameter.h"
 #include "openmit/framework/mpi/server.h"
 #include "openmit/framework/mpi/worker.h"
-#include "openmit/learner/mi_learner.h"
+#include "openmit/learner.h"
 #include "openmit/tools/dstruct/sarray.h"
 
 namespace mit {
 /*!
  * \brief admm algorithm framework
  */
-class Admm : public MILearner {
+class MPIAdmm : public MILearner {
   public:
     /*! \brief constructor */
-    Admm(const mit::KWArgs & kwargs);
+    MPIAdmm(const mit::KWArgs& kwargs);
     /*! \brief destructor */
-    virtual ~Admm() {}
-    /*! \brief initialize */
-    void Init(const mit::KWArgs & kwargs);
-    /*! \brief get admm object */
-    inline static Admm * Get(const mit::KWArgs & kwargs);
+    virtual ~MPIAdmm() {}
+    /*! \brief get mpi admm object */
+    static MPIAdmm * Get(const mit::KWArgs & kwargs) {
+      return new MPIAdmm(kwargs);
+    }
     /*! \brief running */
     void Run() override;
 
@@ -56,12 +56,7 @@ class Admm : public MILearner {
     std::shared_ptr<mit::MPIWorker> mpi_worker_;
     /*! \brief mpi server */
     std::shared_ptr<mit::MPIServer> mpi_server_;
-}; // class Admm
+}; // class MPIAdmm
 
-inline Admm * Admm::
-Get(const mit::KWArgs & kwargs) {
-  return new Admm(kwargs);
-}
 } // namespace mit
-
-#endif // OPENMIT_FRAMEWORK_MPI_ADMM_H_
+#endif // OPENMIT_FRAMEWORK_MPI_MPI_ADMM_H_

@@ -12,7 +12,7 @@
 #include "openmit/common/base.h"
 #include "openmit/common/data.h"
 #include "openmit/common/parameter.h"
-#include "openmit/entry/entry_meta.h"
+#include "openmit/entity/entry_meta.h"
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/math/basic_formula.h"
 #include "openmit/tools/math/prob_distr.h"

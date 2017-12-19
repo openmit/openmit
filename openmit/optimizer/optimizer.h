@@ -11,7 +11,7 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/parameter.h"
-#include "openmit/entity/entry.h"
+#include "openmit/entry/entry.h"
 #include "openmit/tools/dstruct/sarray.h"
 
 namespace mit {

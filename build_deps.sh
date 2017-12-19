@@ -34,9 +34,9 @@ cp -r $HADOOP_HOME/lib/native/* $third_party_dir/hadoop/lib
 
 echo "[INFO] build openmit/ps-lite begin ..."
 cd $third_party_dir/ps-lite
-git stash || true
-git checkout master 
-git pull origin master  
+#git stash || true
+#git checkout master 
+#git pull origin master  
 make -j4 \
   && cp -r include/* $third_party_dir/include \
   && cp -r build/libps.a $third_party_dir/lib \

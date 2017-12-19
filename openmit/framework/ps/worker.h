@@ -14,8 +14,8 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/common/data.h"
-#include "openmit/engine/trainer.h"
-#include "openmit/engine/predictor.h"
+#include "openmit/executor/trainer.h"
+#include "openmit/executor/predictor.h"
 #include "openmit/metric/metric.h"
 #include "openmit/framework/ps/signal.h"
 

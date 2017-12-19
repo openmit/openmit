@@ -1,8 +1,8 @@
 #include <string>
 #include "openmit/common/arg.h"
-#include "openmit/common/parameter.h"
-#include "openmit/entity/entry_meta.h"
 #include "openmit/common/base.h"
+#include "openmit/common/parameter.h"
+#include "openmit/entry/entry_meta.h"
 using namespace mit;
 
 template <typename V>

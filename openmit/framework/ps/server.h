@@ -22,9 +22,8 @@
 
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-//#include "openmit/engine/updater.h"
-#include "openmit/entity/entry.h"
-#include "openmit/models/model.h"
+#include "openmit/entry/entry.h"
+#include "openmit/model/psmodel/ps_model.h"
 #include "openmit/framework/ps/signal.h"
 
 namespace mit {

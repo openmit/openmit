@@ -1,5 +1,5 @@
 #include "openmit/common/arg.h"
-#include "openmit/learner/mi_learner.h"
+#include "openmit/learner.h"
 
 int main(int argc, char * argv[]) {
   CHECK_GE(argc, 2) << "Usage: " 
@@ -10,9 +10,9 @@ int main(int argc, char * argv[]) {
   parser.ReadArgs(argc - 2, argv + 2);
   const mit::KWArgs kwargs = parser.GetKWArgs();
 
-  mit::MILearner* milearner = mit::MILearner::Create(kwargs);
-  milearner->Run();
-  delete milearner; 
-  milearner = NULL;
+  mit::MILearner* mi = mit::MILearner::Create(kwargs);
+  mi->Run();
+  delete mi; mi = nullptr;
   return 0;
 }
+

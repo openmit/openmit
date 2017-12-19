@@ -2,16 +2,12 @@
 #include "dmlc/logging.h"
 #include "dmlc/timer.h"
 #include "rabit/rabit.h"
-#include "openmit/framework/mpi/admm.h"
+#include "openmit/framework/mpi/mpi_admm.h"
 #include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
 
-Admm::Admm(const mit::KWArgs & kwargs) {
-  Init(kwargs);
-}
-
-void Admm::Init(const mit::KWArgs & kwargs) {
+MPIAdmm::MPIAdmm(const mit::KWArgs& kwargs) {
   rabit::Init(0, nullptr);
   admm_param_.InitAllowUnknown(kwargs);
   cli_param_.InitAllowUnknown(kwargs);
@@ -19,7 +15,7 @@ void Admm::Init(const mit::KWArgs & kwargs) {
   mpi_server_.reset(new MPIServer(kwargs, mpi_worker_->Size()));
 }
 
-void Admm::Run() {
+void MPIAdmm::Run() {
   double startTime = dmlc::GetTime();
   if (cli_param_.task_type == "train") {
     std::unique_ptr<Transaction> trans(
@@ -44,7 +40,7 @@ void Admm::Run() {
   rabit::Finalize();
 }
 
-void Admm::RunTrain() {
+void MPIAdmm::RunTrain() {
   for (auto iter = 0u; iter < cli_param_.max_epoch; ++iter) {
     // learning 
     mpi_worker_->Run(mpi_server_->Data(), mpi_server_->Size(), iter + 1);
@@ -72,8 +68,8 @@ void Admm::RunTrain() {
   }
 }
 
-void Admm::RunPredict() {
-  LOG(INFO) << "Admm::RunPredict() ...";
+void MPIAdmm::RunPredict() {
+  LOG(INFO) << "MPIAdmm::RunPredict() ...";
 }
 
 } // namespace mit

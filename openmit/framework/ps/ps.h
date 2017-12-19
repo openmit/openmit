@@ -4,10 +4,10 @@
  *  \brief parameter server distributed computation framework
  *  \author ZhouYong
  */
-#ifndef OPENMIT_FRAMEWORK_PS_PARAMETER_SERVER_H_
-#define OPENMIT_FRAMEWORK_PS_PARAMETER_SERVER_H_
+#ifndef OPENMIT_FRAMEWORK_PS_PS_H_
+#define OPENMIT_FRAMEWORK_PS_PS_H_
 
-#include "openmit/learner/mi_learner.h"
+#include "openmit/learner.h"
 #include "openmit/framework/ps/scheduler.h"
 #include "openmit/framework/ps/server.h"
 #include "openmit/framework/ps/worker.h"
@@ -21,10 +21,8 @@ class PS : public MILearner {
   public:
     /*! \brief constructor */
     PS(const mit::KWArgs & kwargs);
-
     /*! \brief destructor */
-    ~PS() {}
-
+    virtual ~PS() {}
     /*! \brief get parameter server object */
     static PS * Get(const mit::KWArgs & kwargs) {
       return new PS(kwargs);
@@ -44,6 +42,6 @@ class PS : public MILearner {
     /*! \brief client parameter */
     CliParam cli_param_;
 }; // class PS
-} // namespace mit
 
-#endif // OPENMIT_FRAMEWORK_PS_PARAMETER_SERVER_H_
+} // namespace mit
+#endif // OPENMIT_FRAMEWORK_PS_PS_H_

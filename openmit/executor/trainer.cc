@@ -1,4 +1,4 @@
-#include "openmit/engine/trainer.h"
+#include "openmit/executor/trainer.h"
 
 namespace mit {
 
@@ -36,21 +36,21 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> &
     key2offset[keys[i]] = std::make_pair(offset, lens[i]);
     offset += lens[i];
   }
+  // predict based on batch data
+  std::vector<mit_float> preds(batch.size, 0.0);
+  model_->Predict(batch, weights, key2offset, preds, false);
   
-  // TODO OpenMP 
+  // gradient computing
+  std::vector<mit_float> loss_grads(batch.size, 0.0);
+  auto num_thread = cli_param_.num_thread;
+  int chunksize = batch.size / num_thread;
+  chunksize = batch.size % num_thread == 0 ? chunksize : chunksize + 1;
+  #pragma omp parallel for num_threads(num_thread)
   for (auto i = 0u; i < batch.size; ++i) {
-    // value of model function 
-    auto mfunc_value = model_->Predict(batch[i], weights, key2offset, false);
-    // gradient of loss function 
-    auto lossgrad_value = loss_->gradient(batch[i].get_label(), mfunc_value);
-    // gradient of objective loss 
-    model_->Gradient(batch[i], weights, key2offset, grads, lossgrad_value);
+    loss_grads[i] = loss_->gradient(batch[i].get_label(), preds[i]);
   }
+  model_->Gradient(batch, weights, key2offset, loss_grads, grads);
 
-  // TODO OpenMP 
-  for (auto i = 0u; i < grads->size(); ++i) {
-    (*grads)[i] /= batch.size;
-  }
   if (cli_param_.debug) {
     LOG(INFO) << "Trainer::Run grads: [" << grads->size() << "] "
       << mit::DebugStr<mit_float>(grads->data(), 10, 10);

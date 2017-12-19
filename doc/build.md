@@ -38,7 +38,7 @@ export JAVA_HOME=${path to your java path}
 + Step3，构建依赖项目
 
 ```bash
-sh bootstrap.sh
+sh build_deps.sh
 ```
 + Step4，构建OpenMIT项目
 

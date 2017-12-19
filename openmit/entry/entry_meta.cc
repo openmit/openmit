@@ -1,4 +1,4 @@
-#include "openmit/entity/entry_meta.h"
+#include "openmit/entry/entry_meta.h"
 
 namespace mit {
 EntryMeta::EntryMeta(const mit::ModelParam& model_param) {

@@ -4,8 +4,8 @@
  *  \brief machine learning task trainer.
  *  \author ZhouYong
  */
-#ifndef OPENMIT_ENGINE_TRAINER_H_
-#define OPENMIT_ENGINE_TRAINER_H_
+#ifndef OPENMIT_EXECUTOR_TRAINER_H_
+#define OPENMIT_EXECUTOR_TRAINER_H_
 
 #include <memory>
 #include <string>
@@ -77,4 +77,4 @@ class Trainer {
 
 } // namespace mit
 
-#endif // OPENMIT_ENGINE_TRAINER_H_
+#endif // OPENMIT_EXECUTOR_TRAINER_H_
