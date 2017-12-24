@@ -1,32 +1,18 @@
-#include "openmit/models/ffm.h"
+#include "openmit/model/ffm.h"
 
 namespace mit {
 
-/*
-void FFM::Pull(ps::KVPairs<mit_float> & response, 
-               mit::entry_map_type * weight) {
-  for (auto i = 0u; i < response.keys.size(); ++i) {
-    ps::Key key = response.keys[i];
-    if (weight->find(key) == weight->end()) {
-      mit_uint fieldid = 0l;
-      if (key > 0l) {  // no bias feature item
-        fieldid = mit::DecodeField(key, model_param_.nbit);
-        CHECK(fieldid > 0) << "fieldid <= 0 for no bias item is error.";
-      }
-      mit::Entry * entry = mit::Entry::Create(
-        model_param_, entry_meta_.get(), random_.get(), fieldid);
-      weight->insert(std::make_pair(key, entry));
-    }
-    mit::Entry * entry = (*weight)[key];
-    ps::SArray<mit_float> wv;
-    wv.CopyFrom(entry->Data(), entry->Size());
-    // fill response.vals and response.lens 
-    response.vals.append(wv);
-    response.lens.push_back(entry->Size());
-  }
+/////////////////////////////////////////////////////////////
+// ffm model complemention for parameter server framework
+/////////////////////////////////////////////////////////////
+
+PSFFM::~PSFFM() {}
+
+PSFFM* PSFFM::Get(const mit::KWArgs& kwargs) {
+  return new PSFFM(kwargs);
 }
-*/
-void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
+
+void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
   response.lens.resize(keys_size);
 
@@ -75,7 +61,7 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   }
 }
  
-void FFM::Update(const ps::SArray<mit_uint> & keys, 
+void PSFFM::Update(const ps::SArray<mit_uint> & keys, 
                  const ps::SArray<mit_float> & vals, 
                  const ps::SArray<int> & lens, 
                  mit::entry_map_type * weight) {
@@ -101,9 +87,9 @@ void FFM::Update(const ps::SArray<mit_uint> & keys,
     }
   }
   CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
-} // Update
+} // PSFFM::Update
 
-void FFM::Gradient(const dmlc::Row<mit_uint> & row, 
+void PSFFM::Gradient(const dmlc::Row<mit_uint> & row, 
                    const std::vector<mit_float> & weights, 
                    mit::key2offset_type & key2offset, 
                    std::vector<mit_float> * grads,
@@ -162,11 +148,7 @@ void FFM::Gradient(const dmlc::Row<mit_uint> & row,
   } 
 }
 
-void FFM::Gradient(const dmlc::Row<mit_uint> & row, const mit_float & pred, mit::SArray<mit_float> * grad) {
-  // TODO
-}
-
-mit_float FFM::Predict(const dmlc::Row<mit_uint> & row, 
+mit_float PSFFM::Predict(const dmlc::Row<mit_uint> & row, 
                        const std::vector<mit_float> & weights, 
                        mit::key2offset_type & key2offset, 
                        bool is_norm) {
@@ -176,12 +158,7 @@ mit_float FFM::Predict(const dmlc::Row<mit_uint> & row,
   return wTx;
 }
 
-mit_float FFM::Predict(const dmlc::Row<mit_uint> & row, const mit::SArray<mit_float> & weight, bool is_norm) {
-  // TODO 
-  return 0.0f;
-}
-
-mit_float FFM::Linear(const dmlc::Row<mit_uint> & row, 
+mit_float PSFFM::Linear(const dmlc::Row<mit_uint> & row, 
                       const std::vector<mit_float> & weights, 
                       mit::key2offset_type & key2offset) {
   mit_float wTx = 0.0f;
@@ -204,7 +181,7 @@ mit_float FFM::Linear(const dmlc::Row<mit_uint> & row,
   return wTx;
 }
 
-mit_float FFM::Cross(const dmlc::Row<mit_uint> & row, 
+mit_float PSFFM::Cross(const dmlc::Row<mit_uint> & row, 
                      const std::vector<mit_float> & weights, 
                      mit::key2offset_type & key2offset) {
   mit_float cross = 0.0f;
@@ -243,4 +220,24 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint> & row,
   }
   return cross;
 }
+
+/////////////////////////////////////////////////////////////
+// ffm model complemention for mpi or local
+/////////////////////////////////////////////////////////////
+
+FFM::~FFM() {}
+
+FFM* FFM::Get(const mit::KWArgs& kwargs) {
+  return new FFM(kwargs);
+} 
+
+void FFM::Gradient(const dmlc::Row<mit_uint>& row, const mit_float& pred, mit::SArray<mit_float>* grad) {
+  // TODO
+} // FFM::Gradient
+
+mit_float FFM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight, bool norm) {
+  // TODO
+  return 0.0f;
+} // FFM::Predict
+
 } // namespace mit

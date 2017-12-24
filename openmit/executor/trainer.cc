@@ -3,12 +3,10 @@
 namespace mit {
 
 Trainer::Trainer(const mit::KWArgs & kwargs) {
-  Init(kwargs);
-}
-
-void Trainer::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
-  model_ = mit::Model::Create(kwargs);
+  // model
+  model_ = mit::PSModel::Create(kwargs);
+  // loss
   loss_ = mit::Loss::Create(cli_param_.loss);
   // metric 
   std::vector<std::string> metric_names;
@@ -73,10 +71,11 @@ void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key
   model_->Predict(batch, weights, key2offset, preds);
   std::vector<mit_float> labels(batch.label, batch.label + batch.size);
   if (cli_param_.debug) {
-    LOG(INFO) << "metric preds: [" << preds.size() << "] "
-      << mit::DebugStr<mit_float>(preds.data(), 10, 10);
-    LOG(INFO) << "metric labels: " << labels.size() << "] "
-      << mit::DebugStr<mit_float>(labels.data(), 10, 10);
+    std::string msg("metric preds: [");
+    msg += std::to_string(preds.size()) + "] " + mit::DebugStr<mit_float>(preds.data(), 10, 10);
+    msg += "\nmetric label: [";
+    msg += std::to_string(labels.size()) + "] " + mit::DebugStr<mit_float>(labels.data(), 10, 10);
+    LOG(INFO) << msg;
   }
   // metric 
   auto metric_count = metrics_.size();

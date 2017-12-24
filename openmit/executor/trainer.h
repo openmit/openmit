@@ -17,9 +17,7 @@
 #include "openmit/common/base.h"
 #include "openmit/loss/loss.h"
 #include "openmit/metric/metric.h"
-#include "openmit/models/model.h"
-
-#include "openmit/loss/loss.h"
+#include "openmit/model/psmodel.h"
 
 namespace mit {
 /*!
@@ -55,9 +53,6 @@ class Trainer {
       return metrics_;
     }
 
-    /*! \brief trainer logic for mpi interface */
-    // TODO
-    
     /*! \brief loss */
     void Loss(const dmlc::RowBlock<mit_uint> & batch, 
               const std::vector<mit_float> * predict, 
@@ -67,14 +62,12 @@ class Trainer {
     /*! \brief parameter */
     mit::CliParam cli_param_;
     /*! \brief model */
-    mit::Model * model_;
+    mit::PSModel * model_;
     /*! \brief metric */
     std::vector<mit::Metric *> metrics_;
     /*! \brief loss function object */
     mit::Loss * loss_;
-
 }; // class Trainer
 
 } // namespace mit
-
 #endif // OPENMIT_EXECUTOR_TRAINER_H_

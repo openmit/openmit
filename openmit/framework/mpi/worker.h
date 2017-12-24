@@ -8,7 +8,7 @@
 #include "openmit/common/data.h"
 #include "openmit/common/parameter.h"
 #include "openmit/metric/metric.h"
-#include "openmit/models/model.h"
+#include "openmit/model/model.h"
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/dstruct/sarray.h"
 
@@ -76,11 +76,11 @@ class MPIWorker {
     void DebugDual();
 
     /*! \brief metric predict */
-    void MetricPredict(mit::DMatrix * data, 
-                       mit_float * global, 
-                       const size_t & size, 
-                       std::vector<float> & preds, 
-                       std::vector<float> & labels);
+    void MetricPredict(mit::DMatrix* data, 
+                       mit_float* global, 
+                       const size_t& size, 
+                       std::vector<float>& preds, 
+                       std::vector<float>& labels);
 
   private:
     /*! \brief model */

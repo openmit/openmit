@@ -8,8 +8,6 @@ aux_source_directory(framework/ps SRCS_FRAMEWORK_PS)
 aux_source_directory(loss SRCS_LOSS)
 aux_source_directory(metric SRCS_METRIC)
 aux_source_directory(model SRCS_MODEL)
-aux_source_directory(model/mpimodel SRCS_MODEL_MPIMODEL)
-aux_source_directory(model/psmodel SRCS_MODEL_PSMODEL)
 aux_source_directory(optimizer SRCS_OPTIMIZER)
 aux_source_directory(tools/dstruct SRCS_TOOLS_DSTRUCT)
 aux_source_directory(tools/dstore SRCS_TOOLS_DSTORE)
@@ -28,8 +26,6 @@ set(mit_SRCS
   ${SRCS_LOSS}
   ${SRCS_METRIC}
   ${SRCS_MODEL}
-  ${SRCS_MODEL_MPIMODEL}
-  ${SRCS_MODEL_PSMODEL}
   ${SRCS_OPTIMIZER}
   ${SRCS_TOOLS_DSTRUCT}
   ${SRCS_TOOLS_DSTORE}
