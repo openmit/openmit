@@ -11,6 +11,9 @@ num_servers=1
   #model_dump = example/data/model_out/model_dump \
   #model_binary = example/data/model_out/model_binary
 
+GCC_LIB_PATH="/data1/lantian/open_source/lib"
+LD_LIBRARY_PATH=$GCC_LIB_PATH:$HADOOP_HOME/lib/native:$JAVA_HOME/jre/lib/amd64/server:$LD_LIBRARY_PATH
+
 ${wk_dir}/tracker/dmlc-submit \
   --cluster local \
   --num-servers ${num_servers} \

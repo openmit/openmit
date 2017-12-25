@@ -1,0 +1,6 @@
+/data/lantian/open_source/openmit/build/CMakeFiles/rebuild_cache.dir
+/data/lantian/open_source/openmit/build/CMakeFiles/edit_cache.dir
+/data/lantian/open_source/openmit/build/openmit/CMakeFiles/edit_cache.dir
+/data/lantian/open_source/openmit/build/openmit/CMakeFiles/openmit.dir
+/data/lantian/open_source/openmit/build/openmit/CMakeFiles/rebuild_cache.dir
+/data/lantian/open_source/openmit/build/openmit/CMakeFiles/mit.dir

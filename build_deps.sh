@@ -11,7 +11,7 @@ git submodule init
 git submodule update
 
 # env config.mk
-if [ "x$HADOOP_HOME" == "x" ]; then
+if [ "x$HADOOP_HOME" == "x" ] || [ "x$CLAPACK_HOME" == "x" ]; then
   source $wk_dir/make/config.mk
 fi
 export HADOOP_HOME=$HADOOP_HOME
@@ -22,6 +22,7 @@ export HADOOP_HDFS_HOME=$HADOOP_HOME
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native
 export HDFS_INC_PATH=${HADOOP_HOME}/include
 export HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
+export CLAPACK_HOME=$CLAPACK_HOME
 
 mkdir -p $third_party_dir/{include,lib} || true
 
@@ -59,6 +60,12 @@ cd $third_party_dir/googletest
 cmake . && make \
   && cp -r googletest/include/gtest $third_party_dir/include \
   && cp googlemock/gtest/libgtest* $third_party_dir/lib 
+
+mkdir -p $third_party_dir/include/clapack
+cp -r $CLAPACK_HOME/INCLUDE/* $third_party_dir/include/clapack
+cp -r $CLAPACK_HOME/blas_LINUX.a $third_party_dir/lib/libblas.a
+cp -r $CLAPACK_HOME/lapack_LINUX.a $third_party_dir/lib/libclapack.a
+
 
 #echo "[INFO] build third_party/glog begin"
 #cd $third_party_dir/glog
