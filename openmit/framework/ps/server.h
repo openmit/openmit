@@ -23,7 +23,7 @@
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
 #include "openmit/entry/entry.h"
-#include "openmit/model/psmodel/ps_model.h"
+#include "openmit/model/psmodel.h"
 #include "openmit/framework/ps/signal.h"
 
 namespace mit {
@@ -98,7 +98,7 @@ class Server {
     /*! \brief global model weight */
     std::unordered_map<ps::Key, mit::Entry *> weight_;
     /*! \brief model for pull request */
-    std::shared_ptr<mit::Model> model_;
+    std::shared_ptr<mit::PSModel> model_;
     /*! \brief updater used for parameter update */
     //std::unique_ptr<mit::Updater> updater_;
 

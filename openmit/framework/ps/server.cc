@@ -24,7 +24,7 @@ void Server::Init(const mit::KWArgs & kwargs) {
     std::bind(&Server::CmdHandle, this, _1, _2));
   
   // model for update 
-  model_.reset(mit::Model::Create(kwargs));
+  model_.reset(mit::PSModel::Create(kwargs));
 
   // parameter 
   complete_worker_number_ = 0;

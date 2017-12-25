@@ -190,16 +190,16 @@ std::string MPIWorker::Metric(const std::string & data_type,
   return result;
 }
 
-void MPIWorker::MetricPredict(mit::DMatrix * data, 
-                              mit_float * global, 
-                              const size_t & size, 
-                              std::vector<mit_float> & preds, 
-                              std::vector<mit_float> & labels) {
+void MPIWorker::MetricPredict(mit::DMatrix* data, 
+                              mit_float* global, 
+                              const size_t& size, 
+                              std::vector<mit_float>& preds, 
+                              std::vector<mit_float>& labels) {
   mit::SArray<mit_float> global_model(global, size);
   std::vector<mit_float> preds_tmp;
   data->BeforeFirst();
   while (data->Next()) {
-    const auto & block = data->Value();
+    const auto& block = data->Value();
     labels.insert(labels.end(), block.label, block.label + block.size);
 
     preds_tmp.clear(); preds_tmp.resize(block.size, 0.0f);

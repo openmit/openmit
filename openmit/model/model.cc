@@ -1,11 +1,30 @@
 #include "openmit/model/fm.h"
 #include "openmit/model/ffm.h"
+<<<<<<< HEAD
 #include "openmit/model/lr.h"
 #include "openmit/model/mf.h"
 #include "openmit/model/model.h"
 
 namespace mit {
 Model * Model::Create(const mit::KWArgs & kwargs) {
+=======
+#include "openmit/model/linear_reg.h"
+#include "openmit/model/model.h"
+
+namespace mit {
+
+Model::Model(const mit::KWArgs & kwargs) {
+  cli_param_.InitAllowUnknown(kwargs);
+  model_param_.InitAllowUnknown(kwargs);
+  entry_meta_.reset(new mit::EntryMeta(model_param_));
+  random_.reset(mit::math::ProbDistr::Create(model_param_));
+  optimizer_.reset(mit::Optimizer::Create(kwargs));
+}
+
+Model::~Model() {}
+
+Model* Model::Create(const mit::KWArgs& kwargs) {
+>>>>>>> ps
   std::string model = "lr";
   for (auto & kv : kwargs) {
     if (kv.first != "model") continue;
@@ -17,15 +36,21 @@ Model * Model::Create(const mit::KWArgs & kwargs) {
     return mit::FM::Get(kwargs);
   } else if (model == "ffm") {
     return mit::FFM::Get(kwargs);
+<<<<<<< HEAD
   } else if (model == "mf") {
     return mit::MF::Get(kwargs);
   } else {
     LOG(FATAL) <<
       "model not in [lr, fm, ffm], model: " << model;
+=======
+  } else {
+    LOG(FATAL) << "unknown model. " << model;
+>>>>>>> ps
     return nullptr;
   }
 }
 
+<<<<<<< HEAD
 Model::Model(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   model_param_.InitAllowUnknown(kwargs);
@@ -86,11 +111,14 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch, const std::vector<mi
   }
 }
 
+=======
+>>>>>>> ps
 void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, std::vector<mit_float> & preds, mit::SArray<mit_float> * grads) {
   // TODO OpenMP ?
   for (auto i = 0u; i < batch.size; ++i) {
     Gradient(batch[i], preds[i], grads);
   }
+<<<<<<< HEAD
 } // method Gradient
 
 void Model::Gradient(const mit_float lossgrad_value,
@@ -124,4 +152,12 @@ void Model::Update(const ps::SArray<mit_uint> & keys,
   }
   CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
 }
+=======
+} // Model::Gradient
+
+void Model::Predict(const dmlc::RowBlock<mit_uint>& batch, mit::SArray<mit_float>& weight, std::vector<mit_float>* preds, bool norm) {
+  // TODO
+} // Model::Predict
+
+>>>>>>> ps
 } // namespace mit
