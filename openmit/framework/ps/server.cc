@@ -1,6 +1,4 @@
 #include "openmit/framework/ps/server.h"
-#include "openmit/tools/monitor/transaction.h"
-using namespace mit;
 
 namespace mit {
 
@@ -49,25 +47,24 @@ void Server::Run() {
   LOG(INFO) << "role @server[" << ps::MyRank() << "] task finish.";
 }
 
-void Server::KVHandle(const ps::KVMeta & req_meta, 
-                      const ps::KVPairs<mit_float> & req_data, 
-                      ps::KVServer<mit_float> * server) {
+void Server::KVHandle(const ps::KVMeta& req_meta, 
+                      const ps::KVPairs<mit_float>& req_data, 
+                      ps::KVServer<mit_float>* server) {
   if (req_meta.push) {
+    server->Response(req_meta);
     int cmd = req_meta.cmd;
     switch(cmd) {
       case signal::UPDATE: {
         if (cli_param_.debug) {
-          LOG(INFO) << "@server[" << ps::MyRank() 
-            << "] number of weight: " << weight_.size() 
-            << ", grads: " << mit::DebugStr(req_data.vals.data(), 10);
+          std::string msg = "@server[" + std::to_string(ps::MyRank());
+          msg += "] grads from worker: " + mit::DebugStr(req_data.vals.data(), 10) + " ...";
+          LOG(INFO) << msg;
         }
-        model_->Update(
-          req_data.keys, req_data.vals, req_data.lens, &weight_);
+        model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight_);
       } break;
       default:
-        LOG(FATAL) << "cmd is not recoginized. " << req_meta.cmd;
+        LOG(FATAL) << "unknown cmd. " << req_meta.cmd;
     }
-    server->Response(req_meta);
   } else { // pull
     ps::KVPairs<mit_float> response;
     PullRequest(req_data, response);
@@ -105,10 +102,9 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
   }
 }
 
-void Server::PullRequest(const ps::KVPairs<mit_float> & req_data, ps::KVPairs<mit_float> & response) {
+void Server::PullRequest(const ps::KVPairs<mit_float>& req_data, ps::KVPairs<mit_float>& response) {
   response.keys = req_data.keys;
-  response.vals.clear();
-  //response.lens.clear();
+  response.extras = req_data.extras;
   model_->Pull(response, &weight_);
 }
 
@@ -149,7 +145,6 @@ void Server::SaveModel(std::string epoch) {
 
 
 void Server::SaveTextModel(dmlc::Stream * fo) {
-  std::unique_ptr<Transaction> trans(new Transaction(1, "server", "dump_out"));
   mit::EntryMeta * entry_meta = model_->EntryMeta();
   dmlc::ostream oss(fo);
   for (auto & kv : weight_) {
@@ -158,12 +153,9 @@ void Server::SaveTextModel(dmlc::Stream * fo) {
   }
   // force flush before fo destruct 
   oss.set_stream(nullptr);
-  Transaction::End(trans.get());
 }
 
 void Server::SaveBinaryModel(dmlc::Stream * fo) {
-  std::unique_ptr<Transaction> trans(
-    new Transaction(1, "server", "binary_out"));
   // save entry meta
   mit::EntryMeta * entry_meta = model_->EntryMeta();
   entry_meta->Save(fo);
@@ -176,7 +168,6 @@ void Server::SaveBinaryModel(dmlc::Stream * fo) {
     iter->second->Save(fo, entry_meta);
     iter++;
   }
-  Transaction::End(trans.get());
 } // method SaveBinaryModel
 
 void Server::DumpModel(dmlc::Stream * fi, dmlc::Stream * fo) {

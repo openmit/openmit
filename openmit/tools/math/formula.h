@@ -1,6 +1,6 @@
 /*!
- *  Copyright 2016 by Contributors
- *  \file basic_formula.h
+ *  Copyright (c) 2016 by Contributors
+ *  \file formula.h
  *  \brief basic match formula, such as sigmoid, distance etc.
  *  \author ZhouYong
  */
@@ -21,5 +21,4 @@ inline float sigmoid(const float & x) {
 
 } // namespace math
 } // namespace mit
-
 #endif // OPENMIT_TOOLS_MATH_BAISC_FORMULA_H_

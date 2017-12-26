@@ -26,7 +26,7 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> &
   CHECK_EQ(weights.size(), grads->size());
 
   size_t nfeature = keys.size();
-  // key -> (offset, count) 
+  /* key -> (offset, count) */
   std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset;
   size_t offset = 0;
   std::string str = "";
@@ -34,25 +34,25 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> &
     key2offset[keys[i]] = std::make_pair(offset, lens[i]);
     offset += lens[i];
   }
-  // predict based on batch data
+  /* predict based on batch data */
   std::vector<mit_float> preds(batch.size, 0.0);
   model_->Predict(batch, weights, key2offset, preds, false);
+  if (cli_param_.debug) {
+    LOG(INFO) << "model predict: [" << preds.size() << "] " << mit::DebugStr<mit_float>(preds.data(), 10, 10);
+  }
   
-  // gradient computing
+  /* gradient computing */
   std::vector<mit_float> loss_grads(batch.size, 0.0);
   auto num_thread = cli_param_.num_thread;
   int chunksize = batch.size / num_thread;
   chunksize = batch.size % num_thread == 0 ? chunksize : chunksize + 1;
+  // gradient for loss function 
   #pragma omp parallel for num_threads(num_thread)
   for (auto i = 0u; i < batch.size; ++i) {
     loss_grads[i] = loss_->gradient(batch[i].get_label(), preds[i]);
   }
+  // gradient for model
   model_->Gradient(batch, weights, key2offset, loss_grads, grads);
-
-  if (cli_param_.debug) {
-    LOG(INFO) << "Trainer::Run grads: [" << grads->size() << "] "
-      << mit::DebugStr<mit_float>(grads->data(), 10, 10);
-  }
 }
 
 void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key> & keys, std::vector<mit_float> & weights, std::vector<int> & lens, std::vector<float> & metrics_value) {
@@ -71,10 +71,8 @@ void Trainer::Metric(const dmlc::RowBlock<mit_uint> & batch, std::vector<ps::Key
   model_->Predict(batch, weights, key2offset, preds);
   std::vector<mit_float> labels(batch.label, batch.label + batch.size);
   if (cli_param_.debug) {
-    std::string msg("metric preds: [");
-    msg += std::to_string(preds.size()) + "] " + mit::DebugStr<mit_float>(preds.data(), 10, 10);
-    msg += "\nmetric label: [";
-    msg += std::to_string(labels.size()) + "] " + mit::DebugStr<mit_float>(labels.data(), 10, 10);
+    std::string msg = "metric preds: " + mit::DebugStr<mit_float>(preds.data(), 10, 10);
+    msg += "\nmetric label: "+ mit::DebugStr<mit_float>(labels.data(), 10, 10);
     LOG(INFO) << msg;
   }
   // metric 

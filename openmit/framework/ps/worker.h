@@ -40,17 +40,18 @@ class Worker {
   private:
     /*! \brief training based ps */
     void RunTrain();
+    
     /*! \brief predict based ps */
     void RunPredict();
     
-  private:
-    /*! \brief initialize feature set if size of feature < 1e6 */
-    void InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set);
     /*! \brief train model based on mini-batch data */
     void MiniBatch(const dmlc::RowBlock<mit_uint> & batch);
+    
     /*! \brief key set */
-    void KeySet(const dmlc::RowBlock<mit_uint> & batch, 
-                std::unordered_set<mit_uint> & fset);
+    void KeySet(const dmlc::RowBlock<mit_uint>& batch, 
+                std::unordered_set<mit_uint>& fset, 
+                std::unordered_map<mit_uint, int>& fkv, 
+                bool extra);
 
   private:
     /*! \brief metric method */

@@ -9,7 +9,7 @@ PSModel::PSModel(const mit::KWArgs& kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   model_param_.InitAllowUnknown(kwargs);
   entry_meta_.reset(new mit::EntryMeta(model_param_));
-  random_.reset(mit::math::ProbDistr::Create(model_param_));
+  random_.reset(mit::math::Random::Create(model_param_));
   optimizer_.reset(mit::Optimizer::Create(kwargs));
 }
 
@@ -73,7 +73,14 @@ void PSModel::Gradient(const dmlc::RowBlock<mit_uint>& batch,
     }
     (*grads)[i] /= batch.size;
   }
-}
+
+  // free memory
+  for (uint32_t i = 0; i < nthread; ++i) {
+    if (threads_vec[i] != nullptr) { 
+      delete threads_vec[i]; threads_vec[i] = nullptr; 
+    }
+  }
+} // PSModel::Gradient
 
 void PSModel::Update(const ps::SArray<mit_uint>& keys, 
                      const ps::SArray<mit_float>& vals, 

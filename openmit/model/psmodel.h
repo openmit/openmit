@@ -18,8 +18,8 @@
 #include "openmit/common/parameter.h"
 #include "openmit/entry/entry_meta.h"
 #include "openmit/optimizer/optimizer.h"
-#include "openmit/tools/math/basic_formula.h"
-#include "openmit/tools/math/prob_distr.h"
+#include "openmit/tools/math/formula.h"
+#include "openmit/tools/math/random.h"
 
 namespace mit {
 /*! \brief define variable for key to offset */
@@ -134,7 +134,7 @@ class PSModel {
     /*! \brief entry meta information */
     std::unique_ptr<mit::EntryMeta> entry_meta_;
     /*! \brief random initialize method */
-    std::unique_ptr<mit::math::ProbDistr> random_;
+    std::unique_ptr<mit::math::Random> random_;
     /*! \brief model optimizer (default) */
     std::unique_ptr<mit::Optimizer> optimizer_;
 }; // class PSModel

@@ -17,7 +17,7 @@
 #include "openmit/common/parameter.h"
 #include "openmit/entry/entry_meta.h"
 #include "openmit/tools/dstruct/dstring.h"
-#include "openmit/tools/math/prob_distr.h"
+#include "openmit/tools/math/random.h"
 
 namespace mit {
 /*! 
@@ -27,7 +27,7 @@ struct Entry {
   /*! \brief create a entry */
   static Entry * Create(const mit::ModelParam & model_param, 
                         mit::EntryMeta * entry_meta, 
-                        mit::math::ProbDistr * distr, 
+                        mit::math::Random * distr, 
                         mit_uint field = 0l);
 
   virtual ~Entry() {
@@ -74,7 +74,7 @@ struct LREntry : Entry {
   /*! \brief constructor */
   LREntry(const mit::ModelParam & model_param, 
           mit::EntryMeta * entry_meta,
-          mit::math::ProbDistr * distr) {
+          mit::math::Random * distr) {
     length = 1;
     wv = new mit_float[length]();
     wv[0] = distr->random();
@@ -113,7 +113,7 @@ struct FMEntry : Entry {
   /*! \brief constructor */
   FMEntry(const mit::ModelParam & model_param, 
           mit::EntryMeta * entry_meta, 
-          mit::math::ProbDistr * distr) {
+          mit::math::Random * distr) {
     embedding_size = model_param.embedding_size;
     CHECK(embedding_size > 0) 
       << "embedding_size should be > 0 for fm model.";
@@ -175,7 +175,7 @@ struct FFMEntry : Entry {
   /*! \brief constructor */
   FFMEntry(const mit::ModelParam & model_param, 
            mit::EntryMeta * entry_meta, 
-           mit::math::ProbDistr * distr, 
+           mit::math::Random * distr, 
            mit_uint field = 0l) {
     embedding_size = model_param.embedding_size;
     CHECK(embedding_size > 0) 
@@ -241,7 +241,7 @@ struct FFMEntry : Entry {
     for (auto i = 0u; i < rfields->size(); ++i) {
       mit_uint rfid;
       fi->Read(&rfid, sizeof(mit_uint));
-      CHECK_EQ(rfid, (*rfields)[i]) << "relerated fielid not match";
+      CHECK_EQ(rfid, (*rfields)[i]) << "related fielid not match";
       for (size_t k = 0; k < embedding_size; ++k) {
         fi->Read(&wv[offset], sizeof(mit_float));
         offset++;

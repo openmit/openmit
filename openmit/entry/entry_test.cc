@@ -39,7 +39,7 @@ int main(int argc, char ** argv) {
   LOG(INFO) << VecInfo<mit_uint>(result->data(), result->size());
   if (result->size() == 0) delete result;
   
-  mit::math::ProbDistr * distr = mit::math::ProbDistr::Create(model_param);
+  mit::math::Random * distr = mit::math::Random::Create(model_param);
   mit::Entry * entry = mit::Entry::Create(model_param, entry_meta.get(), distr, fieldid);
   LOG(INFO) << "entry.length: " << entry->length;
   

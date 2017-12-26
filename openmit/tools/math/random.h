@@ -1,11 +1,11 @@
 /*!
- *  Copyright 2017 by Contributors
- *  \file prob_distr.h
- *  \brief probability distrbution, such as gaussian, uniform ...
+ *  Copyright (c) 2017 by Contributors
+ *  \file random.h
+ *  \brief random variable probability distrbution, such as gaussian, uniform ...
  *  \author ZhouYong
  */
-#ifndef OPENMIT_TOOLS_MATH_PROB_DISTR_H_
-#define OPENMIT_TOOLS_MATH_PROB_DISTR_H_
+#ifndef OPENMIT_TOOLS_MATH_RANDOM_H_
+#define OPENMIT_TOOLS_MATH_RANDOM_H_
 
 #include <random>
 #include "openmit/common/parameter.h"
@@ -15,22 +15,22 @@ namespace math {
 /*!
  * \brief probability distribution struct
  */
-struct ProbDistr {
+struct Random {
   /*! \brief default generator engine */
   std::default_random_engine gen;
 
   /*! \brief create a probability distr */
-  static ProbDistr * Create(mit::ModelParam& model_param);
+  static Random * Create(mit::ModelParam& model_param);
 
   /*! \brief fetch random value */
   virtual float random() = 0;
 
-}; // struct ProbDistr
+}; // struct Random
 
 /*! 
  * \brief normal (gaussian) distribution 
   */
-struct NormalDistr : ProbDistr {
+struct NormalDistr : Random {
   /*! \brief normal distribution */
   std::normal_distribution<float> distr;
 
@@ -53,7 +53,7 @@ struct NormalDistr : ProbDistr {
 /*! 
  * \brief uniform distribution
  */
-struct UniformDistr : ProbDistr {
+struct UniformDistr : Random {
   /*! \brief uniform distrbution */
   std::uniform_real_distribution<float> distr;
 
@@ -75,4 +75,4 @@ struct UniformDistr : ProbDistr {
 
 } // namespace math
 } // namespace mit 
-#endif // OPENMIT_TOOLS_MATH_PROB_DISTR_H_
+#endif // OPENMIT_TOOLS_MATH_RANDOM_H_
