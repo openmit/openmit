@@ -86,13 +86,18 @@ void PSFM::Pull(ps::KVPairs<mit_float> & response,
   #pragma omp parallel for schedule(static, blocksize)
   for (auto i = 1u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
+    mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
-      mit::Entry * entry = mit::Entry::Create(
-        model_param_, entry_meta_.get(), random_.get());
+      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get());
       #pragma omp critical
-      weight->insert(std::make_pair(key, entry));
+      {
+        std::lock_guard<std::mutex> lk(mu_);
+        weight->insert(std::make_pair(key, entry));
+      }
+    } else {
+      entry = (*weight)[key];
     }
-    mit::Entry * entry = (*weight)[key];
+    CHECK_NOTNULL(entry); CHECK_EQ(entry_size, entry->Size());
     for (auto idx = 0u; idx < entry_size; ++idx) {
       auto index = 1 + (i - 1) * entry_size + idx;
       response.vals[index] = entry->Get(idx);

@@ -7,6 +7,7 @@
 #ifndef OPENMIT_MODEL_PSMODEL_H_
 #define OPENMIT_MODEL_PSMODEL_H_
 
+#include <mutex>
 #include <omp.h>
 #include <string>
 #include <vector>
@@ -137,6 +138,8 @@ class PSModel {
     std::unique_ptr<mit::math::Random> random_;
     /*! \brief model optimizer (default) */
     std::unique_ptr<mit::Optimizer> optimizer_;
+    /*! \brief mutex for weight insert */
+    std::mutex mu_;
 }; // class PSModel
 
 } // namespace mit

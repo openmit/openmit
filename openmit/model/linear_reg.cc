@@ -54,12 +54,20 @@ void PSLR::Pull(ps::KVPairs<mit_float>& response,
   #pragma omp parallel for schedule(static, chunksize)
   for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
+    mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
+      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get());
+      CHECK_NOTNULL(entry);
       #pragma omp critical
-      weight->insert(std::make_pair(key, mit::Entry::Create(
-        model_param_, entry_meta_.get(), random_.get())));
+      {
+        std::lock_guard<std::mutex> lk(mu_);
+        weight->insert(std::make_pair(key, entry));
+      }
+    } else {
+      entry = (*weight)[key];
     }
-    response.vals[i] = (*weight)[key]->Get();
+    CHECK_NOTNULL(entry);
+    response.vals[i] = entry->Get();
   }
 }
 

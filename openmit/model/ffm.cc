@@ -72,13 +72,20 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 1u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
+    mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
       auto fid = response.extras[i]; CHECK(fid > 0);
-      auto* entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
-      #pragma omp critical
-      weight->insert(std::make_pair(key, entry));
+      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
+      CHECK_NOTNULL(entry);
+      #pragma omp critical 
+      {
+        std::lock_guard<std::mutex> lk(mu_);
+        weight->insert(std::make_pair(key, entry));
+      }
+    } else {
+      entry = (*weight)[key];
     }
-    auto* entry = (*weight)[key];
+    CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
     for (auto idx = 0u; idx < entry->Size(); ++idx) {
       vals_thread[omp_get_thread_num()]->push_back(entry->Get(idx));
     }
