@@ -19,6 +19,7 @@ struct STATS {
   std::string ps_worker_pull = "worker-pull";
   std::string ps_worker_calc_grad = "worker-calc_grad";
   std::string ps_worker_calc_loss = "worker-loss_calc";
+  std::string ps_worker_map_prepare = "worker-map_prepare";
   std::string ps_worker_model_predict = "worker-model_predict";
   std::string ps_worker_model_gradient = "worker-model_gradient";
   std::string ps_worker_valid = "worker-valid";
@@ -26,11 +27,11 @@ struct STATS {
   std::string ps_server_update = "server-update";
 };
 
-struct StatsUnit {
+struct TimerUnit {
   int           level;
   std::string   key;
   double        time_consuming;
-}; // struct StatsUnit
+}; // struct TimerUnit
 
 class TimerStats {
 public:
@@ -90,7 +91,7 @@ private:
   std::unordered_map<std::string, double> timer_recent_;
   std::mutex mu_;
   /*! \brief store each time-consuming result */
-  std::unordered_map<std::string, TimerUnit> time_consuming_;
+  std::unordered_map<std::string, mit::TimerUnit> time_consuming_;
 }; // class TimerStats
 
 } // namespace mit 

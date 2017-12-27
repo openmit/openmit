@@ -97,9 +97,9 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 }
  
 void PSFFM::Update(const ps::SArray<mit_uint>& keys, 
-                 const ps::SArray<mit_float>& vals, 
-                 const ps::SArray<int>& lens, 
-                 mit::entry_map_type* weight) {
+                   const ps::SArray<mit_float>& vals, 
+                   const ps::SArray<int>& lens, 
+                   mit::entry_map_type* weight) {
   auto keys_size = keys.size();
   auto offset = 0u;
   for (auto i = 0u; i < keys_size; ++i) {

@@ -16,8 +16,9 @@
 #include "openmit/common/data.h"
 #include "openmit/executor/trainer.h"
 #include "openmit/executor/predictor.h"
-#include "openmit/metric/metric.h"
 #include "openmit/framework/ps/signal.h"
+#include "openmit/metric/metric.h"
+#include "openmit/tools/profiler/timer_stats.h"
 
 namespace mit {
 /*!
@@ -80,10 +81,10 @@ class Worker {
     std::vector<ps::Key> train_fset_;
     /*! \brief validation data set */
     std::shared_ptr<mit::DMatrix> valid_;
-    /*! \brief validation data feature set */
-    std::vector<ps::Key> valid_fset_;  
     /*! \brief validation data set */
     std::shared_ptr<mit::DMatrix> test_;
+    /*! \brief timer stats */
+    mit::STATS stats;
 }; // class Worker
 } // namespace mit
 

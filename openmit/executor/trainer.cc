@@ -18,14 +18,21 @@ Trainer::Trainer(const mit::KWArgs & kwargs) {
     CHECK(metric) << "Metric::Create(" << metric_names[i] << ")";
     metrics_.push_back(metric);
   }
+  // timer stats 
+  timer_stats_ = new mit::TimerStats();
 } // Trainer::Trainer
+
+Trainer::~Trainer() {
+  if (timer_stats_) { delete timer_stats_; timer_stats_ = NULL; }
+}
 
 void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& keys, std::vector<mit_float>& weights, std::vector<int>& lens, std::vector<mit_float>* grads, std::vector<mit_float>& train_metric) {
   CHECK_EQ(keys.size(), lens.size());
   CHECK_EQ(weights.size(), grads->size());
-
   size_t nfeature = keys.size();
+
   /* key -> (offset, count) */
+  timer_stats_->begin(stats.ps_worker_map_prepare);
   std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset;
   size_t offset = 0;
   std::string str = "";
@@ -33,30 +40,39 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
     key2offset[keys[i]] = std::make_pair(offset, lens[i]);
     offset += lens[i];
   }
+  timer_stats_->stop(stats.ps_worker_map_prepare);
+  
   /* predict based on batch data */
+  timer_stats_->begin(stats.ps_worker_model_predict);
   std::vector<mit_float> preds(batch.size, 0.0);
   model_->Predict(batch, weights, key2offset, preds, true);
   if (cli_param_.debug) {
     LOG(INFO) << "trainer model predict " << mit::DebugStr<mit_float>(preds.data(), 10, 10);
   }
+  timer_stats_->stop(stats.ps_worker_model_predict);
   
   /* gradient computing */
   std::vector<mit_float> loss_grads(batch.size, 0.0);
   auto num_thread = cli_param_.num_thread;
   int chunksize = batch.size / num_thread;
   chunksize = batch.size % num_thread == 0 ? chunksize : chunksize + 1;
-  // gradient for loss
+  // gradient for loss 
+  timer_stats_->begin(stats.ps_worker_calc_loss);
   #pragma omp parallel for num_threads(num_thread)
   for (auto i = 0u; i < batch.size; ++i) {
     loss_grads[i] = loss_->gradient(batch[i].get_label(), preds[i]);
   }
+  timer_stats_->stop(stats.ps_worker_calc_loss);
   // gradient for model
+  timer_stats_->begin(stats.ps_worker_model_gradient);
   model_->Gradient(batch, weights, key2offset, loss_grads, grads);
   if (cli_param_.debug) {
     LOG(INFO) << "trainer model gradient " << mit::DebugStr<mit_float>(grads->data(), 10, 10);
   }
+  timer_stats_->stop(stats.ps_worker_model_gradient);
   
   /* metric train based on batch data */
+  timer_stats_->begin(stats.ps_worker_train_metric);
   train_metric.resize(metrics_.size(), 0.0);
   if (cli_param_.is_train_metric) {
     std::vector<mit_float> labels(batch.label, batch.label + batch.size);
@@ -64,6 +80,7 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
       train_metric[i] = metrics_[i]->Eval(preds, labels);
     }
   }
+  timer_stats_->stop(stats.ps_worker_train_metric);
 } // Trainer::Run
 
 void Trainer::Metric(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& keys, std::vector<mit_float>& weights, std::vector<int>& lens, std::vector<float>& metrics_value) {

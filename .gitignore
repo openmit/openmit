@@ -43,5 +43,4 @@ third_party/mxnet/
 test/ 
 
 # Data files
-*part*
-*part*
+part*

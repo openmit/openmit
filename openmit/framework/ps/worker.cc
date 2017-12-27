@@ -7,7 +7,7 @@ Worker::Worker(const mit::KWArgs & kwargs) {
 }
 
 Worker::~Worker() {
-  delete kv_worker_;
+  if (kv_worker_) { delete kv_worker_; kv_worker_ = NULL; }
 }
 
 void Worker::Init(const mit::KWArgs & kwargs) {
@@ -47,11 +47,14 @@ void Worker::Run() {
     std::vector<float> train_metric(trainer_->MetricInfo().size(), 0.0);
     int batch_count = 0;
     /* train based on batch data */
+    trainer_->timer_stats_->begin(stats.ps_worker_train);
     uint64_t progress = 0u;
     train_->BeforeFirst();
     while (true) {
+      trainer_->timer_stats_->begin(stats.ps_worker_io);
       if (! train_->Next()) break;
       auto& block = train_->Value();
+      trainer_->timer_stats_->stop(stats.ps_worker_io);
       uint32_t end = 0;
       for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
         end = i + cli_param_.batch_size >= block.size ? block.size : i + cli_param_.batch_size;
@@ -69,6 +72,7 @@ void Worker::Run() {
         batch_count += 1;
       }
     } // while 
+    trainer_->timer_stats_->stop(stats.ps_worker_train);
 
     /* metric */
     CHECK(batch_count > 0);
@@ -84,10 +88,14 @@ void Worker::Run() {
   // send signal to tell server & scheduler worker finish.
   kv_worker_->Wait(kv_worker_->Request(signal::WORKER_FINISH, "worker finish", ps::kScheduler + ps::kServerGroup));
 
+  trainer_->timer_stats_->Print();
   LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
 } 
 
 void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& train_metric) {
+  /* pull request */
+  // sorted unique key 
+  trainer_->timer_stats_->begin(stats.ps_worker_pull);
   std::unordered_set<mit_uint> fset;
   std::unordered_map<mit_uint, int> fkv;
   bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
@@ -103,22 +111,21 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
       extras[i] = fkv[keys[i]];
     }
   }
-  
-  // pull operation (weight)
+  // pull operation 
   std::vector<mit_float> weights;
   std::vector<int> lens; 
   kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
   if (cli_param_.debug) {
-    LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+    LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
   }
+  trainer_->timer_stats_->stop(stats.ps_worker_pull);
   
   // worker computing 
   std::vector<mit_float> grads(weights.size(), 0.0f);
   trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
 
   // push operation (gradient)
-  kv_worker_->Wait(kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE));
-  
+  kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
 }
 
 std::string Worker::Metric(mit::DMatrix* data) {
