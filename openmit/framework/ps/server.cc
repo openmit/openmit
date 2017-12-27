@@ -56,8 +56,7 @@ void Server::KVHandle(const ps::KVMeta& req_meta,
     switch(cmd) {
       case signal::UPDATE: {
         if (cli_param_.debug) {
-          std::string msg = "@server[" + std::to_string(ps::MyRank());
-          msg += "] grads from worker: " + mit::DebugStr(req_data.vals.data(), 10) + " ...";
+          std::string msg = "grads from worker " + mit::DebugStr(req_data.vals.data(), 10);
           LOG(INFO) << msg;
         }
         model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight_);

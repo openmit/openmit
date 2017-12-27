@@ -36,11 +36,12 @@ class Trainer {
     void Init(const mit::KWArgs & kwargs);
 
     /*! \brief trainer logic for ps interface */
-    void Run(const dmlc::RowBlock<mit_uint> & batch, 
-             std::vector<ps::Key> & keys, 
-             std::vector<mit_float> & weights, 
-             std::vector<int> & lens, 
-             std::vector<mit_float> * grads);
+    void Run(const dmlc::RowBlock<mit_uint>& batch, 
+             std::vector<ps::Key>& keys, 
+             std::vector<mit_float>& weights, 
+             std::vector<int>& lens, 
+             std::vector<mit_float>* grads, 
+             std::vector<mit_float>& train_metric);
 
     /*! \brief metric logic for ps interface */
     void Metric(const dmlc::RowBlock<mit_uint> & batch, 

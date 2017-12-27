@@ -12,6 +12,39 @@ PSFFM::~PSFFM() {}
 PSFFM* PSFFM::Get(const mit::KWArgs& kwargs) {
   return new PSFFM(kwargs);
 }
+/*
+// single thread
+void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
+  size_t keys_size = response.keys.size();
+  CHECK(keys_size > 0);
+  CHECK_EQ(keys_size, response.extras.size());   // store field id
+  response.lens.resize(keys_size);
+
+  // intercept
+  CHECK_EQ(response.keys[0], 0);
+  if (weight->find(0) == weight->end()) {
+    weight->insert(std::make_pair(0, mit::Entry::Create(
+      model_param_, entry_meta_.get(), random_.get(), 0)));
+  }
+  response.vals.push_back((*weight)[0]->Get());
+  response.lens[0] = 1;
+  
+  // feature 
+  for (auto i = 1u; i < keys_size; ++i) {
+    ps::Key key = response.keys[i];
+    if (weight->find(key) == weight->end()) {
+      auto fid = response.extras[i];
+      CHECK(fid > 0) << "fid = 0";
+      auto* entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
+      weight->insert(std::make_pair(key, entry));
+    }
+    auto* entry = (*weight)[key];
+    ps::SArray<mit_float> entry_data(entry->Data(), entry->Size());
+    response.vals.append(entry_data);
+    response.lens[i] = entry->Size();
+  }
+}
+*/
 
 void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
@@ -29,17 +62,17 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   response.lens[0] = 1;
 
   // feature (multi-thread)
-  std::vector<std::vector<mit_float>* > vals_thread(cli_param_.num_thread);
-  for (auto i = 0u; i < cli_param_.num_thread; ++i) {
+  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+  std::vector<std::vector<mit_float>* > vals_thread(nthread);
+  for (auto i = 0u; i < nthread; ++i) {
     vals_thread[i] = new std::vector<mit_float>();
   }
-  int chunksize = (keys_size - 1) / cli_param_.num_thread;
-  if ((keys_size - 1) % cli_param_.num_thread != 0) chunksize += 1;
-  #pragma omp parallel for schedule(static, chunksize)
+  int chunksize = (keys_size - 1) / nthread;
+  if ((keys_size - 1) % nthread != 0) chunksize += 1;
+  #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 1u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     if (weight->find(key) == weight->end()) {
-      //auto fid = mit::DecodeField(key, model_param_.nbit);  // fid 
       auto fid = response.extras[i]; CHECK(fid > 0);
       auto* entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
       #pragma omp critical
@@ -53,11 +86,11 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   }
 
   // merge multi-thread result
-  for (auto i = 0u; i < cli_param_.num_thread; ++i) {
-    ps::SArray<mit_float> sarray(
-      vals_thread[i]->data(), vals_thread[i]->size());
+  for (auto i = 0u; i < nthread; ++i) {
+    ps::SArray<mit_float> sarray(vals_thread[i]->data(), vals_thread[i]->size());
     response.vals.append(sarray);
-    if (vals_thread[i] != NULL) {
+    if (vals_thread[i]) { // free memory 
+      vals_thread[i]->clear();
       delete vals_thread[i]; vals_thread[i] = NULL;
     }
   }
@@ -117,13 +150,13 @@ void PSFFM::Gradient(const dmlc::Row<mit_uint>& row,
     auto fi = row.field[i];
     auto keyi = row.index[i];
     auto xi = row.get_value(i);
-    // fi not in fields_map
-    if (entry_meta_->CombineInfo(fi)->size() == 0) continue;
+    // fi not in fields_map 
+    if (! entry_meta_->CombineInfo(fi)) continue;
 
     for (auto j = i + 1; j < row.length; ++j) {
       auto fj = row.field[j];
       if (fi == fj) continue; // not cross when same field 
-      if (entry_meta_->CombineInfo(fj)->size() == 0) continue;
+      if (! entry_meta_->CombineInfo(fj)) continue;
       auto keyj = row.index[j];
       auto xj = row.get_value(j);
 
@@ -187,12 +220,13 @@ mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_flo
     auto fi = row.field[i];
     auto keyi = row.index[i];
     auto xi = row.get_value(i);
-    // fi not in fields_map
-    if (entry_meta_->CombineInfo(fi)->size() == 0) continue;
+    // fi not in fields_map 
+
+    if (! entry_meta_->CombineInfo(fi)) continue;
     for (auto j = i + 1; j < row.length; ++j) {
       auto fj = row.field[j];
       if (fi == fj) continue; // not cross when same field 
-      if (entry_meta_->CombineInfo(fj)->size() == 0) continue;
+      if (! entry_meta_->CombineInfo(fj)) continue;
       auto keyj = row.index[j];
       auto xj = row.get_value(j);
 

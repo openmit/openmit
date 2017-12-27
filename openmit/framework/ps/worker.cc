@@ -39,57 +39,55 @@ void Worker::Init(const mit::KWArgs & kwargs) {
 }
 
 void Worker::Run() {
-  CHECK_GT(cli_param_.batch_size, 0); 
+  CHECK_GT(cli_param_.batch_size, 0);
+  std::vector<float> batch_metric;
   size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
-  std::string msg = "@worker[" + std::to_string(ps::MyRank()) + "] <epoch, inst>: <";
+  std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] train <epoch, batch, inst>: <";
   for (auto epoch = 1u; epoch <= cli_param_.max_epoch; ++epoch) {
+    std::vector<float> train_metric(trainer_->MetricInfo().size(), 0.0);
+    int batch_count = 0;
+    /* train based on batch data */
     uint64_t progress = 0u;
     train_->BeforeFirst();
-    while (train_->Next()) { 
-      auto & block = train_->Value();
+    while (true) {
+      if (! train_->Next()) break;
+      auto& block = train_->Value();
       uint32_t end = 0;
       for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
         end = i + cli_param_.batch_size >= block.size ? block.size : i + cli_param_.batch_size;
         if (progress % progress_interval == 0 && cli_param_.is_progress) {
-          LOG(INFO) << msg << epoch << "," << progress << ">";
+          LOG(INFO) << msg << epoch << "," << batch_count << "," << progress << ">";
         }
         progress += (end - i);
         if ((end - i) != cli_param_.batch_size && cli_param_.is_progress) {
-          LOG(INFO) << msg << epoch << "," << progress << ">";
+          LOG(INFO) << msg << epoch << "," << batch_count << "," << progress << ">";
         }
         const auto batch = block.Slice(i, end);
-        MiniBatch(batch);
-      }
-    } 
-    // TODO Barrier
-    if (cli_param_.save_peroid != 0 && epoch % cli_param_.save_peroid == 0) {
-      kv_worker_->Push({epoch}, {}, {}, {}, signal::SAVE_EPOCH);
-    }
+        MiniBatch(batch, batch_metric);
 
-    // metric 
-    std::string metric_train_info = Metric(train_.get());
+        for (auto i = 0u; i < train_metric.size(); ++i) train_metric[i] += batch_metric[i];
+        batch_count += 1;
+      }
+    } // while 
+
+    /* metric */
+    CHECK(batch_count > 0);
+    for (auto& metric : train_metric) metric /= batch_count;
+    std::string metric_train_info = MetricMsg(train_metric);
     std::string metric_valid_info = Metric(valid_.get());
     // format: "epoch;train:auc^0.80,logloss^0.1;valid:auc^0.78,logloss^0.11"
     std::string metric_info = std::to_string(epoch);
     metric_info += ";train:" + metric_train_info + ";valid:" + metric_valid_info;
-    static_cast<ps::SimpleApp *>(kv_worker_)->Request(
-      mit::signal::METRIC, 
-      metric_info, 
-      ps::kScheduler);
-
+    static_cast<ps::SimpleApp *>(kv_worker_)->Request(mit::signal::METRIC, metric_info, ps::kScheduler);
   } // end for epochs
   
   // send signal to tell server & scheduler worker finish.
-  kv_worker_->Wait(kv_worker_->Request(
-    signal::WORKER_FINISH, 
-    "worker finish", 
-    ps::kScheduler + ps::kServerGroup));
-    //ps::kServerGroup));
+  kv_worker_->Wait(kv_worker_->Request(signal::WORKER_FINISH, "worker finish", ps::kScheduler + ps::kServerGroup));
 
   LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
 } 
 
-void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
+void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& train_metric) {
   std::unordered_set<mit_uint> fset;
   std::unordered_map<mit_uint, int> fkv;
   bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
@@ -111,25 +109,28 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
   std::vector<int> lens; 
   kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
   if (cli_param_.debug) {
-    LOG(INFO) << "weights from server: " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+    LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
   }
   
   // worker computing 
   std::vector<mit_float> grads(weights.size(), 0.0f);
-  trainer_->Run(batch, keys, weights, lens, &grads);
+  trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
 
   // push operation (gradient)
   kv_worker_->Wait(kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE));
+  
 }
 
-std::string Worker::Metric(mit::DMatrix * data) {
+std::string Worker::Metric(mit::DMatrix* data) {
   std::vector<float> metrics(trainer_->MetricInfo().size(), 0.0f);
   std::vector<float> batch_metric(metrics.size(), 0.0f);
-  auto metric_batch = cli_param_.batch_size * 100;
+  auto metric_batch = cli_param_.batch_size * 10;
   auto metric_batch_count = 0l;
+  std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] valid <batch,inst> : <";
   data->BeforeFirst();
-  while (data->Next()) {
-    auto & block = data->Value();
+  while (true) {
+    if (! data->Next()) break;
+    auto& block = data->Value();
     uint32_t end = 0;
     for (auto i = 0u; i < block.size; i += metric_batch) {
       end = i + metric_batch > block.size ? block.size : i + metric_batch;
@@ -139,20 +140,26 @@ std::string Worker::Metric(mit::DMatrix * data) {
         metrics[idx] += batch_metric[idx];
       }
       metric_batch_count += 1;
+      if (cli_param_.is_progress) {
+        LOG(INFO) << msg << metric_batch_count << "," << end << ">";
+      }
     }
   } // while 
-  for (auto & metric_value : metrics) {
-    metric_value /= metric_batch_count;
-  }
+
+  for (auto& metric_value : metrics) metric_value /= metric_batch_count;
+  
+  return MetricMsg(metrics);
+} // Worker::Metric
+
+std::string Worker::MetricMsg(std::vector<float>& metrics) {
   std::string metric_info("");
   for (auto i = 0u; i < metrics.size(); ++i) {
-    metric_info += 
-      const_cast<char *>(trainer_->MetricInfo()[i]->Name()) 
-      + std::string("^") + std::to_string(metrics[i]);
+    metric_info += const_cast<char *>(trainer_->MetricInfo()[i]->Name()) + std::string("^") + std::to_string(metrics[i]);
     if (i != metrics.size() - 1) metric_info += ",";
   }
   return metric_info;
-}
+} // MetricMsg
+
 
 void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& metrics_value) {
   std::unordered_set<mit_uint> fset;
@@ -178,7 +185,7 @@ void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<floa
   // metric computing 
   metrics_value.clear();
   trainer_->Metric(batch, keys, weights, lens, metrics_value);
-}
+} // Worker::MetricBatch
 
 void Worker::KeySet(const dmlc::RowBlock<mit_uint>& batch, 
                     std::unordered_set<mit_uint>& fset, 

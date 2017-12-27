@@ -45,20 +45,23 @@ class Worker {
     void RunPredict();
     
     /*! \brief train model based on mini-batch data */
-    void MiniBatch(const dmlc::RowBlock<mit_uint> & batch);
+    void MiniBatch(const dmlc::RowBlock<mit_uint>& batch, 
+                   std::vector<float>& batch_metric);
     
     /*! \brief key set */
     void KeySet(const dmlc::RowBlock<mit_uint>& batch, 
                 std::unordered_set<mit_uint>& fset, 
                 std::unordered_map<mit_uint, int>& fkv, 
-                bool extra);
+                bool extra);   
 
   private:
     /*! \brief metric method */
     std::string Metric(mit::DMatrix * data);
     
     void MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
-                     std::vector<float> & metrics_value);
+                     std::vector<float>& metrics_value);
+
+    std::string MetricMsg(std::vector<float>& metrics);
 
   private:
     /*! \brief kv worker */

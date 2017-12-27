@@ -1,5 +1,4 @@
 #include "openmit/framework/mpi/server.h"
-#include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
 
@@ -50,32 +49,23 @@ void MPIServer::ThetaUpdate() {
 
 void MPIServer::AdmmGlobal() {
   // AllReduce Sum
-  std::unique_ptr<Transaction> trans_allr(
-    new Transaction(2, "communication", "allreduce", true));
   rabit::Allreduce<rabit::op::Sum>(Data(), Size());
-  Transaction::End(trans_allr.get());
 
   if (rabit::GetRank() == 0) {
     ThetaUpdate();
   }
 
   // BroadCast
-  std::unique_ptr<Transaction> trans_bc(
-    new Transaction(2, "communication", "broadcast", true));
   rabit::Broadcast(Data(), sizeof(mit_float) * Size(), 0);
-  Transaction::End(trans_bc.get());
 }
 
 void MPIServer::SaveModel(dmlc::Stream * fo) {
-  std::unique_ptr<Transaction> trans(
-    new Transaction(1, "server", "model_dump"));
   dmlc::ostream os(fo);
   for (auto i = 0u; i < Size(); ++i) {
     os << i << "\t" << theta_[i] << "\n";
   }
   // force flush before fo destruct
   os.set_stream(nullptr);
-  Transaction::End(trans.get());
 }
 
 void MPIServer::DebugTheta() {
