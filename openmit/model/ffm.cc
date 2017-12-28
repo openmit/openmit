@@ -63,12 +63,13 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+  int chunksize = (keys_size - 1) / nthread;
+  if ((keys_size - 1) % nthread != 0) chunksize += 1;
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
   for (auto i = 0u; i < nthread; ++i) {
     vals_thread[i] = new std::vector<mit_float>();
+    vals_thread[i]->reserve(chunksize * 5);
   }
-  int chunksize = (keys_size - 1) / nthread;
-  if ((keys_size - 1) % nthread != 0) chunksize += 1;
   #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 1u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
@@ -86,9 +87,9 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       entry = (*weight)[key];
     }
     CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
-    if (entry->Size() > 10) {
+    if (entry->Size() > 15) {
       vals_thread[omp_get_thread_num()]->insert(
-        vals_thread[omp_get_thread_num()]->end(), entry->Data(), entry->Size());
+        vals_thread[omp_get_thread_num()]->end(), entry->Data(), entry->Data() + entry->Size());
     } else {
       for (auto idx = 0u; idx < entry->Size(); ++idx) {
         vals_thread[omp_get_thread_num()]->push_back(entry->Get(idx));

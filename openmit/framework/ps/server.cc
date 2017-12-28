@@ -32,18 +32,17 @@ Server::~Server() {
   if (kv_server_) { delete kv_server_; kv_server_ = nullptr; }
 
   std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
-  iter = weight_.begin();
-  while (iter != weight_.end()) {
+  for (iter = weight_.begin(); iter != weight_.end(); iter++) {
     if (iter->second) {
       delete iter->second; iter->second = nullptr;
     }
-    iter++;
   }
 }
 
 void Server::Run() { 
   std::unique_lock<std::mutex> lock(mutex_);
   cond_.wait(lock, [this] { return exit_ == true; });
+  LOG(INFO) << "number of key: " << weight_.size();
   LOG(INFO) << "role @server[" << ps::MyRank() << "] task finish.";
 }
 
