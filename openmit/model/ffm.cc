@@ -63,45 +63,6 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
-  std::vector<mit::SArray<mit_float>* > vals_thread(nthread);
-  for (auto i = 0u; i < nthread; ++i) {
-    vals_thread[i] = new mit::SArray<mit_float>();
-  }
-  int chunksize = (keys_size - 1) / nthread;
-  if ((keys_size - 1) % nthread != 0) chunksize += 1;
-  #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
-  for (auto i = 1u; i < keys_size; ++i) {
-    ps::Key key = response.keys[i];
-    mit::Entry* entry = nullptr;
-    if (weight->find(key) == weight->end()) {
-      auto fid = response.extras[i]; CHECK(fid > 0);
-      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
-      CHECK_NOTNULL(entry);
-      #pragma omp critical 
-      {
-        std::lock_guard<std::mutex> lk(mu_);
-        weight->insert(std::make_pair(key, entry));
-      }
-    } else {
-      entry = (*weight)[key];
-    }
-    CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
-    vals_thread[omp_get_thread_num()]->append(entry->Data(), entry->Size());
-    response.lens[i] = entry->Size();
-  } 
-
-  // merge multi-thread result
-  for (auto i = 0u; i < nthread; ++i) {
-    ps::SArray<mit_float> thread_data(vals_thread[i]->data(), vals_thread[i]->size());
-    response.vals.append(thread_data);
-    if (vals_thread[i]) { // free memory 
-      vals_thread[i]->clear();
-      delete vals_thread[i]; vals_thread[i] = NULL;
-    }
-  }
-  /*
-  // feature (multi-thread)
-  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
   for (auto i = 0u; i < nthread; ++i) {
     vals_thread[i] = new std::vector<mit_float>();
@@ -125,8 +86,13 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       entry = (*weight)[key];
     }
     CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
-    for (auto idx = 0u; idx < entry->Size(); ++idx) {
-      vals_thread[omp_get_thread_num()]->push_back(entry->Get(idx));
+    if (entry->Size() > 10) {
+      vals_thread[omp_get_thread_num()]->insert(
+        vals_thread[omp_get_thread_num()]->end(), entry->Data(), entry->Size());
+    } else {
+      for (auto idx = 0u; idx < entry->Size(); ++idx) {
+        vals_thread[omp_get_thread_num()]->push_back(entry->Get(idx));
+      }
     }
     response.lens[i] = entry->Size();
   }
@@ -140,7 +106,6 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       delete vals_thread[i]; vals_thread[i] = NULL;
     }
   }
-  */
 }
  
 void PSFFM::Update(const ps::SArray<mit_uint>& keys, 
