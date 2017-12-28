@@ -59,6 +59,7 @@ class PSFFM : public PSModel {
       optimizer_v_.reset(
         mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
       
+      LOG(INFO) << "embedding_size: " << model_param_.embedding_size;
       CHECK(model_param_.embedding_size > 0);
       blocksize = (model_param_.embedding_size / 4) * 4;
       remainder = model_param_.embedding_size % 4;
@@ -111,8 +112,8 @@ class PSFFM : public PSModel {
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
     /*! \brief sse instruction */
-    size_t blocksize;
-    size_t remainder;
+    size_t blocksize = 0;
+    size_t remainder = 0;
 }; // class PSFFM 
 
 } // namespace mit

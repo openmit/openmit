@@ -239,14 +239,14 @@ mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_flo
       auto keyj = row.index[j];
       auto xj = row.get_value(j);
 
-
       auto vifj_index = entry_meta_->FieldIndex(fi, fj);
-      auto vjfi_index = entry_meta_->FieldIndex(fj, fi);
-      if (vifj_index == -1 || vifj_index == -1) continue;
-
+      if (vifj_index == -1) continue;
       auto vifj_offset = key2offset[keyi].first + (1 + vifj_index * model_param_.embedding_size);
+
+      auto vjfi_index = entry_meta_->FieldIndex(fj, fi);
+      if (vjfi_index == -1) continue;
       auto vjfi_offset = key2offset[keyj].first + (1 + vjfi_index * model_param_.embedding_size);
-    
+
       CHECK(vifj_offset + model_param_.embedding_size < weights_size);
       CHECK(vjfi_offset + model_param_.embedding_size < weights_size);
 
@@ -269,22 +269,19 @@ mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_flo
 float PSFFM::InProdWithSSE(const float* p1, const float* p2) {
   float sum = 0.0f;
   __m128 inprod = _mm_setzero_ps();
-  if (blocksize > 0) {
-    for (auto offset = 0u; offset < blocksize; offset += 4) {
-      __m128 v1 = _mm_loadu_ps(p1 + offset);
-      __m128 v2 = _mm_loadu_ps(p2 + offset);
-      inprod = _mm_add_ps(inprod, _mm_mul_ps(v1, v2));
-    }
-    inprod = _mm_hadd_ps(inprod, inprod);
-    inprod = _mm_hadd_ps(inprod, inprod);
-    float v;
-    _mm_store_ss(&v, inprod);
-    sum += v;
+  for (auto offset = 0u; offset < blocksize; offset += 4) {
+    __m128 v1 = _mm_loadu_ps(p1 + offset);
+    __m128 v2 = _mm_loadu_ps(p2 + offset);
+    inprod = _mm_add_ps(inprod, _mm_mul_ps(v1, v2));
   }
-  if (remainder > 0) {
-    for (auto i = 0u; i < remainder; ++i) {
-      sum += p1[blocksize + i] * p2[blocksize + i];
-    }
+  inprod = _mm_hadd_ps(inprod, inprod);
+  inprod = _mm_hadd_ps(inprod, inprod);
+  float v;
+  _mm_store_ss(&v, inprod);
+  sum += v;
+
+  for (auto i = 0u; i < remainder; ++i) {
+    sum += p1[blocksize + i] * p2[blocksize + i];
   }
   return sum;
 } // PSFFM::InProdWithSSE

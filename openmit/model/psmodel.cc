@@ -52,16 +52,16 @@ void PSModel::Gradient(const dmlc::RowBlock<mit_uint>& batch,
                        std::vector<mit_float>* grads) {
   auto nthread = cli_param_.num_thread;
   CHECK_EQ(weights.size(), grads->size());
-  std::vector<std::vector<mit_float>*> threads_vec(nthread);
-  for (size_t i = 0; i < threads_vec.size(); ++i) {
-    threads_vec[i] = new std::vector<mit_float>(grads->size()); 
+  std::vector<std::vector<mit_float>*> grads_thread(nthread);
+  for (size_t i = 0; i < grads_thread.size(); ++i) {
+    grads_thread[i] = new std::vector<mit_float>(grads->size()); 
   }
   int chunksize = batch.size / nthread;
   chunksize = batch.size % nthread == 0 ? chunksize : chunksize + 1;
   #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 0u; i < batch.size; ++i) {
     int tid = omp_get_thread_num();
-    Gradient(batch[i], weights, key2offset, threads_vec[tid], loss_grads[i]);
+    Gradient(batch[i], weights, key2offset, grads_thread[tid], loss_grads[i]);
   }
   // merge thread result to grads 
   chunksize = grads->size() / nthread;
@@ -69,15 +69,15 @@ void PSModel::Gradient(const dmlc::RowBlock<mit_uint>& batch,
   #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 0u; i < grads->size(); ++i) {
     for (uint32_t tid = 0; tid < nthread; ++tid) {
-      (*grads)[i] += (*threads_vec[tid])[i];
+      (*grads)[i] += (*grads_thread[tid])[i];
     }
     (*grads)[i] /= batch.size;
   }
 
   // free memory
   for (uint32_t i = 0; i < nthread; ++i) {
-    if (threads_vec[i] != nullptr) { 
-      delete threads_vec[i]; threads_vec[i] = nullptr; 
+    if (grads_thread[i] != nullptr) { 
+      delete grads_thread[i]; grads_thread[i] = nullptr; 
     }
   }
 } // PSModel::Gradient
