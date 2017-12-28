@@ -92,7 +92,7 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // merge multi-thread result
   for (auto i = 0u; i < nthread; ++i) {
-    response.vals.append(vals_thread[i]);
+    response.vals.append(*vals_thread[i]);
     if (vals_thread[i]) { // free memory 
       vals_thread[i]->clear();
       delete vals_thread[i]; vals_thread[i] = NULL;
@@ -315,7 +315,7 @@ float PSFFM::InProdWithSSE(const float* p1, const float* p2) {
     sum += v;
   }
   if (remainder > 0) {
-    for (auto i = 0; i < remainder; ++i) {
+    for (auto i = 0u; i < remainder; ++i) {
       sum += p1[blocksize + i] * p2[blocksize + i];
     }
   }
