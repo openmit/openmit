@@ -1,4 +1,5 @@
 #include "openmit/model/ffm.h"
+#include "openmit/tools/dstruct/sarray.h"
 
 namespace mit {
 
@@ -62,9 +63,9 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
-  std::vector<ps::SArray<mit_float>* > vals_thread(nthread);
+  std::vector<mit::SArray<mit_float>* > vals_thread(nthread);
   for (auto i = 0u; i < nthread; ++i) {
-    vals_thread[i] = new ps::SArray<mit_float>();
+    vals_thread[i] = new mit::SArray<mit_float>();
   }
   int chunksize = (keys_size - 1) / nthread;
   if ((keys_size - 1) % nthread != 0) chunksize += 1;
@@ -85,14 +86,14 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       entry = (*weight)[key];
     }
     CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
-    ps::SArray<mit_float> entry_data(entry->Data(), entry->Size());
-    vals_thread[omp_get_thread_num()]->append(entry_data);
+    vals_thread[omp_get_thread_num()]->append(entry->Data(), entry->Size());
     response.lens[i] = entry->Size();
   } 
 
   // merge multi-thread result
   for (auto i = 0u; i < nthread; ++i) {
-    response.vals.append(*vals_thread[i]);
+    ps::SArray<mit_float> thread_data(vals_thread[i]->data(), vals_thread[i]->size());
+    response.vals.append(thread_data);
     if (vals_thread[i]) { // free memory 
       vals_thread[i]->clear();
       delete vals_thread[i]; vals_thread[i] = NULL;
