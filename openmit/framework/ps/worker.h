@@ -18,6 +18,7 @@
 #include "openmit/executor/predictor.h"
 #include "openmit/metric/metric.h"
 #include "openmit/framework/ps/signal.h"
+#include "openmit/model/psmodel.h"
 
 namespace mit {
 /*!
@@ -91,7 +92,7 @@ class Worker {
     /*! \brief rating map for matrix factorization*/
     std::unordered_map<ps::Key, mit::mit_float> rating_map;
     /*! \brief model for pull request */
-    std::shared_ptr<mit::Model> model_;
+    std::shared_ptr<mit::PSModel> model_;
 
 }; // class Worker
 } // namespace mit

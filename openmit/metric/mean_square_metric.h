@@ -59,4 +59,4 @@ inline float MeanSquareLoss::EvalRow(float pred, float y) const {
 
 } // namespace mit
 
-#endif // OPENMIT_METRIC_POINTWISE_METRIC_H_
+#endif // OPENMIT_METRIC_MEANSQUARE_METRIC_H_

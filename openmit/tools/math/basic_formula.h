@@ -8,7 +8,6 @@
 #define OPENMIT_TOOLS_MATH_BAISC_FORMULA_H_
 
 #include <cmath>
-
 namespace mit {
 namespace math {
 /*!
@@ -16,7 +15,7 @@ namespace math {
  *        such as generalized linear model.
  */
 inline float sigmoid(const float & x) {
-  return 1.0 / (1.0 + std::exp(-std::max(std::min(x, 35.0f), -35.0f)));
+  return 1.0 / (1.0 + std::exp(-(std::max)((std::min)(x, 35.0f), -35.0f)));
 };
 
 } // namespace math

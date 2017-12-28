@@ -3,30 +3,13 @@
 
 namespace mit {
 
-void MF::Update(const ps::SArray<mit_uint> & keys,
-                const ps::SArray<mit_float> & vals,
-                const ps::SArray<int> & lens,
-                mit::entry_map_type * weight) {
-  auto entry_size = model_param_.embedding_size;
-  auto keys_length = keys.size();
-  auto offset = 0u;
-  for (auto i = 0u; i < keys_length; ++i) {
-    auto key = keys[i];
-    CHECK(weight->find(key) != weight->end())
-      << key << " not in model structure";
-    CHECK_EQ(lens[i], entry_size)
-      << "lens[i] != embedding_size for fm model";
-    for (int k = 0; k < lens[i]; ++k) {
-      auto v = (*weight)[key]->Get(k);
-      auto g = vals[offset++];
-      optimizer_v_->Update(key, k, g, v, (*weight)[key]);
-      (*weight)[key]->Set(k, v);
-    }
-  }
-  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
+PSMF::~PSMF() {}
+
+PSMF* PSMF::Get(const mit::KWArgs& kwargs) {
+  return new PSMF(kwargs);
 }
 
-void MF::Pull(ps::KVPairs<mit_float> & response,
+void PSMF::Pull(ps::KVPairs<mit_float> & response,
               mit::entry_map_type * weight) {
   size_t entry_size = model_param_.embedding_size;
   size_t keys_size = response.keys.size();
@@ -55,7 +38,7 @@ void MF::Pull(ps::KVPairs<mit_float> & response,
   }
 }
 
-mit_float MF::Predict(const std::vector<mit_float> & user_weights,
+mit_float PSMF::Predict(const std::vector<mit_float> & user_weights,
                       const size_t user_offset,
                       const std::vector<mit_float> & item_weights,
                       size_t item_offset,
@@ -67,7 +50,7 @@ mit_float MF::Predict(const std::vector<mit_float> & user_weights,
   return sum;
 }
 
-void MF::Gradient(const mit_float lossgrad_value,
+void PSMF::Gradient(const mit_float lossgrad_value,
                   const std::vector<mit_float> & user_weights,
                   const size_t user_offset,
                   const std::vector<mit_float> & item_weights,
@@ -85,6 +68,31 @@ void MF::Gradient(const mit_float lossgrad_value,
     //LOG(INFO) << "k:" << k << " (*item_grads)[item_offset + k]:" << (*item_grads)[item_offset + k];
     //LOG(INFO) << "item_offset+k:" << item_offset + k;
   }
+}
+
+
+void PSMF::SolveByAls(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
+                      std::vector<ps::Key>& user_keys,
+                      std::vector<mit_float> & user_weights,
+                      std::vector<int> & user_lens,
+                      std::vector<ps::Key> & item_keys,
+                      std::vector<mit_float> & item_weights,
+                      std::vector<int> & item_lens,
+                      std::vector<mit_float> * user_res_vector,
+                      std::vector<mit_float> * item_res_vector) {
+  CHECK_EQ(user_keys.size(), user_lens.size());
+  CHECK_EQ(user_weights.size(), user_res_vector->size());
+  CHECK_EQ(item_keys.size(), item_lens.size());
+  CHECK_EQ(item_weights.size(), item_res_vector->size());
+  optimizer_ -> Update(rating_map,
+                       user_keys,
+                       user_weights,
+                       user_lens,
+                       item_keys,
+                       item_weights,
+                       item_lens,
+                       user_res_vector,
+                       item_res_vector);
 }
 
 } // namespace mit 

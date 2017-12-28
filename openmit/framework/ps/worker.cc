@@ -17,7 +17,7 @@ void Worker::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   kv_worker_ = new ps::KVWorker<mit_float>(0);
   trainer_.reset(new mit::Trainer(kwargs));
-  model_.reset(mit::Model::Create(kwargs));
+  model_.reset(mit::PSModel::Create(kwargs));
   
   int partid = ps::MyRank();
   int npart = ps::NumWorkers();
@@ -136,7 +136,8 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
     LOG(INFO) << "weights from server: " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
   }
   
-  // worker computing(for mf model, grads store the item gradient)
+  // worker computing
+  // for mf model, grads store the item gradient(sgd) or result weight(als)
   std::vector<mit_float> grads(weights.size(), 0.0f);
 
   // for mf model, initialize the user weights
@@ -161,7 +162,7 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
       LOG(INFO) << "lens from worker: "
         << mit::DebugStr(user_kv_pair.lens.data(), user_kv_pair.lens.size());
     }
-    //user gradient for mf
+    //user gradient for mf(for mf model, user_grads store the user gradient(sgd) or result weight(als))
     std::vector<mit_float> user_grads(user_kv_pair.vals.size(), 0.0f);
     std::vector<mit_float> user_weights;
     std::vector<int> user_lens;
@@ -174,16 +175,16 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
       user_weights[i] = user_kv_pair.vals[i];
     }
     if (cli_param_.debug) {
-      LOG(INFO) << "user gradient before update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
-      LOG(INFO) << "item gradient before update:" << mit::DebugStr(grads.data(), grads.size(), 12);
+      LOG(INFO) << "user res vector before update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
+      LOG(INFO) << "item res vector before update:" << mit::DebugStr(grads.data(), grads.size(), 12);
     }
     trainer_->Run(rating_map,
                   user_keys, user_weights, user_lens,
                   keys, weights, lens,
                   &user_grads, &grads);
     if (cli_param_.debug) {
-      LOG(INFO) << "user gradient after update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
-      LOG(INFO) << "item gradient after update:" << mit::DebugStr(grads.data(), grads.size(), 12);
+      LOG(INFO) << "user res vector after update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
+      LOG(INFO) << "item res vector after update:" << mit::DebugStr(grads.data(), grads.size(), 12);
     }
     //update user weights
     model_->Update(ps::SArray<mit_uint>(user_keys),

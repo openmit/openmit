@@ -9,7 +9,7 @@ PS::PS(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   // feature max feature dimension
   uint64_t max_key = cli_param_.max_key > 0 
-    ? cli_param_.max_key : std::numeric_limits<uint64_t>::max();
+    ? cli_param_.max_key : (std::numeric_limits<uint64_t>::max)();
   // register env variable for ps-lite
   setenv("DMLC_MAX_DIMENSION", std::to_string(max_key).c_str(), 1);
   LOG(INFO) << "cli_param_.max_key: " << getenv("DMLC_MAX_DIMENSION");

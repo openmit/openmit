@@ -1,9 +1,37 @@
 #include "openmit/model/fm.h"
-#include <cmath>
 
 namespace mit {
 
-void FM::Update(const ps::SArray<mit_uint> & keys, 
+/////////////////////////////////////////////////////////////
+// fm model complemention for mpi or local
+/////////////////////////////////////////////////////////////
+
+FM::~FM() {}
+
+FM* FM::Get(const mit::KWArgs& kwargs) {
+  return new FM(kwargs);
+}
+
+void FM::Gradient(const dmlc::Row<mit_uint>& row, const mit_float& pred, mit::SArray<mit_float>* grad) {
+  // TODO
+} // FM::Gradient
+
+mit_float FM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight, bool norm) {
+  // TODO
+  return 0.0;
+} // FM::Predict
+
+/////////////////////////////////////////////////////////////
+// fm model complemention for parameter server framework
+/////////////////////////////////////////////////////////////
+
+PSFM::~PSFM() {}
+
+PSFM* PSFM::Get(const mit::KWArgs& kwargs) {
+  return new PSFM(kwargs);
+}
+
+void PSFM::Update(const ps::SArray<mit_uint> & keys, 
                 const ps::SArray<mit_float> & vals, 
                 const ps::SArray<int> & lens, 
                 mit::entry_map_type * weight) {
@@ -30,10 +58,10 @@ void FM::Update(const ps::SArray<mit_uint> & keys,
       (*weight)[key]->Set(k, v);
     }
   }
-  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
+  CHECK_EQ(offset, vals.size()) << "offset not match vals.size";
 }
 
-void FM::Pull(ps::KVPairs<mit_float> & response, 
+void PSFM::Pull(ps::KVPairs<mit_float> & response, 
               mit::entry_map_type * weight) {
   size_t entry_size = 1 + model_param_.embedding_size;
   size_t keys_size = response.keys.size();
@@ -72,19 +100,19 @@ void FM::Pull(ps::KVPairs<mit_float> & response,
   }
 }
 
-mit_float FM::Predict(const dmlc::Row<mit_uint> & row, 
-                      const std::vector<mit_float> & weights, 
-                      mit::key2offset_type & key2offset, 
-                      bool is_norm) {
+mit_float PSFM::Predict(const dmlc::Row<mit_uint>& row, 
+                        const std::vector<mit_float>& weights, 
+                        mit::key2offset_type& key2offset, 
+                        bool norm) {
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
-  if (is_norm) return mit::math::sigmoid(wTx);
+  if (norm) return mit::math::sigmoid(wTx);
   return wTx;
-}
+} // PSFM::Predict
 
-mit_float FM::Linear(const dmlc::Row<mit_uint> & row, 
-                     const std::vector<mit_float> & weights, 
-                     mit::key2offset_type & key2offset) {
+mit_float PSFM::Linear(const dmlc::Row<mit_uint>& row, 
+                       const std::vector<mit_float>& weights, 
+                       mit::key2offset_type& key2offset) {
   mit_float wTx = 0.0f;
   if (! cli_param_.is_contain_intercept) {
     auto offset0 = key2offset[0].first;
@@ -102,9 +130,9 @@ mit_float FM::Linear(const dmlc::Row<mit_uint> & row,
   return wTx;
 }
 
-mit_float FM::Cross(const dmlc::Row<mit_uint> & row, 
-                    const std::vector<mit_float> & weights, 
-                    mit::key2offset_type & key2offset) {
+mit_float PSFM::Cross(const dmlc::Row<mit_uint>& row, 
+                      const std::vector<mit_float>& weights, 
+                      mit::key2offset_type& key2offset) {
   mit_float cross = 0.0f;
   auto embedsize = model_param_.embedding_size;
   for (auto k = 0u; k < embedsize; ++k) {
@@ -128,19 +156,12 @@ mit_float FM::Cross(const dmlc::Row<mit_uint> & row,
   return cross;
 }
 
-mit_float FM::Predict(const dmlc::Row<mit_uint> & row,
-                      const mit::SArray<mit_float> & weight,
-                      bool is_norm) {
-  // TODO
-  return 0.0f;
-}
-
 /**
  * for w0: lossgrad_value * 1
  * for wi: lossgrad_value * xi
  * for w(i,f): lossgrad_value * (xi * \sum_{j=1}^{n} (v(j,f) * xj) - v(i,f) * xi^2)
  */
-void FM::Gradient(const dmlc::Row<mit_uint> & row, 
+void PSFM::Gradient(const dmlc::Row<mit_uint> & row, 
                   const std::vector<mit_float> & weights, 
                   mit::key2offset_type & key2offset, 
                   std::vector<mit_float> * grads, 
@@ -181,12 +202,6 @@ void FM::Gradient(const dmlc::Row<mit_uint> & row,
       (*grads)[offseti + 1 + k] += partial_wik;
     }
   }
-} // FM::Gradient
-
-void FM::Gradient(const dmlc::Row<mit_uint> & row,
-                  const mit_float & pred,
-                  mit::SArray<mit_float> * grad) {
-  // TODO
-}
+} // PSFM::Gradient
 
 } // namespace mit 

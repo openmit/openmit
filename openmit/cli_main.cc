@@ -1,5 +1,8 @@
 #include "openmit/common/arg.h"
 #include "openmit/learner.h"
+#include "clapack/blaswrap.h"
+#include "clapack/f2c.h"
+#include "clapack/clapack.h"
 
 int main(int argc, char * argv[]) {
   CHECK_GE(argc, 2) << "Usage: " 

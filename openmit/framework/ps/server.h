@@ -76,7 +76,7 @@ class Server {
 
   private:
     /*! \brief save model */
-    void SaveModel(std::string epoch = "");
+    void SaveModel(std::string epoch = "", std::string prefix = "");
 
     /*! \brief save text model */
     void SaveTextModel(dmlc::Stream * fo);

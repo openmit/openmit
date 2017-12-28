@@ -65,6 +65,19 @@ class PSModel {
                               const std::vector<mit_float>& weights, 
                               key2offset_type& key2offset,
                               bool norm) = 0;
+    /*!
+     * \brief prediction based on each user and item latent vector for mf model
+     * \param user_weights user latent vector array
+     * \param user_offset user latent vector offset
+     * \param item_weights item latent vector array
+     * \param item_offset item latent vector offset
+     * \param factor_len factor length
+     */
+    virtual mit_float Predict(const std::vector<mit_float> & user_weights,
+                              const size_t user_offset,
+                              const std::vector<mit_float> & item_weights,
+                              size_t item_offset,
+                              size_t factor_len);  
 
     /*! 
      * \brief model gradient based on batch data (row block)
@@ -93,6 +106,25 @@ class PSModel {
                           key2offset_type& key2offset,
                           std::vector<mit_float>* grads,
                           const mit_float& loss_grad) = 0;
+    /*!
+     * \brief calcuate model user and item latent vector gradient for mf model
+     * \param lossgrad_value loss gradient value
+     * \param user_weights user latent vector array
+     * \param user_offset user latent vector offset
+     * \param item_weights item latent vector array
+     * \param item_offset item latent vector offset
+     * \param factor_len factor length
+     * \user_grads user latent vector gradients of model expr
+     * \item_grads item latent vector gradients of model expr
+    */
+    virtual void Gradient(const mit_float lossgrad_value,
+                          const std::vector<mit_float> & user_weights,
+                          const size_t user_offset,
+                          const std::vector<mit_float> & item_weights,
+                          const size_t item_offset,
+                          const mit_uint factor_len,
+                          std::vector<mit_float> * user_grads,
+                          std::vector<mit_float> * item_grads);
 
     /*! 
      * \brief pull request process applied to server 
@@ -116,7 +148,28 @@ class PSModel {
                         const ps::SArray<mit_float>& vals, 
                         const ps::SArray<int>& lens, 
                         mit::entry_map_type* weight);
-  
+    /*!
+     * \brief solve the user/item factor by alternating least squares
+     * \param rating_map user/item ratings stored in map, 
+     *        key is the encoding result of user_id and item_id
+     * \param user_keys user_id vector
+     * \param user_weights user weights vector
+     * \param user_lens user weights vector length
+     * \param item_keys item_id vector
+     * \param item_weights item weights vector
+     * \param item_lens item weights vector length
+     * \param user_res_vector user laten vector solved by als
+     * \param item_res_vector item laten vector solved by als
+     */
+    virtual void SolveByAls(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
+                            std::vector<ps::Key>& user_keys,
+                            std::vector<mit_float> & user_weights,
+                            std::vector<int> & user_lens,
+                            std::vector<ps::Key> & item_keys,
+                            std::vector<mit_float> & item_weights,
+                            std::vector<int> & item_lens,
+                            std::vector<mit_float> * user_res_vector,
+                            std::vector<mit_float> * item_res_vector);
     /*! \brief model type */
     inline std::string ModelType() { return model_param_.model; }
 

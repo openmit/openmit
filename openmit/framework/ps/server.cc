@@ -117,7 +117,12 @@ void Server::ExitCondition() {
   complete_worker_number_++; 
   mutex_.unlock();
   if (complete_worker_number_ == ps::NumWorkers()) {
-    SaveModel();
+    if ("mf" == cli_param_.model){
+      SaveModel("", "item-");
+    }
+    else{
+      SaveModel();
+    }
     std::string rank = std::to_string(ps::MyRank());
     kv_server_->Request(signal::SERVER_FINISH, rank, ps::kScheduler);
     mutex_.lock(); exit_ = true; mutex_.unlock();
@@ -125,14 +130,14 @@ void Server::ExitCondition() {
   }
 }
 
-void Server::SaveModel(std::string epoch) {
+void Server::SaveModel(std::string epoch, std::string prefix) {
   std::string myrank = std::to_string(ps::MyRank());
   LOG(INFO) << "@server[" + myrank + "] save model begin";
   std::string dump_out = cli_param_.model_dump;
   std::string bin_out = cli_param_.model_binary;
   if (epoch == "") {
-    dump_out += "/part-" + myrank;
-    bin_out += "/last/part-" + myrank;
+    dump_out += ("/" + prefix + "part-" + myrank);
+    bin_out += ("/last/" + prefix + "part-" + myrank);
   } else {   // save middle result by epoch
     std::string postfix = "/iter-" + epoch + "/part-" + myrank;
     dump_out += ".middle" + postfix;

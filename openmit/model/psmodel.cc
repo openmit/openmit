@@ -1,6 +1,7 @@
 #include "openmit/model/fm.h"
 #include "openmit/model/ffm.h"
 #include "openmit/model/linear_reg.h"
+#include "openmit/model/mf.h"
 #include "openmit/model/psmodel.h"
 
 namespace mit {
@@ -10,7 +11,7 @@ PSModel::PSModel(const mit::KWArgs& kwargs) {
   model_param_.InitAllowUnknown(kwargs);
   entry_meta_.reset(new mit::EntryMeta(model_param_));
   random_.reset(mit::math::ProbDistr::Create(model_param_));
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
+  optimizer_.reset(mit::Optimizer::Create(kwargs, cli_param_.optimizer));
 }
 
 PSModel::~PSModel() {}
@@ -27,6 +28,8 @@ PSModel* PSModel::Create(const mit::KWArgs& kwargs) {
     return mit::PSFM::Get(kwargs);
   } else if (model == "ffm") {
     return mit::PSFFM::Get(kwargs);
+  } else if (model == "mf") {
+    return mit::PSMF::Get(kwargs);
   } else {
     LOG(FATAL) << "unknown model. " << model;
     return nullptr;
@@ -44,6 +47,19 @@ void PSModel::Predict(const dmlc::RowBlock<mit_uint>& batch,
     preds[i] = Predict(batch[i], weights, key2offset, norm);
   }
 }
+
+mit_float PSModel::Predict(const std::vector<mit_float> & user_weights,
+                           const size_t user_offset,
+                           const std::vector<mit_float> & item_weights,
+                           size_t item_offset,
+                           size_t factor_len){
+  mit_float sum = 0.0f;
+  for (size_t i = 0; i < factor_len; i++){
+    sum += user_weights[user_offset + i] * item_weights[item_offset + i];
+  }
+  return sum;
+}
+
 
 void PSModel::Gradient(const dmlc::RowBlock<mit_uint>& batch, 
                        const std::vector<mit_float>& weights, 
@@ -75,6 +91,32 @@ void PSModel::Gradient(const dmlc::RowBlock<mit_uint>& batch,
   }
 }
 
+void PSModel::Gradient(const mit_float lossgrad_value,
+                     const std::vector<mit_float> & user_weights,
+                     const size_t user_offset,
+                     const std::vector<mit_float> & item_weights,
+                     const size_t item_offset,
+                     const mit_uint factor_len,
+                     std::vector<mit_float> * user_grads,
+                     std::vector<mit_float> * item_grads){
+  for (size_t k = 0; k < factor_len; k++) {
+    (*user_grads)[user_offset + k] += lossgrad_value * item_weights[item_offset + k];
+    (*item_grads)[item_offset + k] += lossgrad_value * user_weights[user_offset + k];
+  }  
+}
+
+void PSModel::SolveByAls(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
+                         std::vector<ps::Key>& user_keys,
+                         std::vector<mit_float> & user_weights,
+                         std::vector<int> & user_lens,
+                         std::vector<ps::Key> & item_keys,
+                         std::vector<mit_float> & item_weights,
+                         std::vector<int> & item_lens,
+                         std::vector<mit_float> * user_res_vector,
+                         std::vector<mit_float> * item_res_vector) {
+}
+
+
 void PSModel::Update(const ps::SArray<mit_uint>& keys, 
                      const ps::SArray<mit_float>& vals, 
                      const ps::SArray<int>& lens, 
@@ -104,8 +146,13 @@ void PSModel::Update(const ps::SArray<mit_uint>& keys,
       for (auto idx = 0u; idx < entrysize; ++idx) {
         auto w = (*weight)[key]->Get(idx);
         auto g = vals[offset++];
-        optimizer_->Update(key, idx, g, w, (*weight)[key]);
-        (*weight)[key]->Set(idx, w);
+        if (cli_param_.optimizer=="als") { //als optimization weight updation
+          (*weight)[key]->Set(idx, g);
+        }
+        else { //sgd optimization weight updation
+          optimizer_->Update(key, idx, g, w, (*weight)[key]);
+          (*weight)[key]->Set(idx, w);
+        }
       }
     }
     CHECK_EQ(offset, vals.size()) << "offset not match vals.size.";

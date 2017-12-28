@@ -61,7 +61,8 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
   // 3. model && optimizer && metric
   if (cli_param_.task_type == "train") {
     // ldim: worker local partial-data max dimension 
-    uint32_t ldim = std::max(train_->NumCol(), valid_->NumCol());
+    //uint32_t ldim = std::max(train_->NumCol(), valid_->NumCol());
+    uint32_t ldim = (std::max)(train_->NumCol(), valid_->NumCol());
     std::vector<uint32_t> dim(1, ldim);
     rabit::Allreduce<rabit::op::Max>(&dim[0], dim.size());
     rabit::Broadcast(dim.data(), sizeof(uint32_t) * dim.size(), 0);

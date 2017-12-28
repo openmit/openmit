@@ -8,50 +8,34 @@
 #define OPENMIT_MODELS_MF_H_
 
 #include "openmit/model/model.h"
+#include "openmit/model/psmodel.h"
 
 namespace mit {
 /*!
- * \brief the matrix factorization model in worker and server (data) node
- *  
+ * \brief the matrix factorization model 
+ *        that be suitable for ps framework
  */
-class MF : public Model {
+class PSMF : public PSModel {
   public:
     /*! \brief default constructor */
-    MF(const mit::KWArgs & kwargs) : Model(kwargs) {
-      optimizer_v_.reset(mit::Optimizer::Create(
-            kwargs, cli_param_.optimizer_v));
-    }
+    PSMF(const mit::KWArgs & kwargs) :  PSModel(kwargs) {}
 
     /*! \brief destructor */
-    //virtual ~MF() {}
-    ~MF() {}
+    virtual ~PSMF();
 
     /*! \brief get fm model pointer */
-    static MF * Get(const mit::KWArgs & kwargs) {
-      return new MF(kwargs);
-    }
+    static PSMF * Get(const mit::KWArgs & kwargs);
 
-  public:  // method for server
     /*! \brief pull request */
     void Pull(ps::KVPairs<mit_float> & response,
               mit::entry_map_type * weight) override;
 
-    /*! \brief update */
-    void Update(const ps::SArray<mit_uint> & keys,
-                const ps::SArray<mit_float> & vals,
-                const ps::SArray<int> & lens,
-                mit::entry_map_type * weight) override;
     /*! \brief calcuate gradient based on one instance for ps */
     void Gradient(const dmlc::Row<mit_uint> & row,
                   const std::vector<mit_float> & weights,
                   key2offset_type & key2offset,
                   std::vector<mit_float> * grads,
                   const mit_float & lossgrad_value){
-    }
-    /*! \brief calculate gradient based one instance for mpi */
-    void Gradient(const dmlc::Row<mit_uint> & row,
-                  const mit_float & pred,
-                  mit::SArray<mit_float> * grad){
     }
 
     /*! \brief calcuate gradient based on one instance for ps mf model*/
@@ -63,25 +47,32 @@ class MF : public Model {
                   const mit_uint factor_len,
                   std::vector<mit_float> * user_grads,
                   std::vector<mit_float> * item_grads);
+
+
     /*! \brief prediction based one instance for ps */
-   mit_float Predict(const dmlc::Row<mit_uint> & row, 
-                              const std::vector<mit_float> & weights, 
-                              key2offset_type & key2offset,
-                              bool norm){
-     return 0.0;
-   }
-       /*! \brief prediction based one instance for mpi */
-   mit_float Predict(const dmlc::Row<mit_uint> & row, 
-                     const mit::SArray<mit_float> & weight,
-                     bool norm){
-     return 0.0;
-   }
+    mit_float Predict(const dmlc::Row<mit_uint> & row, 
+                               const std::vector<mit_float> & weights, 
+                               key2offset_type & key2offset,
+                               bool norm){
+      return 0.0;
+    }
     /*! \brief prediction based one instance for ps */
     mit_float Predict(const std::vector<mit_float> & user_weights,
                       const size_t user_offset,
                       const std::vector<mit_float> & item_weights,
                       size_t item_offset,
                       size_t factor_len);
+
+    void SolveByAls(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
+                    std::vector<ps::Key>& user_keys,
+                    std::vector<mit_float> & user_weights,
+                    std::vector<int> & user_lens,
+                    std::vector<ps::Key> & item_keys,
+                    std::vector<mit_float> & item_weights,
+                    std::vector<int> & item_lens,
+                    std::vector<mit_float> * user_grads,
+                    std::vector<mit_float> * item_grads);
+
 
   private:
     /*! \brief lr model optimizer for v */

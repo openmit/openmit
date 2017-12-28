@@ -5,7 +5,7 @@
 //#include "openmit/optimizer/ftrl.h"
 //#include "openmit/optimizer/rmsprop.h"
 #include "openmit/optimizer/sgd.h"
-
+#include "openmit/optimizer/als.h"
 namespace mit {
 
 Optimizer * Optimizer::Create(const mit::KWArgs & kwargs, 
@@ -37,7 +37,10 @@ Optimizer * Optimizer::Create(const mit::KWArgs & kwargs,
   } else if (optimizer == "rmsprop") {
     return mit::SGDOptimizer::Get(kwargs);
     //return mit::RMSPropOptimizer::Get(kwargs);
-  } else {
+  } else if (optimizer == "als") {
+    return mit::ALSOptimizer::Get(kwargs);
+  } 
+  else {
     LOG(ERROR) << 
       "optimizer not in [gd, sgd, adagrad, rmsprop, adadelta, adam, " << 
       "ftrl lbfgs, als, ...]. " << 
