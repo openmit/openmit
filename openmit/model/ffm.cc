@@ -1,4 +1,3 @@
-#include <pmmintrin.h>
 #include "openmit/model/ffm.h"
 
 namespace mit {
@@ -63,6 +62,45 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+  std::vector<ps::SArray<mit_float>* > vals_thread(nthread);
+  for (auto i = 0u; i < nthread; ++i) {
+    vals_thread[i] = new ps::SArray<mit_float>();
+  }
+  int chunksize = (keys_size - 1) / nthread;
+  if ((keys_size - 1) % nthread != 0) chunksize += 1;
+  #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
+  for (auto i = 1u; i < keys_size; ++i) {
+    ps::Key key = response.keys[i];
+    mit::Entry* entry = nullptr;
+    if (weight->find(key) == weight->end()) {
+      auto fid = response.extras[i]; CHECK(fid > 0);
+      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
+      CHECK_NOTNULL(entry);
+      #pragma omp critical 
+      {
+        std::lock_guard<std::mutex> lk(mu_);
+        weight->insert(std::make_pair(key, entry));
+      }
+    } else {
+      entry = (*weight)[key];
+    }
+    CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
+    ps::SArray<mit_float> entry_data(entry->Data(), entry->Size());
+    vals_thread[omp_get_thread_num()]->append(entry_data);
+    response.lens[i] = entry->Size();
+  } 
+
+  // merge multi-thread result
+  for (auto i = 0u; i < nthread; ++i) {
+    response.vals.append(vals_thread[i]);
+    if (vals_thread[i]) { // free memory 
+      vals_thread[i]->clear();
+      delete vals_thread[i]; vals_thread[i] = NULL;
+    }
+  }
+  /*
+  // feature (multi-thread)
+  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
   for (auto i = 0u; i < nthread; ++i) {
     vals_thread[i] = new std::vector<mit_float>();
@@ -101,6 +139,7 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       delete vals_thread[i]; vals_thread[i] = NULL;
     }
   }
+  */
 }
  
 void PSFFM::Update(const ps::SArray<mit_uint>& keys, 
@@ -203,7 +242,7 @@ mit_float PSFFM::Linear(const dmlc::Row<mit_uint>& row,
   if (! cli_param_.is_contain_intercept) {
     wTx += weights[key2offset[0].first];
   }
-  #pragma omp parallel for reduction(+: wTx) num_threads(cli_param_.num_thread)
+  #pragma omp parallel for reduction(+:wTx) num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length; ++i) {
     auto key = row.index[i];
     CHECK(key2offset.find(key) != key2offset.end()) << key << " not in key2offset";
@@ -215,21 +254,17 @@ mit_float PSFFM::Linear(const dmlc::Row<mit_uint>& row,
 
 mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_float>& weights, mit::key2offset_type& key2offset) {
   const mit_float* pweights = weights.data();
-  // for sse instructor
-  auto cntBlock = model_param_.embedding_size / 4;
-  auto remainder = model_param_.embedding_size % 4;
-  __m128 inprod = _mm_setzero_ps();
-
+  size_t weights_size = weights.size();
   mit_float cross = 0.0f;
 
-  #pragma omp parallel for reduction(+: cross) num_threads(cli_param_.num_thread)
+  #pragma omp parallel for reduction(+:cross) num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length - 1; ++i) {
     auto fi = row.field[i];
     auto keyi = row.index[i];
     auto xi = row.get_value(i);
     // fi not in fields_map 
-
     if (! entry_meta_->CombineInfo(fi)) continue;
+
     for (auto j = i + 1; j < row.length; ++j) {
       auto fj = row.field[j];
       if (fi == fj) continue; // not cross when same field 
@@ -244,30 +279,13 @@ mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_flo
 
       auto vifj_offset = key2offset[keyi].first + (1 + vifj_index * model_param_.embedding_size);
       auto vjfi_offset = key2offset[keyj].first + (1 + vjfi_index * model_param_.embedding_size);
-      
-      // SMID Accelerated 
-      std::vector<mit_float> vifj(pweights + vifj_offset, pweights + vifj_offset + model_param_.embedding_size);
-      std::vector<mit_float> vjfi(pweights + vjfi_offset, pweights + vjfi_offset + model_param_.embedding_size);
-      
-      inprod = _mm_setzero_ps();
-      auto offset = 0u;
-      for (; offset < cntBlock * 4; offset += 4) {
-        __m128 v1 = _mm_load_ps(vifj.data() + offset);
-        __m128 v2 = _mm_load_ps(vjfi.data() + offset);
-        inprod = _mm_add_ps(inprod, _mm_mul_ps(v1, v2));
-      }
+    
+      CHECK(vifj_offset + model_param_.embedding_size < weights_size);
+      CHECK(vjfi_offset + model_param_.embedding_size < weights_size);
 
-      inprod = _mm_hadd_ps(inprod, inprod);
-      inprod = _mm_hadd_ps(inprod, inprod);
-      mit_float v;
-      _mm_store_ss(&v, inprod);
-
-      if (remainder != 0) {
-        for (auto i = 0u; i < remainder; ++i) {
-          v += vifj[offset + i] * vjfi[offset + i];
-        }
-      }
-      cross += v * xi * xj;
+      // sse acceleration
+      auto inprod = InProdWithSSE(pweights + vifj_offset, pweights + vjfi_offset);
+      cross += inprod * xi * xj;
 
       /*
       auto inprod = 0.0f;
@@ -280,6 +298,29 @@ mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_flo
   }
   return cross;
 }
+
+float PSFFM::InProdWithSSE(const float* p1, const float* p2) {
+  float sum = 0.0f;
+  __m128 inprod = _mm_setzero_ps();
+  if (blocksize > 0) {
+    for (auto offset = 0u; offset < blocksize; offset += 4) {
+      __m128 v1 = _mm_loadu_ps(p1 + offset);
+      __m128 v2 = _mm_loadu_ps(p2 + offset);
+      inprod = _mm_add_ps(inprod, _mm_mul_ps(v1, v2));
+    }
+    inprod = _mm_hadd_ps(inprod, inprod);
+    inprod = _mm_hadd_ps(inprod, inprod);
+    float v;
+    _mm_store_ss(&v, inprod);
+    sum += v;
+  }
+  if (remainder > 0) {
+    for (auto i = 0; i < remainder; ++i) {
+      sum += p1[blocksize + i] * p2[blocksize + i];
+    }
+  }
+  return sum;
+} // PSFFM::InProdWithSSE
 
 /////////////////////////////////////////////////////////////
 // ffm model complemention for mpi or local
