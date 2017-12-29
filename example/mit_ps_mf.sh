@@ -20,8 +20,8 @@ ${wk_dir}/tracker/dmlc-submit \
   --num-servers ${num_servers} \
   --num-workers ${num_workers} \
   ${wk_dir}/bin/openmit example/mit_ps_mf.conf \
-  train_path = $wk_dir/example/data/libmf/mf.txt \
-  valid_path = $wk_dir/example/data/libmf/mf.txt \
-  test_path = $wk_dir/example/data/libmf/mf.txt \
+  train_path = $wk_dir/example/data/libmf/mf.txt.e2 \
+  valid_path = $wk_dir/example/data/libmf/mf.txt.e2 \
+  test_path = $wk_dir/example/data/libmf/mf.txt.e2 \
   model_dump = $wk_dir/example/data/model_out/model_dump.libmf \
   model_binary = $wk_dir/example/data/model_out/model_binary.libmf
