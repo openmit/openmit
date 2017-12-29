@@ -25,15 +25,11 @@ void Worker::Init(const mit::KWArgs & kwargs) {
     CHECK_NE(cli_param_.valid_path, "") << " valid_path empty.";
     valid_.reset(new mit::DMatrix(
       cli_param_.valid_path, partid, npart, cli_param_.data_format));
-
-    LOG(INFO) << "max key of train: " << train_->NumCol();
-    LOG(INFO) << "max key of valid: " << valid_->NumCol();
     
   } else if (cli_param_.task_type == "predict") {
     CHECK_NE(cli_param_.test_path, "") << " test_path empty.";
     test_.reset(new mit::DMatrix(
       cli_param_.test_path, partid, npart, cli_param_.data_format));
-    LOG(INFO) << "max key of test: " << test_->NumCol();
   }
   LOG(INFO) << "ps worker init done";
 }
