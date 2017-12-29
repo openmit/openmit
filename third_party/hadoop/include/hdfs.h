@@ -408,6 +408,7 @@ extern  "C" {
      *         complete before proceeding with further file updates.
      *         -1 on error.
      */
+    LIBHDFS_EXTERNAL
     int hdfsTruncateFile(hdfsFS fs, const char* path, tOffset newlength);
 
     /**
@@ -671,7 +672,8 @@ extern  "C" {
      * @param path The path of the directory. 
      * @param numEntries Set to the number of files/directories in path.
      * @return Returns a dynamically-allocated array of hdfsFileInfo
-     * objects; NULL on error.
+     * objects; NULL on error or empty directory.
+     * errno is set to non-zero on error or zero on success.
      */
     LIBHDFS_EXTERNAL
     hdfsFileInfo *hdfsListDirectory(hdfsFS fs, const char* path,

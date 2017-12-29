@@ -247,8 +247,8 @@ mit_float PSFFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_flo
       if (vjfi_index == -1) continue;
       auto vjfi_offset = key2offset[keyj].first + (1 + vjfi_index * model_param_.embedding_size);
 
-      CHECK(vifj_offset + model_param_.embedding_size < weights_size);
-      CHECK(vjfi_offset + model_param_.embedding_size < weights_size);
+      CHECK_LE(vifj_offset + model_param_.embedding_size, weights_size);
+      CHECK_LE(vjfi_offset + model_param_.embedding_size, weights_size);
 
       // sse acceleration
       auto inprod = InProdWithSSE(pweights + vifj_offset, pweights + vjfi_offset);
