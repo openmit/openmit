@@ -66,7 +66,7 @@ void PSLR::Pull(ps::KVPairs<mit_float>& response,
     } else {
       entry = (*weight)[key];
     }
-    CHECK_NOTNULL(entry);
+    CHECK_NOTNULL(entry); CHECK_EQ(entry->Size(), 1);
     response.vals[i] = entry->Get();
   }
 }

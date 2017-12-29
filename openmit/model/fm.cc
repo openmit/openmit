@@ -61,30 +61,21 @@ void PSFM::Update(const ps::SArray<mit_uint> & keys,
   CHECK_EQ(offset, vals.size()) << "offset not match vals.size";
 }
 
-void PSFM::Pull(ps::KVPairs<mit_float> & response, 
-              mit::entry_map_type * weight) {
+void PSFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t entry_size = 1 + model_param_.embedding_size;
   size_t keys_size = response.keys.size();
-  size_t vals_size = 1 + (keys_size - 1) * entry_size;
-  response.vals.resize(vals_size);
   response.lens.resize(keys_size, entry_size);
+  size_t key0_size = response.keys[0] == 0l ? 1 : entry_size;
+  size_t vals_size = key0_size + (keys_size - 1) * entry_size;
+  response.vals.resize(vals_size);
+  if (key0_size == 1) response.lens[0] = 1;
   
-  // intercept 
-  CHECK(response.keys[0] == 0) << "index of intercept != 0.";
-  if (weight->find(0) == weight->end()) {
-    auto * entry = mit::Entry::Create(
-      model_param_, entry_meta_.get(), random_.get());
-    weight->insert(std::make_pair(0, entry));
-  }
-  response.vals[0] = (*weight)[0]->Get();
-  response.lens[0] = 1;
-
-  // feature
+  // keys (multi-thread)
   omp_set_num_threads(cli_param_.num_thread);
-  size_t blocksize = (keys_size - 1) / cli_param_.num_thread;
-  if ((keys_size - 1) % cli_param_.num_thread != 0) blocksize += 1;
-  #pragma omp parallel for schedule(static, blocksize)
-  for (auto i = 1u; i < keys_size; ++i) {
+  size_t chunksize = keys_size / cli_param_.num_thread;
+  if (keys_size % cli_param_.num_thread != 0) chunksize += 1;
+  #pragma omp parallel for schedule(static, chunksize)
+  for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
@@ -97,10 +88,11 @@ void PSFM::Pull(ps::KVPairs<mit_float> & response,
     } else {
       entry = (*weight)[key];
     }
-    CHECK_NOTNULL(entry); CHECK_EQ(entry_size, entry->Size());
-    for (auto idx = 0u; idx < entry_size; ++idx) {
-      auto index = 1 + (i - 1) * entry_size + idx;
-      response.vals[index] = entry->Get(idx);
+    CHECK_NOTNULL(entry); CHECK_GE(entry->Size(), 1);
+    int offset = key0_size + (i-1) * entry_size;
+    if (i == 0) offset = 0;
+    for (auto idx = 0u; idx < entry->Size(); ++idx) {
+      response.vals[offset + idx] = entry->Get(idx);
     }
   }
 }

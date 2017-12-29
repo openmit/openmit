@@ -19,18 +19,8 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   CHECK(keys_size > 0);
   CHECK_EQ(keys_size, response.extras.size());   // store field id
   response.lens.resize(keys_size);
-
-  // intercept
-  CHECK_EQ(response.keys[0], 0);
-  if (weight->find(0) == weight->end()) {
-    weight->insert(std::make_pair(0, mit::Entry::Create(
-      model_param_, entry_meta_.get(), random_.get(), 0)));
-  }
-  response.vals.push_back((*weight)[0]->Get());
-  response.lens[0] = 1;
-  
-  // feature 
-  for (auto i = 1u; i < keys_size; ++i) {
+  // key 
+  for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     if (weight->find(key) == weight->end()) {
       auto fid = response.extras[i];
@@ -52,30 +42,22 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   CHECK_EQ(keys_size, response.extras.size());   // store field id
   response.lens.resize(keys_size);
 
-  // intercept
-  CHECK_EQ(response.keys[0], 0);
-  if (weight->find(0) == weight->end()) {
-    weight->insert(std::make_pair(0, mit::Entry::Create(
-      model_param_, entry_meta_.get(), random_.get(), 0)));
-  }
-  response.vals.push_back((*weight)[0]->Get());
-  response.lens[0] = 1;
-
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
-  int chunksize = (keys_size - 1) / nthread;
-  if ((keys_size - 1) % nthread != 0) chunksize += 1;
+  int chunksize = keys_size / nthread;
+  if (keys_size % nthread != 0) chunksize += 1;
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
   for (auto i = 0u; i < nthread; ++i) {
     vals_thread[i] = new std::vector<mit_float>();
     vals_thread[i]->reserve(chunksize * 5);
   }
   #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
-  for (auto i = 1u; i < keys_size; ++i) {
+  for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
-      auto fid = response.extras[i]; CHECK(fid > 0);
+      auto fid = response.extras[i];
+      if (key > 0) CHECK(fid > 0);
       entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
       CHECK_NOTNULL(entry);
       #pragma omp critical 
@@ -86,7 +68,7 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
     } else {
       entry = (*weight)[key];
     }
-    CHECK_NOTNULL(entry); CHECK(entry->Size() > 0);
+    CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
     if (entry->Size() > 15) {
       vals_thread[omp_get_thread_num()]->insert(
         vals_thread[omp_get_thread_num()]->end(), entry->Data(), entry->Data() + entry->Size());
