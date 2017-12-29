@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.7)
 
 aux_source_directory(common SRCS_COMMON)
 aux_source_directory(executor SRCS_EXECUTOR)

@@ -7,6 +7,7 @@
 #ifndef OPENMIT_MODEL_FFM_H_
 #define OPENMIT_MODEL_FFM_H_
 
+#include <pmmintrin.h>
 #include "openmit/model/model.h"
 #include "openmit/model/psmodel.h"
 
@@ -57,6 +58,11 @@ class PSFFM : public PSModel {
     PSFFM(const mit::KWArgs& kwargs) : PSModel(kwargs) {
       optimizer_v_.reset(
         mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
+      
+      LOG(INFO) << "embedding_size: " << model_param_.embedding_size;
+      CHECK(model_param_.embedding_size > 0);
+      blocksize = (model_param_.embedding_size / 4) * 4;
+      remainder = model_param_.embedding_size % 4;
     }
 
     /*! \brief destructor */
@@ -99,9 +105,15 @@ class PSFFM : public PSModel {
                     const std::vector<mit_float> & weights, 
                     mit::key2offset_type & key2offset);
 
+    /*! \brief acceleration using sse instructor */
+    float InProdWithSSE(const float* p1, const float* p2);
+
   private:
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
+    /*! \brief sse instruction */
+    size_t blocksize = 0;
+    size_t remainder = 0;
 }; // class PSFFM 
 
 } // namespace mit

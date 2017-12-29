@@ -2,26 +2,21 @@
 
 namespace mit {
 
-Entry * Entry::Create(const mit::ModelParam & model_param, 
-                      mit::EntryMeta * entry_meta, 
-                      mit::math::ProbDistr * distr, 
-                      mit_uint field) {
+Entry* Entry::Create(const mit::ModelParam& model_param, 
+                     mit::EntryMeta* entry_meta, 
+                     mit::math::Random* distr, 
+                     mit_uint field) {
   if (model_param.model == "lr") {
-    return new mit::LREntry(
-      model_param, entry_meta, distr);
+    return new mit::LREntry(model_param, entry_meta, distr);
   } else if (model_param.model == "fm") {
-    return new mit::FMEntry(
-      model_param, entry_meta, distr);
+    return new mit::FMEntry(model_param, entry_meta, distr);
   } else if (model_param.model == "ffm") {
-    return new mit::FFMEntry(
-      model_param, entry_meta, distr, field);
-  } else if (model_param.model == "mf"){
+    return new mit::FFMEntry(model_param, entry_meta, distr, field);
+  }  else if (model_param.model == "mf"){
     return new mit::MFEntry(
       model_param, entry_meta, distr);
-  }
-  else {
-    LOG(FATAL) << "model '" << model_param.model 
-      << "' is not supported in openmit.";
+  } else {
+    LOG(FATAL) << "unknown model. " << model_param.model;
     return nullptr;
   }
 }

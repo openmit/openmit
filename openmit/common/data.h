@@ -39,9 +39,6 @@ class DMatrix {
     inline const dmlc::RowBlock<mit_uint> Value() { 
       return dmat_[index_]->Value(); 
     }
-    
-    /*! \return max key (feature dimension) of data matrix */
-    inline uint64_t NumCol() const { return num_col_; }
 
     /*!
      * \brief constructor
@@ -64,13 +61,11 @@ class DMatrix {
       }
       CHECK(uri_items.size() > 0) << "path " << uri << " is empty!";
 
-      num_col_ = 0l;
       for (auto i = 0u; i < uri_items.size(); ++i) {
-        auto * dbi = dmlc::RowBlockIter<mit_uint>::Create(
+        auto* dbi = dmlc::Parser<mit_uint>::Create(
           uri_items[i].c_str(), partid, npart, data_format.c_str());
-        CHECK(dbi) << "dmlc::RowBlockIter is null";
+        CHECK(dbi) << "dmlc::Parser is null";
         dmat_.push_back(dbi);
-        num_col_ = num_col_ > dbi->NumCol() ? num_col_ : dbi->NumCol();
       }
       index_ = 0;
     }
@@ -86,11 +81,9 @@ class DMatrix {
 
   private:
     /*! \brief data storage structure. it supports multiple paths */
-    std::vector<dmlc::RowBlockIter<mit_uint>* > dmat_;
+    std::vector<dmlc::Parser<mit_uint>* > dmat_;
     /*! \brief current data path offset index */
     size_t index_;
-    /*! \brief max key of data matrix */
-    uint64_t num_col_;
 };
 
 bool DMatrix::Next() {

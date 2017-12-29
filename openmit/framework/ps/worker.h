@@ -16,8 +16,9 @@
 #include "openmit/common/data.h"
 #include "openmit/executor/trainer.h"
 #include "openmit/executor/predictor.h"
-#include "openmit/metric/metric.h"
 #include "openmit/framework/ps/signal.h"
+#include "openmit/metric/metric.h"
+#include "openmit/tools/profiler/timer_stats.h"
 #include "openmit/model/psmodel.h"
 
 namespace mit {
@@ -41,6 +42,7 @@ class Worker {
   private:
     /*! \brief training based ps */
     void RunTrain();
+    
     /*! \brief predict based ps */
     void RunPredict();
     /* brief save model in the worker node*/
@@ -48,23 +50,30 @@ class Worker {
     void SaveBinaryModel(dmlc::Stream * fo);
     void SaveTextModel(dmlc::Stream * fo);
     
-  private:
-    /*! \brief initialize feature set if size of feature < 1e6 */
-    void InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set);
     /*! \brief train model based on mini-batch data */
-    void MiniBatch(const dmlc::RowBlock<mit_uint> & batch);
+    void MiniBatch(const dmlc::RowBlock<mit_uint>& batch, 
+                   std::vector<float>& batch_metric);
+
+    /*! \brief key set */
+    void KeySet(const dmlc::RowBlock<mit_uint>& batch, 
+                std::unordered_set<mit_uint>& fset, 
+                std::unordered_map<mit_uint, int>& fkv, 
+                bool extra);   
     
     /*! \brief key set */
     void KeySet(const dmlc::RowBlock<mit_uint> & batch,
                 std::unordered_set<mit_uint> & fset,
                 std::unordered_set<mit_uint> & user_set,
                 std::unordered_map<ps::Key, mit::mit_float> & rating_map);
+    
   private:
     /*! \brief metric method */
     std::string Metric(mit::DMatrix * data);
     
     void MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
-                     std::vector<float> & metrics_value);
+                     std::vector<float>& metrics_value);
+
+    std::string MetricMsg(std::vector<float>& metrics);
 
   private:
     /*! \brief kv worker */
@@ -83,10 +92,10 @@ class Worker {
     std::vector<ps::Key> train_fset_;
     /*! \brief validation data set */
     std::shared_ptr<mit::DMatrix> valid_;
-    /*! \brief validation data feature set */
-    std::vector<ps::Key> valid_fset_;  
     /*! \brief validation data set */
     std::shared_ptr<mit::DMatrix> test_;
+    /*! \brief timer stats */
+    mit::STATS stats;
     /*! \brief user latent vector for matrix factorization*/
     std::unordered_map<ps::Key, mit::Entry *> user_weight_;
     /*! \brief rating map for matrix factorization*/

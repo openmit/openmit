@@ -238,6 +238,13 @@ class SArray {
     memcpy(data()+orig_size, arr.data(), arr.size()*sizeof(V));
   }
 
+  void append(const V* v, size_t size) {
+    if (!v) return;
+    auto orig_size = size_;
+    resize(orig_size + size);
+    memcpy(data()+orig_size, v, size*sizeof(V));
+  }
+
 
   /**
    * @brief Slice a segment, zero-copy

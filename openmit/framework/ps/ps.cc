@@ -23,14 +23,8 @@ void PS::Run() {
   std::string nodeinfo = ps::IsServer() ? "@server[" : (ps::IsWorker() ? "@worker[" : "@scheduler[");
   nodeinfo += std::to_string(ps::MyRank()) + "] ";
 
-  LOG(INFO) << "sleep(1) LaunchScheduler. " << nodeinfo;
-  sleep(1);
   LaunchScheduler();
-  LOG(INFO) << "sleep(1) LaunchServer. " << nodeinfo;
-  sleep(1);
   LaunchServer();
-  LOG(INFO) << "sleep(1) LaunchWorker. " << nodeinfo;
-  sleep(1);
   LaunchWorker();
 
   nodeinfo += "task has completed.";

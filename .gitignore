@@ -9,7 +9,7 @@
 *.pch
 
 # Compiled Dynamic libraries
-*.so
+*.so*
 *.dylib
 *.dll
 
@@ -43,5 +43,4 @@ third_party/mxnet/
 test/ 
 
 # Data files
-*part*
-*part*
+part*

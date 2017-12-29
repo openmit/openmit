@@ -35,6 +35,7 @@ cp -r $HADOOP_HOME/lib/native/* $third_party_dir/hadoop/lib
 
 echo "[INFO] build openmit/ps-lite begin ..."
 cd $third_party_dir/ps-lite
+make clean
 #git stash || true
 #git checkout master 
 #git pull origin master  
@@ -45,21 +46,24 @@ make -j4 \
 echo "[INFO] build openmit/ps-lite done"
 
 cd $third_party_dir/rabit
+make clean
 make all \
   && cp -r include/* $third_party_dir/include \
   && cp -r lib/librabit.a $third_party_dir/lib
 
 cd $third_party_dir/dmlc-core
-make all DMLC_ENABLE_STD_THREAD=1 USE_HDFS=1 DMLC_USE_REGEX=1 \
+make clean
+make all DMLC_ENABLE_STD_THREAD=1 USE_HDFS=1 DMLC_USE_REGEX=1 USE_OPENMP=1 \
          DMLC_USE_GLOG=1 \
          HDFS_INC_PATH=$HADOOP_HOME/include HDFS_LIB_PATH=$HADOOP_HOME/lib/native \
   && cp -r include/dmlc $third_party_dir/include \
   && cp libdmlc.a $third_party_dir/lib
 
-cd $third_party_dir/googletest
-cmake . && make \
-  && cp -r googletest/include/gtest $third_party_dir/include \
-  && cp googlemock/gtest/libgtest* $third_party_dir/lib 
+#cd $third_party_dir/googletest 
+#make clean 
+#cmake . && make \
+#  && cp -r googletest/include/gtest $third_party_dir/include \
+#  && cp googlemock/gtest/libgtest* $third_party_dir/lib 
 
 mkdir -p $third_party_dir/include/clapack
 cp -r $CLAPACK_HOME/INCLUDE/* $third_party_dir/include/clapack

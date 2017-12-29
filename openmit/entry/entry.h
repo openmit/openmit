@@ -17,7 +17,7 @@
 #include "openmit/common/parameter.h"
 #include "openmit/entry/entry_meta.h"
 #include "openmit/tools/dstruct/dstring.h"
-#include "openmit/tools/math/prob_distr.h"
+#include "openmit/tools/math/random.h"
 
 namespace mit {
 /*! 
@@ -27,7 +27,7 @@ struct Entry {
   /*! \brief create a entry */
   static Entry * Create(const mit::ModelParam & model_param, 
                         mit::EntryMeta * entry_meta, 
-                        mit::math::ProbDistr * distr, 
+                        mit::math::Random * distr, 
                         mit_uint field = 0l);
 
   virtual ~Entry() {
@@ -35,7 +35,7 @@ struct Entry {
   }
 
   /*! \brief entry contents */
-  mit_float * wv;
+  mit_float* wv;
   
   /*! \brief length of model store unit */
   size_t length;
@@ -51,7 +51,7 @@ struct Entry {
     *(wv + idx) = value;
   }
 
-  inline mit_float * Data() { return wv; }
+  inline mit_float* Data() { return wv; }
 
   /*! \brief string format entry info */
   virtual std::string String(
@@ -74,7 +74,7 @@ struct LREntry : Entry {
   /*! \brief constructor */
   LREntry(const mit::ModelParam & model_param, 
           mit::EntryMeta * entry_meta,
-          mit::math::ProbDistr * distr) {
+          mit::math::Random * distr) {
     length = 1;
     wv = new mit_float[length]();
     wv[0] = distr->random();
@@ -113,7 +113,7 @@ struct FMEntry : Entry {
   /*! \brief constructor */
   FMEntry(const mit::ModelParam & model_param, 
           mit::EntryMeta * entry_meta, 
-          mit::math::ProbDistr * distr) {
+          mit::math::Random * distr) {
     embedding_size = model_param.embedding_size;
     CHECK(embedding_size > 0) 
       << "embedding_size should be > 0 for fm model.";
@@ -173,18 +173,21 @@ struct FFMEntry : Entry {
   mit_uint fieldid;
 
   /*! \brief constructor */
-  FFMEntry(const mit::ModelParam & model_param, 
-           mit::EntryMeta * entry_meta, 
-           mit::math::ProbDistr * distr, 
+  FFMEntry(const mit::ModelParam& model_param, 
+           mit::EntryMeta* entry_meta, 
+           mit::math::Random* distr, 
            mit_uint field = 0l) {
     embedding_size = model_param.embedding_size;
-    CHECK(embedding_size > 0) 
-      << "embedding_size should be > 0 for fm model.";
+    CHECK(embedding_size > 0) << "embedding_size error for fm/ffm model.";
     fieldid = field;
     length = 1;
-    if (fieldid > 0l) {
-      auto rfield_cnt = entry_meta->CombineInfo(field)->size();
-      length += rfield_cnt * embedding_size;
+    if (fieldid > 0) {
+      std::vector<mit_uint>* rfields = entry_meta->CombineInfo(field);
+      size_t rfield_cnt = 0;
+      if (rfields) {
+        rfield_cnt += rfields->size();
+        length += rfield_cnt * embedding_size;
+      }
     }
     wv = new mit_float[length]();
     for (auto idx = 0u; idx < length; ++idx) {
@@ -200,7 +203,8 @@ struct FFMEntry : Entry {
     CHECK_NOTNULL(entry_meta);
     std::string info = std::to_string(*wv);
     if (length == 1) return info;
-    auto * rfields = entry_meta->CombineInfo(fieldid);
+    auto* rfields = entry_meta->CombineInfo(fieldid);
+    if (!rfields) return info;
     for (auto i = 0u; i < rfields->size(); ++i) {
       auto idx_begin = 1 + i * embedding_size;
       info += " " + std::to_string((*rfields)[i]);
@@ -213,12 +217,12 @@ struct FFMEntry : Entry {
   } 
   
   /*! \brief save entry */
-  void Save(dmlc::Stream * fo, 
-            mit::EntryMeta * entry_meta = NULL) override {
+  void Save(dmlc::Stream* fo, mit::EntryMeta* entry_meta = NULL) override {
     fo->Write((char *) &fieldid, sizeof(mit_uint));
     fo->Write((char *) &embedding_size, sizeof(size_t));
     fo->Write((char *) &wv[0], sizeof(mit_float));
-    auto * rfields = entry_meta->CombineInfo(fieldid);
+    auto* rfields = entry_meta->CombineInfo(fieldid);
+    if (!rfields) return;
     for (auto i = 0u; i < rfields->size(); ++i) {
       auto offset_begin = 1 + i * embedding_size;
       mit_uint rfid = (*rfields)[i];
@@ -236,12 +240,13 @@ struct FFMEntry : Entry {
     fi->Read(&fieldid, sizeof(mit_uint));
     fi->Read(&embedding_size, sizeof(size_t));
     fi->Read(&wv[0], sizeof(mit_float));
-    auto *rfields = entry_meta->CombineInfo(fieldid);
+    auto* rfields = entry_meta->CombineInfo(fieldid);
+    if (!rfields) return;
     size_t offset = 1;
     for (auto i = 0u; i < rfields->size(); ++i) {
       mit_uint rfid;
       fi->Read(&rfid, sizeof(mit_uint));
-      CHECK_EQ(rfid, (*rfields)[i]) << "relerated fielid not match";
+      CHECK_EQ(rfid, (*rfields)[i]) << "related fielid not match";
       for (size_t k = 0; k < embedding_size; ++k) {
         fi->Read(&wv[offset], sizeof(mit_float));
         offset++;

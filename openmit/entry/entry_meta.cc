@@ -27,11 +27,10 @@ EntryMeta::EntryMeta(const mit::ModelParam& model_param) {
 }
 
 EntryMeta::~EntryMeta() {
-  for (auto & kv : fields_map) {
+  for (auto& kv : fields_map) {
     if (kv.second) { 
       kv.second->clear();
-      delete kv.second;
-      kv.second = NULL; 
+      delete kv.second; kv.second = NULL; 
     }
   }
 }
@@ -47,15 +46,13 @@ int EntryMeta::FieldIndex(const mit_uint & fieldid, const mit_uint & rfieldid) {
     return -1;
   }
 }
-std::vector<mit_uint> * EntryMeta::CombineInfo(const mit_uint & fieldid) {
-  if (fields_map.find(fieldid) == fields_map.end()) {
-    return new std::vector<mit_uint>;
-  } else {
-    return fields_map[fieldid];
-  }
+std::vector<mit_uint>* EntryMeta::CombineInfo(const mit_uint& fieldid) {
+  if (fields_map.find(fieldid) == fields_map.end()) return NULL;
+  return fields_map[fieldid];
 }
 
 void EntryMeta::ProcessFieldCombineSet(const std::string field_combine_set) {
+  LOG(INFO) << "field_combine_set: " << field_combine_set;
   std::vector<std::string> field_items;
   mit::string::Split(field_combine_set, &field_items, ',');
   std::vector<mit_uint> fields(field_items.size(), 0l);
@@ -64,13 +61,14 @@ void EntryMeta::ProcessFieldCombineSet(const std::string field_combine_set) {
   }
   sort(fields.begin(), fields.end());
   for (auto i = 0u; i < fields.size(); ++i) {
-    fields_map.insert(std::make_pair(
-      fields.at(i), 
-      new std::vector<mit_uint>(fields.begin(), fields.end())));
+    fields_map.insert(
+      std::make_pair(fields.at(i), new std::vector<mit_uint>(fields.begin(), fields.end())));
+    LOG(INFO) << "field info fid: " << fields.at(i) << ", rfields.size: " << fields.size();
   }
 } 
 
 void EntryMeta::ProcessFieldCombinePair(const std::string field_combine_pair) {
+  LOG(INFO) << "field_combine_pair: " << field_combine_pair;
   std::vector<std::string> field_pairs;
   mit::string::Split(field_combine_pair, &field_pairs, ',');
   for (auto i = 0u; i < field_pairs.size(); ++i) {
@@ -86,7 +84,7 @@ void EntryMeta::ProcessFieldCombinePair(const std::string field_combine_pair) {
     FillFieldInfo(field2, field1);
   }
   // sort 
-  for (auto & kv : fields_map) {
+  for (auto& kv : fields_map) {
     sort(kv.second->begin(), kv.second->end());
   }
 }

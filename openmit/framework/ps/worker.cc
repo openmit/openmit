@@ -1,5 +1,4 @@
 #include "openmit/framework/ps/worker.h"
-#include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
 
@@ -8,12 +7,10 @@ Worker::Worker(const mit::KWArgs & kwargs) {
 }
 
 Worker::~Worker() {
-  delete kv_worker_;
+  if (kv_worker_) { delete kv_worker_; kv_worker_ = NULL; }
 }
 
 void Worker::Init(const mit::KWArgs & kwargs) {
-  std::unique_ptr<mit::Transaction> trans(
-    mit::Transaction::Create(2, "worker", "init"));
   cli_param_.InitAllowUnknown(kwargs);
   kv_worker_ = new ps::KVWorker<mit_float>(0);
   trainer_.reset(new mit::Trainer(kwargs));
@@ -29,69 +26,55 @@ void Worker::Init(const mit::KWArgs & kwargs) {
     CHECK_NE(cli_param_.valid_path, "") << " valid_path empty.";
     valid_.reset(new mit::DMatrix(
       cli_param_.valid_path, partid, npart, cli_param_.data_format));
-
-    LOG(INFO) << "max key of train: " << train_->NumCol();
-    LOG(INFO) << "max key of valid: " << valid_->NumCol();
     
   } else if (cli_param_.task_type == "predict") {
     CHECK_NE(cli_param_.test_path, "") << " test_path empty.";
     test_.reset(new mit::DMatrix(
       cli_param_.test_path, partid, npart, cli_param_.data_format));
-    LOG(INFO) << "max key of test: " << test_->NumCol();
   }
-  mit::Transaction::End(trans.get());
   LOG(INFO) << "ps worker init done";
 }
 
-void Worker::InitFSet(mit::DMatrix * data, std::vector<ps::Key> * feat_set) {
-  std::unordered_set<ps::Key> fset;
-  fset.insert(0);
-  data->BeforeFirst();
-  while (data->Next()) {
-    const auto & block = data->Value();
-    fset.insert(
-        block.index + block.offset[0],
-        block.index + block.offset[block.size]);
-  }
-  feat_set->insert(feat_set->end(), fset.begin(), fset.end());
-  sort(feat_set->begin(), feat_set->end());
-}
-
 void Worker::Run() {
-  std::unique_ptr<mit::Transaction> trans(
-    mit::Transaction::Create(1, "ps", "worker"));
-  CHECK_GT(cli_param_.batch_size, 0); 
-  size_t progress_interval = 
-    cli_param_.batch_size * cli_param_.job_progress;
+  CHECK_GT(cli_param_.batch_size, 0);
+  std::vector<float> batch_metric;
+  size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
+  std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] train <epoch, batch, inst>: <";
   for (auto epoch = 1u; epoch <= cli_param_.max_epoch; ++epoch) {
+    std::vector<float> train_metric(trainer_->MetricInfo().size(), 0.0);
+    int batch_count = 0;
+    /* train based on batch data */
+    trainer_->timer_stats_->begin(stats.ps_worker_train);
     uint64_t progress = 0u;
     train_->BeforeFirst();
-    while (train_->Next()) { 
-      auto & block = train_->Value();
+    while (true) {
+      trainer_->timer_stats_->begin(stats.ps_worker_io);
+      if (! train_->Next()) break;
+      auto& block = train_->Value();
+      trainer_->timer_stats_->stop(stats.ps_worker_io);
       uint32_t end = 0;
       for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {
-        end = i + cli_param_.batch_size >= block.size ? 
-          block.size : i + cli_param_.batch_size;
+        end = i + cli_param_.batch_size >= block.size ? block.size : i + cli_param_.batch_size;
         if (progress % progress_interval == 0 && cli_param_.is_progress) {
-          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress "
-                    << "<epoch, inst>: <" << epoch << ", "<< progress << ">";
+          LOG(INFO) << msg << epoch << "," << batch_count << "," << progress << ">";
         }
         progress += (end - i);
         if ((end - i) != cli_param_.batch_size && cli_param_.is_progress) {
-          LOG(INFO) << "@worker[" << ps::MyRank() << "] progress "
-                    << "<epoch, inst>: <" << epoch << ", "<< progress << ">";
+          LOG(INFO) << msg << epoch << "," << batch_count << "," << progress << ">";
         }
         const auto batch = block.Slice(i, end);
-        MiniBatch(batch);
-      }
-    } 
-    // TODO Barrier
-    if (cli_param_.save_peroid != 0 && epoch % cli_param_.save_peroid == 0) {
-      kv_worker_->Push({epoch}, {}, {}, signal::SAVE_EPOCH);
-    }
+        MiniBatch(batch, batch_metric);
 
-    // metric 
-    std::string metric_train_info = Metric(train_.get());
+        for (auto i = 0u; i < train_metric.size(); ++i) train_metric[i] += batch_metric[i];
+        batch_count += 1;
+      }
+    } // while 
+    trainer_->timer_stats_->stop(stats.ps_worker_train);
+
+    /* metric */
+    CHECK(batch_count > 0);
+    for (auto& metric : train_metric) metric /= batch_count;
+    std::string metric_train_info = MetricMsg(train_metric);
     std::string metric_valid_info = Metric(valid_.get());
     // format: "epoch;train:auc^0.80,logloss^0.1;valid:auc^0.78,logloss^0.11"
     std::string metric_info = std::to_string(epoch);
@@ -99,42 +82,55 @@ void Worker::Run() {
     if (cli_param_.model == "mf"){
       SaveModel("", "user-");
     }
-    static_cast<ps::SimpleApp *>(kv_worker_)->Request(
-      mit::signal::METRIC, 
-      metric_info, 
-      ps::kScheduler);
-
+    static_cast<ps::SimpleApp *>(kv_worker_)->Request(mit::signal::METRIC, metric_info, ps::kScheduler);
   } // end for epochs
   if (cli_param_.model == "mf"){
     SaveModel("", "user-");
   } 
   // send signal to tell server & scheduler worker finish.
-  kv_worker_->Wait(kv_worker_->Request(
-    signal::WORKER_FINISH, 
-    "worker finish", 
-    ps::kScheduler + ps::kServerGroup));
-    //ps::kServerGroup));
+  kv_worker_->Wait(kv_worker_->Request(signal::WORKER_FINISH, "worker finish", ps::kScheduler + ps::kServerGroup));
 
-  mit::Transaction::End(trans.get());
+  trainer_->timer_stats_->Print();
   LOG(INFO) << "@worker[" << ps::MyRank() << "] job finish.";
 } 
 
-void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
+void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& train_metric) {
+  /* pull request */
+  // sorted unique key 
+  trainer_->timer_stats_->begin(stats.ps_worker_pull);
   std::unordered_set<mit_uint> fset;
+
+  std::unordered_map<mit_uint, int> fkv;
+  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+  std::vector<int> extras;
+  
   //user key set for mf model
   std::unordered_set<mit_uint> user_set;
   //get fset. if model type is mf, get item_set, user_set, and rating_map
-  KeySet(batch, fset, user_set, rating_map);
+  if (cli_param_.model == "mf") {
+    KeySetMF(batch, fset, user_set, rating_map);
+  }
+  else {
+    KeySet(batch, fset, fkv, extra);
+    if (extra) {
+      extras.resize(keys.size(), 0);
+      for (auto i = 0u; i < keys.size(); ++i) {
+        if (fkv.find(keys[i]) == fkv.end()) continue;
+        extras[i] = fkv[keys[i]];
+      }
+    }
+  }
   // get keys (if the model is mf, get the item keys)
   std::vector<ps::Key> keys(fset.begin(), fset.end());
   sort(keys.begin(), keys.end());
   //pull operation (weight for the model. if model type is mf, then weights is item weight)
   std::vector<mit_float> weights;
   std::vector<int> lens;
-  kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
+  kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
   if (cli_param_.debug) {
-    LOG(INFO) << "weights from server: " << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+    LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
   }
+  trainer_->timer_stats_->stop(stats.ps_worker_pull);
   
   // worker computing
   // for mf model, grads store the item gradient(sgd) or result weight(als)
@@ -194,21 +190,22 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint> & batch) {
 
   }
   else{  
-    trainer_->Run(batch, keys, weights, lens, &grads);
+    trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
   }
   // push operation (gradient)
-  kv_worker_->Wait(
-    kv_worker_->Push(keys, grads, lens, mit::signal::UPDATE));
+  kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
 }
 
-std::string Worker::Metric(mit::DMatrix * data) {
+std::string Worker::Metric(mit::DMatrix* data) {
   std::vector<float> metrics(trainer_->MetricInfo().size(), 0.0f);
   std::vector<float> batch_metric(metrics.size(), 0.0f);
-  auto metric_batch = cli_param_.batch_size * 100;
+  auto metric_batch = cli_param_.batch_size * 10;
   auto metric_batch_count = 0l;
+  std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] valid <batch,inst> : <";
   data->BeforeFirst();
-  while (data->Next()) {
-    auto & block = data->Value();
+  while (true) {
+    if (! data->Next()) break;
+    auto& block = data->Value();
     uint32_t end = 0;
     for (auto i = 0u; i < block.size; i += metric_batch) {
       end = i + metric_batch > block.size ? block.size : i + metric_batch;
@@ -218,35 +215,55 @@ std::string Worker::Metric(mit::DMatrix * data) {
         metrics[idx] += batch_metric[idx];
       }
       metric_batch_count += 1;
+      if (cli_param_.is_progress) {
+        LOG(INFO) << msg << metric_batch_count << "," << end << ">";
+      }
     }
   } // while 
-  for (auto & metric_value : metrics) {
-    metric_value /= metric_batch_count;
-  }
+
+  for (auto& metric_value : metrics) metric_value /= metric_batch_count;
+  
+  return MetricMsg(metrics);
+} // Worker::Metric
+
+std::string Worker::MetricMsg(std::vector<float>& metrics) {
   std::string metric_info("");
   for (auto i = 0u; i < metrics.size(); ++i) {
-    metric_info += 
-      const_cast<char *>(trainer_->MetricInfo()[i]->Name()) 
-      + std::string("^") + std::to_string(metrics[i]);
+    metric_info += const_cast<char *>(trainer_->MetricInfo()[i]->Name()) + std::string("^") + std::to_string(metrics[i]);
     if (i != metrics.size() - 1) metric_info += ",";
   }
   return metric_info;
-}
+} // MetricMsg
 
-void Worker::MetricBatch(const dmlc::RowBlock<mit_uint> & batch, 
-                         std::vector<float> & metrics_value) {
+
+void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& metrics_value) {
   std::unordered_set<mit_uint> fset;
+  std::unordered_map<mit_uint, int> fkv;
+  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+  std::vector<int> extras;
   // user key set for mf model
   std::unordered_set<mit_uint> user_set;
-  KeySet(batch, fset, user_set, rating_map);
-  // get keys (if the model is mf, get the item keys)
+  if (cli_param_.model == "mf") {
+    //get keys (if the model is mf, get the item keys)
+    KeySetMF(batch, fset, user_set, rating_map);
+  }
+  else {
+    KeySet(batch, fset, fkv, extra);
+    if (extra) {
+      extras.resize(keys.size(), 0);
+      for (auto i = 0u; i < keys.size(); ++i) {
+        if (fkv.find(keys[i]) == fkv.end()) continue;
+        extras[i] = fkv[keys[i]];
+      }
+    }
+  }
   std::vector<ps::Key> keys(fset.begin(), fset.end());
   sort(keys.begin(), keys.end());
-
+  
   // pull operation 
   std::vector<mit_float> weights;
   std::vector<int> lens; 
-  kv_worker_->Wait(kv_worker_->Pull(keys, &weights, &lens));
+  kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
 
   // metric computing 
   metrics_value.clear();
@@ -277,51 +294,51 @@ void Worker::MetricBatch(const dmlc::RowBlock<mit_uint> & batch,
   else {
     trainer_->Metric(batch, keys, weights, lens, metrics_value);
   }
-}
+} // Worker::MetricBatch
 
-void Worker::KeySet(const dmlc::RowBlock<mit_uint> & batch, 
-                    std::unordered_set<mit_uint> & fset,
-                    std::unordered_set<mit_uint> & user_set,
-                    std::unordered_map<ps::Key, mit::mit_float> & rating_map) {
-  if (cli_param_.data_format == "libfm") {
+void Worker::KeySet(const dmlc::RowBlock<mit_uint>& batch, 
+                    std::unordered_set<mit_uint>& fset, 
+                    std::unordered_map<mit_uint, int>& fkv, 
+                    bool extra) {
+  fset.clear();
+  fset.insert(batch.index + batch.offset[0], batch.index + batch.offset[batch.size]); 
+  fset.insert(0);
+  if (extra) {
+    #pragma omp parallel for num_threads(cli_param_.num_thread)
     for (auto i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
-      mit_uint new_key = batch.index[i];
-      if (new_key > 0) {
-        new_key = mit::NewKey(
-          batch.index[i], batch.field[i], cli_param_.nbit);
-      }
-      fset.insert(new_key);   
+      #pragma omp critical
+      fkv[batch.index[i]] = (int)batch.field[i];
     }
-    fset.insert(0);  // for intercept
-  }
-  else if (cli_param_.data_format == "libsvm" && cli_param_.model == "mf") {
-    for (size_t row_id = 0; row_id < batch.size; row_id++) {
-      mit_uint user_id = (mit_uint)batch.label[row_id];
-      user_set.insert(user_id);
-      size_t length = batch.offset[row_id + 1] - batch.offset[row_id];
-      for (size_t offset_index = 0; offset_index < length; offset_index++)
-      {
-        mit_uint item_id = batch.index[batch.offset[row_id] + offset_index];
-        mit_float rating = batch.value[batch.offset[row_id] + offset_index];
-        fset.insert(item_id);
-        mit_uint new_key = mit::NewKey(
-          user_id, item_id, cli_param_.nbit);
-        if (rating_map.find(new_key) == rating_map.end()) {
-          rating_map.insert(std::make_pair(new_key, rating));
-        }
-        if (cli_param_.debug) {
-        //LOG(INFO) << "(" << user_id << "," << item_id << "," << rating << ")";
-        //LOG(INFO) << user_id << " " << item_id << " " << new_key << " " << DecodeFeature(new_key, cli_param_.nbit)<<" "<< DecodeField(new_key, cli_param_.nbit) << " " << rating_map[new_key];
-        }
-      }
-    }
-  }
-  else  { // data_format in ["auto", "libsvm"]
-    fset.insert(batch.index + batch.offset[0], 
-                batch.index + batch.offset[batch.size]);
-    fset.insert(0);  // for intercept
   }
 } // method Worker::KeySet
+
+void Worker::KeySetMF(const dmlc::RowBlock<mit_uint> & batch, 
+                      std::unordered_set<mit_uint> & fset,
+                      std::unordered_set<mit_uint> & user_set,
+                      std::unordered_map<ps::Key, mit::mit_float> & rating_map) {
+  CHECK_EQ(cli_param_.model, "mf");
+  CHECK_EQ(cli_param_.data_format, "libsvm");
+  for (size_t row_id = 0; row_id < batch.size; row_id++) {
+    mit_uint user_id = (mit_uint)batch.label[row_id];
+    user_set.insert(user_id);
+    size_t length = batch.offset[row_id + 1] - batch.offset[row_id];
+    for (size_t offset_index = 0; offset_index < length; offset_index++)
+    {
+      mit_uint item_id = batch.index[batch.offset[row_id] + offset_index];
+      mit_float rating = batch.value[batch.offset[row_id] + offset_index];
+      fset.insert(item_id);
+      mit_uint new_key = mit::NewKey(
+        user_id, item_id, cli_param_.nbit);
+      if (rating_map.find(new_key) == rating_map.end()) {
+        rating_map.insert(std::make_pair(new_key, rating));
+      }
+      if (cli_param_.debug) {
+        //LOG(INFO) << "(" << user_id << "," << item_id << "," << rating << ")";
+        //LOG(INFO) << user_id << " " << item_id << " " << new_key << " " << DecodeFeature(new_key, cli_param_.nbit)<<" "<< DecodeField(new_key, cli_param_.nbit) << " " << rating_map[new_key];
+      }
+    }
+  }
+} // Worker::KeySetMF
 
 void Worker::SaveModel(std::string epoch, std::string prefix) {
   std::string myrank = std::to_string(ps::MyRank());

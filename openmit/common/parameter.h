@@ -52,8 +52,10 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string optimizer_v;
     /*! \brief loss function */
     std::string loss;
-    /*! \brief metric */
+    /*! \brief metric name(s) */
     std::string metric;
+    /*! \brief whether train metric (many time-consuming) */
+    bool is_train_metric;
     /*! \brief number of global iteration */
     uint32_t max_epoch;
     /*! \brief number of computational unit */
@@ -101,10 +103,11 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(optimizer_v).set_default("");
       DMLC_DECLARE_FIELD(loss).set_default("logit");
       DMLC_DECLARE_FIELD(metric).set_default("auc,logloss");
+      DMLC_DECLARE_FIELD(is_train_metric).set_default(true);
     
       DMLC_DECLARE_FIELD(max_epoch).set_default(2);
       DMLC_DECLARE_FIELD(batch_size).set_default(100);
-      DMLC_DECLARE_FIELD(max_key).set_default(1e8);
+      DMLC_DECLARE_FIELD(max_key).set_default(0);
       DMLC_DECLARE_FIELD(nsample_rate).set_default(0.0);
       DMLC_DECLARE_FIELD(num_thread).set_default(4);
       
@@ -122,8 +125,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
 struct ModelParam : public dmlc::Parameter<ModelParam> {
   /*! \brief model name */
   std::string model;
-  /*! \brief max feature dimension id */
-  uint32_t max_key;
+  /*! \brief max feature dimension. it is suitable for mpi/local model */
+  uint32_t dim;
   /*! \brief latent vector length for fm/ffm */
   uint32_t embedding_size;
   /*! \brief field combine set */
@@ -144,7 +147,7 @@ struct ModelParam : public dmlc::Parameter<ModelParam> {
   // declare parameters 
   DMLC_DECLARE_PARAMETER(ModelParam) {
     DMLC_DECLARE_FIELD(model).set_default("lr");
-    DMLC_DECLARE_FIELD(max_key).set_default(1e8);
+    DMLC_DECLARE_FIELD(dim).set_default(1e8);
     DMLC_DECLARE_FIELD(embedding_size).set_default(4);
     DMLC_DECLARE_FIELD(field_combine_set).set_default("");
     DMLC_DECLARE_FIELD(field_combine_pair).set_default("");

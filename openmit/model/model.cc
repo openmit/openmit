@@ -9,7 +9,7 @@ Model::Model(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   model_param_.InitAllowUnknown(kwargs);
   entry_meta_.reset(new mit::EntryMeta(model_param_));
-  random_.reset(mit::math::ProbDistr::Create(model_param_));
+  random_.reset(mit::math::Random::Create(model_param_));
   optimizer_.reset(mit::Optimizer::Create(kwargs));
 }
 

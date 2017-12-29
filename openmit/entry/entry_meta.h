@@ -42,11 +42,11 @@ struct EntryMeta {
   ~EntryMeta();
 
   /*! \brief get field-ralated combine list by fieldid */
-  std::vector<mit_uint> * CombineInfo(const mit_uint & fieldid);
+  std::vector<mit_uint>* CombineInfo(const mit_uint& fieldid);
 
   /*! \brief get field index id */
-  int FieldIndex(const mit_uint & fieldid, 
-                 const mit_uint & rfieldid);
+  int FieldIndex(const mit_uint& fieldid, 
+                 const mit_uint& rfieldid);
 
   /*! \brief process field combine set */
   void ProcessFieldCombineSet(const std::string field_combine_set);
@@ -55,13 +55,13 @@ struct EntryMeta {
   void ProcessFieldCombinePair(const std::string field_combine_pair);
 
   /*! \brief fill field info */
-  void FillFieldInfo(mit_uint & field1, mit_uint & field2);
+  void FillFieldInfo(mit_uint& field1, mit_uint& field2);
 
   /*! \brief save entry meta info */
-  void Save(dmlc::Stream * fo);
+  void Save(dmlc::Stream* fo);
 
   /*! \brief load entry meta info */
-  void Load(dmlc::Stream * fi);
+  void Load(dmlc::Stream* fi);
 }; // struct EntryMeta
 
 } // namespace mit 
