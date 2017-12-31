@@ -35,6 +35,8 @@ struct KVPairs {
   // KVPairs() {}
   /** \brief the list of keys */
   SArray<Key> keys;
+  /** \brief the extra infos */
+  SArray<int> extras;
   /** \brief the according values */
   SArray<Val> vals;
   /** \brief the according value lengths (could be empty) */
@@ -87,8 +89,9 @@ class KVWorker : public SimpleApp {
    * \code
    *   KVWorker<float> w;
    *   std::vector<Key> keys = {1, 3};
+   *   std::vector<int> extrs = {};
    *   std::vector<float> vals = {1.1, 1.2, 3.1, 3.2};
-   *   w.Push(keys, vals);
+   *   w.Push(keys, extras, vals);
    * \endcode
    *
    * If \a lens is given, then the value can be various length. See
@@ -108,12 +111,13 @@ class KVWorker : public SimpleApp {
    * @return the timestamp of this request
    */
   int Push(const std::vector<Key>& keys,
+           const std::vector<int>& extras,
            const std::vector<Val>& vals,
            const std::vector<int>& lens = {},
            int cmd = 0,
            const Callback& cb = nullptr) {
     return ZPush(
-        SArray<Key>(keys), SArray<Val>(vals), SArray<int>(lens), cmd, cb);
+        SArray<Key>(keys), SArray<int>(extras), SArray<Val>(vals), SArray<int>(lens), cmd, cb);
   }
 
   /**
@@ -143,11 +147,12 @@ class KVWorker : public SimpleApp {
    * @return the timestamp of this request
    */
   int Pull(const std::vector<Key>& keys,
+           const std::vector<int>& extras,
            std::vector<Val>* vals,
            std::vector<int>* lens = nullptr,
            int cmd = 0,
            const Callback& cb = nullptr) {
-    return Pull_(SArray<Key>(keys), vals, lens, cmd, cb);
+    return Pull_(SArray<Key>(keys), SArray<int>(extras), vals, lens, cmd, cb);
   }
 
   /**
@@ -173,6 +178,7 @@ class KVWorker : public SimpleApp {
    * finished.
    */
   int ZPush(const SArray<Key>& keys,
+            const SArray<int>& extras,
             const SArray<Val>& vals,
             const SArray<int>& lens = {},
             int cmd = 0,
@@ -181,6 +187,7 @@ class KVWorker : public SimpleApp {
     AddCallback(ts, cb);
     KVPairs<Val> kvs;
     kvs.keys = keys;
+    kvs.extras = extras;
     kvs.vals = vals;
     kvs.lens = lens;
     Send(ts, true, cmd, kvs);
@@ -196,11 +203,12 @@ class KVWorker : public SimpleApp {
    * finished.
    */
   int ZPull(const SArray<Key>& keys,
+            const SArray<int>& extras,
             SArray<Val>* vals,
             SArray<int>* lens = nullptr,
             int cmd = 0,
             const Callback& cb = nullptr) {
-    return Pull_(keys, vals, lens, cmd, cb);
+    return Pull_(keys, extras, vals, lens, cmd, cb);
   }
   using SlicedKVs = std::vector<std::pair<bool, KVPairs<Val>>>;
   /**
@@ -226,7 +234,7 @@ class KVWorker : public SimpleApp {
    * \brief internal pull, C/D can be either SArray or std::vector
    */
   template <typename C, typename D>
-  int Pull_(const SArray<Key>& keys, C* vals, D* lens,
+  int Pull_(const SArray<Key>& keys, const SArray<int>& extras, C* vals, D* lens,
             int cmd, const Callback& cb);
   /**
    * \brief add a callback for a request. threadsafe.
@@ -337,9 +345,12 @@ struct KVServerDefaultHandle {
     size_t n = req_data.keys.size();
     KVPairs<Val> res;
     if (req_meta.push) {
+      if (req_data.extras.size()) CHECK_EQ(n, req_data.extras.size());
       CHECK_EQ(n, req_data.vals.size());
     } else {
-      res.keys = req_data.keys; res.vals.resize(n);
+      res.keys = req_data.keys;
+      res.extras = req_data.extras;
+      res.vals.resize(n);
     }
     for (size_t i = 0; i < n; ++i) {
       Key key = req_data.keys[i];
@@ -370,12 +381,14 @@ void KVServer<Val>::Process(const Message& msg) {
   KVPairs<Val> data;
   int n = msg.data.size();
   if (n) {
-    CHECK_GE(n, 2);
+    CHECK_GE(n, 3);
     data.keys = msg.data[0];
-    data.vals = msg.data[1];
-    if (n > 2) {
-      CHECK_EQ(n, 3);
-      data.lens = msg.data[2];
+    data.extras = msg.data[1];
+    data.vals = msg.data[2];
+    CHECK(data.extras.size() == 0 || data.extras.size() == data.keys.size());
+    if (n > 3) {
+      CHECK_EQ(n, 4);
+      data.lens = msg.data[3];
       CHECK_EQ(data.lens.size(), data.keys.size());
     }
   }
@@ -394,6 +407,7 @@ void KVServer<Val>::Response(const KVMeta& req, const KVPairs<Val>& res) {
   msg.meta.recver      = req.sender;
   if (res.keys.size()) {
     msg.AddData(res.keys);
+    msg.AddData(res.extras);
     msg.AddData(res.vals);
     if (res.lens.size()) {
       msg.AddData(res.lens);
@@ -432,6 +446,9 @@ void KVWorker<Val>::DefaultSlicer(
 
   // the length of value
   size_t k = 0, val_begin = 0, val_end = 0;
+  if (send.extras.size()) {
+    CHECK_EQ(send.keys.size(), send.extras.size()); 
+  }
   if (send.lens.empty()) {
     k = send.vals.size() / send.keys.size();
     CHECK_EQ(k * send.keys.size(), send.vals.size());
@@ -448,6 +465,9 @@ void KVWorker<Val>::DefaultSlicer(
     sliced->at(i).first = true;
     auto& kv = sliced->at(i).second;
     kv.keys = send.keys.segment(pos[i], pos[i+1]);
+    if (send.extras.size()) {
+      kv.extras = send.extras.segment(pos[i], pos[i+1]);
+    }
     if (send.lens.size()) {
       kv.lens = send.lens.segment(pos[i], pos[i+1]);
       for (int l : kv.lens) val_end += l;
@@ -488,6 +508,7 @@ void KVWorker<Val>::Send(int timestamp, bool push, int cmd, const KVPairs<Val>& 
     const auto& kvs = s.second;
     if (kvs.keys.size()) {
       msg.AddData(kvs.keys);
+      msg.AddData(kvs.extras);
       msg.AddData(kvs.vals);
       if (kvs.lens.size()) {
         msg.AddData(kvs.lens);
@@ -507,12 +528,13 @@ void KVWorker<Val>::Process(const Message& msg) {
   // store the data for pulling
   int ts = msg.meta.timestamp;
   if (!msg.meta.push && msg.data.size()) {
-    CHECK_GE(msg.data.size(), (size_t)2);
+    CHECK_GE(msg.data.size(), (size_t)3);
     KVPairs<Val> kvs;
     kvs.keys = msg.data[0];
-    kvs.vals = msg.data[1];
-    if (msg.data.size() > (size_t)2) {
-      kvs.lens = msg.data[2];
+    kvs.extras = msg.data[1];
+    kvs.vals = msg.data[2];
+    if (msg.data.size() > (size_t)3) {
+      kvs.lens = msg.data[3];
     }
     mu_.lock();
     recv_kvs_[ts].push_back(kvs);
@@ -543,24 +565,27 @@ void KVWorker<Val>::RunCallback(int timestamp) {
 template <typename Val>
 template <typename C, typename D>
 int KVWorker<Val>::Pull_(
-    const SArray<Key>& keys, C* vals, D* lens, int cmd, const Callback& cb) {
+    const SArray<Key>& keys, const SArray<int>& extras, C* vals, D* lens, int cmd, const Callback& cb) {
   int ts = obj_->NewRequest(kServerGroup);
-  AddCallback(ts, [this, ts, keys, vals, lens, cb]() mutable {
+  AddCallback(ts, [this, ts, keys, extras, vals, lens, cb]() mutable {
       mu_.lock();
       auto& kvs = recv_kvs_[ts];
       mu_.unlock();
 
       // do check
-      size_t total_key = 0, total_val = 0;
+      size_t total_key = 0, total_val = 0, total_extra = 0;
       for (const auto& s : kvs) {
         Range range = FindRange(keys, s.keys.front(), s.keys.back()+1);
         CHECK_EQ(range.size(), s.keys.size())
             << "unmatched keys size from one server";
+        if (extras.size()) CHECK_EQ(s.extras.size(), s.keys.size());
         if (lens) CHECK_EQ(s.lens.size(), s.keys.size());
         total_key += s.keys.size();
         total_val += s.vals.size();
+        if (extras.size()) total_extra += s.extras.size();
       }
       CHECK_EQ(total_key, keys.size()) << "lost some servers?";
+      CHECK_EQ(total_extra, extras.size()) << "lost some servers?";
 
       // fill vals and lens
       std::sort(kvs.begin(), kvs.end(), [](
@@ -598,7 +623,9 @@ int KVWorker<Val>::Pull_(
       if (cb) cb();
     });
 
-  KVPairs<Val> kvs; kvs.keys = keys;
+  KVPairs<Val> kvs; 
+  kvs.keys = keys;
+  kvs.extras = extras;
   Send(ts, false, cmd, kvs);
   return ts;
 }
