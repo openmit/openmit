@@ -50,7 +50,8 @@ class Trainer {
              std::vector<mit_float> & item_weights,
              std::vector<int> & item_lens,
              std::vector<mit_float> * user_grads,
-             std::vector<mit_float> * item_grads);
+             std::vector<mit_float> * item_grads,
+             std::vector<mit_float>& train_metric);
 
     /*! \brief metric logic for ps interface */
     void Metric(const dmlc::RowBlock<mit_uint> & batch, 

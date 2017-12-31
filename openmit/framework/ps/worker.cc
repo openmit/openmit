@@ -64,24 +64,16 @@ void Worker::Run() {
         }
         const auto batch = block.Slice(i, end);
         MiniBatch(batch, batch_metric);
-        LOG(INFO) << "before train_metric!";
-        //for (auto i = 0u; i < train_metric.size(); ++i) train_metric[i] += batch_metric[i];
-        //batch_count += 1;
-        LOG(INFO) << "after train_metric!";
+        for (auto i = 0u; i < train_metric.size(); ++i) train_metric[i] += batch_metric[i];
+        batch_count += 1;
       }
     } // while 
     trainer_->timer_stats_->stop(stats.ps_worker_train);
 
     /* metric */
-    //CHECK(batch_count > 0);
-    // for (auto& metric : train_metric) metric /= batch_count;
-    std::string metric_train_info;
-    if (cli_param_.model == "mf") {
-      metric_train_info = Metric(train_.get());
-    }
-    else {
-      metric_train_info = MetricMsg(train_metric);
-    }
+    CHECK(batch_count > 0);
+    for (auto& metric : train_metric) metric /= batch_count;
+    std::string metric_train_info = MetricMsg(train_metric);
     std::string metric_valid_info = Metric(valid_.get());
     // format: "epoch;train:auc^0.80,logloss^0.1;valid:auc^0.78,logloss^0.11"
     std::string metric_info = std::to_string(epoch);
@@ -106,16 +98,40 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
   // sorted unique key 
   trainer_->timer_stats_->begin(stats.ps_worker_pull);
   std::unordered_set<mit_uint> fset;
-
-  std::unordered_map<mit_uint, int> fkv;
-  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
   std::vector<int> extras;
-  
-  //user key set for mf model
-  std::unordered_set<mit_uint> user_set;
-  
-  // for mf model, initialize the user weights
-  if (cli_param_.model == "mf") {
+ 
+  if (cli_param_.model != "mf") {
+    std::unordered_map<mit_uint, int> fkv;
+    bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+    KeySet(batch, fset, fkv, extra);
+    std::vector<ps::Key> keys(fset.begin(), fset.end());
+    sort(keys.begin(), keys.end()); 
+
+    if (extra) {
+      extras.resize(keys.size(), 0);
+      for (auto i = 0u; i < keys.size(); ++i) {
+        if (fkv.find(keys[i]) == fkv.end()) continue;
+        extras[i] = fkv[keys[i]];
+      }
+    }
+    //pull operation
+    std::vector<mit_float> weights;
+    std::vector<int> lens;
+    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
+    if (cli_param_.debug) {
+      LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
+    }
+    trainer_->timer_stats_->stop(stats.ps_worker_pull);
+
+    // worker computing 
+    std::vector<mit_float> grads(weights.size(), 0.0f);
+    trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
+    // push operation (gradient)
+    kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
+  }
+  else {
+    //user key set for mf model
+    std::unordered_set<mit_uint> user_set;
     //get fset. if model type is mf, get item_set, user_set, and rating_map
     KeySetMF(batch, fset, user_set, rating_map);
     //the model is mf, get the item keys
@@ -128,6 +144,8 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
     if (cli_param_.debug) {
       LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
     }
+    std::vector<mit_float> grads(weights.size(), 0.0f);
+
     // for mf model, get the user keys
     std::vector<ps::Key> user_keys(user_set.begin(), user_set.end());
     sort(user_keys.begin(), user_keys.end());
@@ -148,19 +166,20 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
       LOG(INFO) << "lens from worker: "
         << mit::DebugStr(user_kv_pair.lens.data(), user_kv_pair.lens.size());
     }
-    //user gradient for mf(for mf model, user_grads store the user gradient(sgd) or result weight(als))
-    std::vector<mit_float> user_grads(user_kv_pair.vals.size(), 0.0f);
+    trainer_->timer_stats_->stop(stats.ps_worker_pull);
+
     std::vector<mit_float> user_weights;
     std::vector<int> user_lens;
     user_weights.resize(user_kv_pair.vals.size());
     user_lens.resize(user_kv_pair.lens.size());
+    //user gradient for mf(for mf model, user_grads store the user gradient(sgd) or result weight(als))
+    std::vector<mit_float> user_grads(user_weights.size(), 0.0f);
     for (size_t i = 0; i < user_kv_pair.lens.size(); ++i) {
       user_lens[i] = user_kv_pair.lens[i];
     }
     for (size_t i = 0; i < user_kv_pair.vals.size(); ++i) {
       user_weights[i] = user_kv_pair.vals[i];
     }
-    std::vector<mit_float> grads(weights.size(), 0.0f);
     if (cli_param_.debug) {
       LOG(INFO) << "user res vector before update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
       LOG(INFO) << "item res vector before update:" << mit::DebugStr(grads.data(), grads.size(), 12);
@@ -168,7 +187,7 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
     trainer_->Run(rating_map,
                   user_keys, user_weights, user_lens,
                   keys, weights, lens,
-                  &user_grads, &grads);
+                  &user_grads, &grads, train_metric);
     if (cli_param_.debug) {
       LOG(INFO) << "user res vector after update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
       LOG(INFO) << "item res vector after update:" << mit::DebugStr(grads.data(), grads.size(), 12);
@@ -178,34 +197,6 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
                    ps::SArray<mit_float> (user_grads),
                    ps::SArray<int>(user_lens),
                    &user_weight_);
-    LOG(INFO) << "after update user weights";
-    kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
-    LOG(INFO) << "after update item weidhts in server side";
-
-  }
-  else{  
-    KeySet(batch, fset, fkv, extra);
-    // get keys 
-    std::vector<ps::Key> keys(fset.begin(), fset.end());
-    sort(keys.begin(), keys.end());
-    if (extra) {
-      extras.resize(keys.size(), 0);
-      for (auto i = 0u; i < keys.size(); ++i) {
-        if (fkv.find(keys[i]) == fkv.end()) continue;
-        extras[i] = fkv[keys[i]];
-      }
-    }
-    //pull operation
-    std::vector<mit_float> weights;
-    std::vector<int> lens;
-    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
-    if (cli_param_.debug) {
-      LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
-    }
-    // worker computing 
-    std::vector<mit_float> grads(weights.size(), 0.0f);
-    trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
-    // push operation (gradient)
     kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
   }
 }
@@ -253,25 +244,42 @@ std::string Worker::MetricMsg(std::vector<float>& metrics) {
 void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& metrics_value) {
   std::unordered_set<mit_uint> fset;
   std::unordered_map<mit_uint, int> fkv;
-  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
   std::vector<int> extras;
-  // user key set for mf model
-  std::unordered_set<mit_uint> user_set;
-
   // metric computing 
   metrics_value.clear();
-  if (cli_param_.model == "mf") {
-    //get keys (if the model is mf, get the item keys)
-    KeySetMF(batch, fset, user_set, rating_map);
-  
+  if (cli_param_.model != "mf") {
+    std::unordered_map<mit_uint, int> fkv;
+    bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+    KeySet(batch, fset, fkv, extra);
     std::vector<ps::Key> keys(fset.begin(), fset.end());
     sort(keys.begin(), keys.end());
+
+    if (extra) {
+      extras.resize(keys.size(), 0);
+      for (auto i = 0u; i < keys.size(); ++i) {
+        if (fkv.find(keys[i]) == fkv.end()) continue;
+        extras[i] = fkv[keys[i]];
+      }
+    }
   
     // pull operation 
     std::vector<mit_float> weights;
     std::vector<int> lens; 
     kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
-
+    // metric computing 
+    trainer_->Metric(batch, keys, weights, lens, metrics_value);
+  } 
+  else {//mf model
+    // user key set for mf model
+    std::unordered_set<mit_uint> user_set;
+    //get keys (if the model is mf, get the item keys)
+    KeySetMF(batch, fset, user_set, rating_map);
+    std::vector<ps::Key> keys(fset.begin(), fset.end());
+    sort(keys.begin(), keys.end());
+    // pull operation 
+    std::vector<mit_float> weights;
+    std::vector<int> lens; 
+    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
     // for mf model, get the user keys
     std::vector<ps::Key> user_keys(user_set.begin(), user_set.end());
     sort(user_keys.begin(), user_keys.end());
@@ -279,7 +287,7 @@ void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<floa
     ps::KVPairs<mit_float> user_kv_pair;
     user_kv_pair.keys.CopyFrom(user_keys.data(), user_keys.size());
     model_->Pull(user_kv_pair, &user_weight_);
-
+  
     std::vector<mit_float> user_weights;
     std::vector<int> user_lens;
     user_weights.resize(user_kv_pair.vals.size());
@@ -294,24 +302,6 @@ void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<floa
                      user_keys, user_weights, user_lens,
                      keys, weights, lens,
                      metrics_value);
-  }
-  else {
-    KeySet(batch, fset, fkv, extra);
-    std::vector<ps::Key> keys(fset.begin(), fset.end());
-    sort(keys.begin(), keys.end());
-    if (extra) {
-      extras.resize(keys.size(), 0);
-      for (auto i = 0u; i < keys.size(); ++i) {
-        if (fkv.find(keys[i]) == fkv.end()) continue;
-        extras[i] = fkv[keys[i]];
-      }
-    }
-  
-    // pull operation 
-    std::vector<mit_float> weights;
-    std::vector<int> lens; 
-    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
-    trainer_->Metric(batch, keys, weights, lens, metrics_value);
   }
 } // Worker::MetricBatch
 

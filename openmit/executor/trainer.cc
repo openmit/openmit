@@ -91,7 +91,8 @@ void Trainer::Run(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
                   std::vector<mit_float> & item_weights,
                   std::vector<int> & item_lens,
                   std::vector<mit_float> * user_grads,
-                  std::vector<mit_float> * item_grads) {
+                  std::vector<mit_float> * item_grads,
+                  std::vector<mit_float>& train_metric) {
   CHECK_EQ(user_keys.size(), user_lens.size());
   CHECK_EQ(user_weights.size(), user_grads->size());
   CHECK_EQ(item_keys.size(), item_lens.size());
@@ -112,7 +113,6 @@ void Trainer::Run(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
     if (cli_param_.debug) {
       LOG(INFO) << "factorization by als completed!";
     }
-    return;
   }
   else { //matrix fatorization by sgd
     auto user_feature_size = user_keys.size();
@@ -160,6 +160,45 @@ void Trainer::Run(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
       user_offset += user_len;
     }
   }//else sgd
+
+  /* metric train based on batch data */
+  timer_stats_->begin(stats.ps_worker_train_metric);
+  train_metric.resize(metrics_.size(), 0.0);
+  if (cli_param_.is_train_metric) {
+    auto user_feature_size = user_keys.size();
+    auto item_feature_size = item_keys.size();
+    size_t user_offset = 0;
+    size_t item_offset = 0;
+    std::vector<mit_float> preds;
+    std::vector<mit_float> labels;
+    for (auto i = 0u; i < user_feature_size; i++){
+      mit_uint user_id = user_keys[i];
+      mit_uint user_len = user_lens[i];
+      item_offset = 0;
+      for (auto j = 0u; j < item_feature_size; j++){
+        mit_uint item_id = item_keys[j];
+        mit_uint item_len = item_lens[j];
+        CHECK_EQ(user_len, item_len);
+        mit_uint new_key = mit::NewKey(
+          user_id, item_id, cli_param_.nbit);
+        if (rating_map.find(new_key) == rating_map.end()){
+          item_offset += item_len;
+          continue;
+        }
+        auto mfunc_value = model_->Predict(user_weights, user_offset,
+                                         item_weights, item_offset, user_len);
+        preds.push_back(mfunc_value);
+        labels.push_back(rating_map[new_key]);
+        item_offset += item_len;
+      }
+      user_offset += user_len;
+    }
+    for (auto i = 0u; i < train_metric.size(); ++i) {
+      train_metric[i] = metrics_[i]->Eval(preds, labels);
+    }
+  }
+  timer_stats_->stop(stats.ps_worker_train_metric);
+
 }// Trainer::Run
 
 void Trainer::Metric(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& keys, std::vector<mit_float>& weights, std::vector<int>& lens, std::vector<float>& metrics_value) {
