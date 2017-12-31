@@ -266,7 +266,7 @@ struct MFEntry : Entry {
 /*! \brief constructor for matrix factorization model */
   MFEntry(const mit::ModelParam & model_param,
           mit::EntryMeta * entry_meta,
-          mit::math::ProbDistr * distr) {
+          mit::math::Random* distr) {
     embedding_size = model_param.embedding_size;
     CHECK(embedding_size > 0)
       << "embedding_size should be > 0 for fm model.";

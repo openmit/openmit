@@ -20,6 +20,7 @@
 #include "openmit/metric/metric.h"
 #include "openmit/tools/profiler/timer_stats.h"
 #include "openmit/model/psmodel.h"
+#include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
 /*!
@@ -61,10 +62,10 @@ class Worker {
                 bool extra);   
     
     /*! \brief key set */
-    void KeySet(const dmlc::RowBlock<mit_uint> & batch,
-                std::unordered_set<mit_uint> & fset,
-                std::unordered_set<mit_uint> & user_set,
-                std::unordered_map<ps::Key, mit::mit_float> & rating_map);
+    void KeySetMF(const dmlc::RowBlock<mit_uint> & batch,
+                  std::unordered_set<mit_uint> & fset,
+                  std::unordered_set<mit_uint> & user_set,
+                  std::unordered_map<ps::Key, mit::mit_float> & rating_map);
     
   private:
     /*! \brief metric method */
