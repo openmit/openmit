@@ -8,6 +8,13 @@ Worker::Worker(const mit::KWArgs & kwargs) {
 
 Worker::~Worker() {
   if (kv_worker_) { delete kv_worker_; kv_worker_ = NULL; }
+
+  std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
+  for (iter = user_weight_.begin(); iter != user_weight_.end(); iter++) {
+    if (iter->second) {
+      delete iter->second; iter->second = nullptr;
+    }
+  }
 }
 
 void Worker::Init(const mit::KWArgs & kwargs) {
