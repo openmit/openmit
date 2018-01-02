@@ -25,7 +25,8 @@ void Server::Init(const mit::KWArgs & kwargs) {
   model_.reset(mit::PSModel::Create(kwargs));
 
   // thread pool 
-  thread_pool_.reset(new mit::ThreadPool(cli_param_.num_thread));
+  CHECK_GT(cli_param_.num_thread, 0);
+  thread_pool_.reset(new mit::ThreadPool(1));
 
   // parameter 
   complete_worker_number_ = 0;
@@ -66,7 +67,7 @@ void Server::KVHandle(const ps::KVMeta& req_meta,
       default:
         LOG(FATAL) << "unknown cmd. " << req_meta.cmd;
     }
-  } else { // pull
+  } else { // pull 
     //PullRequest(req_meta, req_data, server);
     thread_pool_->Append([this, req_meta, req_data, server]() { PullRequest(req_meta, req_data, server); });
   }

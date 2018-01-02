@@ -12,7 +12,7 @@ PSFFM::~PSFFM() {}
 PSFFM* PSFFM::Get(const mit::KWArgs& kwargs) {
   return new PSFFM(kwargs);
 }
-/*
+
 // single thread
 void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
@@ -22,20 +22,27 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   // key 
   for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
+    mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
       auto fid = response.extras[i];
-      CHECK(fid > 0) << "fid = 0";
-      auto* entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
-      weight->insert(std::make_pair(key, entry));
+      if (key > 0) CHECK(fid > 0) << "fid = 0, key: " << key;
+      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
+      {
+        std::lock_guard<std::mutex> lk(mu_);
+        weight->insert(std::make_pair(key, entry));
+      }
+    } else {
+      entry = (*weight)[key];
     }
-    auto* entry = (*weight)[key];
-    ps::SArray<mit_float> entry_data(entry->Data(), entry->Size());
-    response.vals.append(entry_data);
+    CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
+    for (auto i = 0u; i < entry->Size(); ++i) {
+      response.vals.push_back(entry->Get(i));
+    }
     response.lens[i] = entry->Size();
   }
 }
-*/
 
+/*
 void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
   CHECK(keys_size > 0);
@@ -90,6 +97,7 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
     }
   }
 }
+*/
  
 void PSFFM::Update(const ps::SArray<mit_uint>& keys, 
                    const ps::SArray<mit_float>& vals, 

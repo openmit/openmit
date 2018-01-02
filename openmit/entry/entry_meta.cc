@@ -63,7 +63,7 @@ void EntryMeta::ProcessFieldCombineSet(const std::string field_combine_set) {
   for (auto i = 0u; i < fields.size(); ++i) {
     fields_map.insert(
       std::make_pair(fields.at(i), new std::vector<mit_uint>(fields.begin(), fields.end())));
-    LOG(INFO) << "field info fid: " << fields.at(i) << ", rfields.size: " << fields.size();
+    //LOG(INFO) << "field info fid: " << fields.at(i) << ", rfields.size: " << fields.size();
   }
 } 
 

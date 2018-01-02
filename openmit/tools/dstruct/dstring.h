@@ -1,7 +1,7 @@
 /*!
  *  Copyright (c) 2016 by Contributors
- *  \file string_op.h
- *  \brief basic match formula, such as sigmoid, distance etc.
+ *  \file dstring.h
+ *  \brief string basic op 
  *  \author ZhouYong
  */
 #ifndef OPENMIT_TOOLS_DSTRUCT_DSTRING_H_
