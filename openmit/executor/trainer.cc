@@ -183,12 +183,24 @@ void Trainer::Run(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
           user_id, item_id, cli_param_.nbit);
         if (rating_map.find(new_key) == rating_map.end()){
           item_offset += item_len;
+          /*
+          if(cli_param_.optimizer=="als" && cli_param_.implicit) {
+            preds.push_back(mfunc_value * sqrt(rating_map[new_key]));
+            labels.push_back(0);
+          }
+          */
           continue;
         }
         auto mfunc_value = model_->Predict(user_weights, user_offset,
                                          item_weights, item_offset, user_len);
-        preds.push_back(mfunc_value);
-        labels.push_back(rating_map[new_key]);
+        if(cli_param_.optimizer=="als" && cli_param_.implicit) {
+          preds.push_back(mfunc_value * sqrt(rating_map[new_key]));
+          labels.push_back(sqrt(rating_map[new_key]));
+        }
+        else{
+          preds.push_back(mfunc_value);
+          labels.push_back(rating_map[new_key]);
+        }
         item_offset += item_len;
       }
       user_offset += user_len;
@@ -259,8 +271,14 @@ void Trainer::Metric(std::unordered_map<ps::Key, mit::mit_float>& rating_map,
       }
       auto mfunc_value = model_->Predict(user_weights, user_offset,
                                          item_weights, item_offset, user_len);
-      preds.push_back(mfunc_value);
-      labels.push_back(rating_map[new_key]);
+      if(cli_param_.optimizer=="als" && cli_param_.implicit) {
+        preds.push_back(mfunc_value * sqrt(rating_map[new_key]));
+        labels.push_back(sqrt(rating_map[new_key]));
+      }
+      else{
+        preds.push_back(mfunc_value);
+        labels.push_back(rating_map[new_key]);
+      }
       item_offset += item_len;
     }
     user_offset += user_len;

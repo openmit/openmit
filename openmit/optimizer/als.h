@@ -31,7 +31,7 @@ struct NormalEquation {
     if (da) { delete[] da; da = nullptr; }
   }  
   /*! \brief copy feature vector to da array*/
-  void copyToDouble(std::vector<mit_float> & weights,
+  void copyToDouble(const std::vector<mit_float> & weights,
                     mit_uint offset,
                     mit_int n) {
     CHECK(n == length);
@@ -41,7 +41,7 @@ struct NormalEquation {
   }
 
   /*! \brief adds an rating to norm equation*/
-  void add(std::vector<mit_float> & weights,
+  void add(const std::vector<mit_float> & weights,
            mit_uint offset,
            mit_int n,
            mit_float b,
@@ -52,7 +52,10 @@ struct NormalEquation {
     mit_int incx = 1;
     mit_int incy = 1;
     //update ata:= c*da*da' + ata
+    //LOG(INFO) << " da:" << mit::DebugStr(da,2, 15) << " c:" << c;
+    //LOG(INFO) << " ata:" << mit::DebugStr(ata,3, 15);
     dspr_(&type, &n, &c, da, &incx, ata); //ata := c*da*da' + ata
+    //LOG(INFO) << " ata:" << mit::DebugStr(ata,3, 15);
     if (b != 0.0) {
       mit_double alpha = c * b;
       /*if (cli_param_.debug) {
@@ -62,7 +65,9 @@ struct NormalEquation {
       }
       */
       //update atb:= da*alpha + atb
+      //LOG(INFO) << " atb:" << mit::DebugStr(atb,3, 15);
       daxpy_(&length, &alpha, da, &incx, atb, &incy);
+      //LOG(INFO) << " atb:" << mit::DebugStr(atb,3, 15);
       /*
       if (cli_param_.debug) {
         LOG(INFO) << " atb after update:" << mit::DebugStr(atb, 10, 15);
@@ -76,7 +81,7 @@ struct NormalEquation {
     mit_double alpha = 1.0;
     mit_int incx = 1;
     mit_int incy = 1;
-    daxpy_(&length, &alpha, other->ata, &incx, ata, &incy);
+    daxpy_(&triK, &alpha, other->ata, &incx, ata, &incy);
     daxpy_(&length, &alpha, other->atb, &incx, atb, &incy);
   }
   /*! \brief reset left matrix ata and right vector atb*/ 
@@ -173,6 +178,17 @@ class ALSOptimizer : public Optimizer {
                        mit_float lambda,
                        std::vector<mit_float>* res_vector,
                        mit_uint offset);
+    /*!
+     * \brief init equation, for efficient solving implicit als
+     * \param ne norm equation
+     * \param keys user or item ids
+     * \param weights user or item factor weights
+     * \param lens user or item lengths
+     */
+    void initEquation(NormalEquation* ne,
+                      const std::vector<ps::Key>& keys,
+                      const std::vector<mit_float>& weights,
+                      const std::vector<int>& lens);
   private:
     /*! \brief als parameter */
     mit::OptimizerParam param_; 
@@ -183,7 +199,12 @@ ALSOptimizer::ALSOptimizer(const mit::KWArgs & kwargs) {
   param_.InitAllowUnknown(kwargs);
   this->param_w_.InitAllowUnknown(kwargs);
   cli_param_.InitAllowUnknown(kwargs);
-  LOG(INFO) << "als initialization completed!";
+  if (cli_param_.implicit) {
+    LOG(INFO) << "implicit als initialization completed";
+  }
+  else {
+    LOG(INFO) << "explicit als initialization completed";
+  }
 }
 
 ALSOptimizer::~ALSOptimizer() {}
@@ -203,18 +224,28 @@ void ALSOptimizer::Update(std::unordered_map<ps::Key, mit::mit_float>& rating_ma
   CHECK_EQ(item_weights.size(), item_res_vector->size());
   auto user_feature_size = user_keys.size();
   auto item_feature_size = item_keys.size();
-  
   CHECK(user_lens.size() > 0);
   if (cli_param_.debug) {
     LOG(INFO) << "norm equation latent length:" << user_lens[0];
   }
+  //begin solving each factor 
   NormalEquation* ne = new NormalEquation(user_lens[0]);
+  NormalEquation* ne_pre = new NormalEquation(user_lens[0]);
   //optimize user latent vector
   size_t user_offset = 0;
   size_t item_offset = 0;
   mit_uint rating_num = 0;
+  
+  if (cli_param_.implicit) {
+    initEquation(ne_pre, item_keys, item_weights, item_lens);
+  }
   for (auto i = 0u; i < user_feature_size; i++){
     ne->reset();
+    if (cli_param_.implicit) {
+      ne->merge(ne_pre);
+    }
+    LOG(INFO) << "ne->ata:" << mit::DebugStr(ne->ata, 3, 10);
+    LOG(INFO) << "ne->atb:" << mit::DebugStr(ne->atb, 2, 10);
     item_offset = 0;
     rating_num = 0; 
     mit_uint user_id = user_keys[i];
@@ -226,27 +257,35 @@ void ALSOptimizer::Update(std::unordered_map<ps::Key, mit::mit_float>& rating_ma
       mit_uint new_key = mit::NewKey(
         user_id, item_id, cli_param_.nbit);
       if (rating_map.find(new_key) != rating_map.end()){
-        ne->add(item_weights,
-                item_offset,
-                item_len,
-                rating_map[new_key]);
+        if (cli_param_.implicit){
+          mit_float c = param_.alpha * rating_map[new_key];
+          ne->add(item_weights, item_offset, item_len, (c + 1.0) / c, c);
+        }
+        else {
+          ne->add(item_weights,
+                  item_offset,
+                  item_len,
+                  rating_map[new_key]);
+        }
         rating_num++;
       }
       item_offset += item_len;
     }
     //get solve result of user i
-    if (cli_param_.debug) {    
-      LOG(INFO) << "lambada=" << param_.l2 << ", rating_num=" << rating_num;
-    }
     CholeskySolve(ne, rating_num * param_.l2, user_res_vector, user_offset);
     user_offset += user_len;
   }
-
   //solve item latent vector
   user_offset = 0;
   item_offset = 0;
+  if (cli_param_.implicit) {
+    initEquation(ne_pre, item_keys, *user_res_vector, item_lens);
+  }
   for (auto i = 0u; i < item_feature_size; i++){
     ne->reset();
+    if (cli_param_.implicit) {
+      ne->merge(ne_pre);
+    }
     user_offset = 0;
     rating_num = 0; 
     mit_uint item_id = item_keys[i];
@@ -258,17 +297,16 @@ void ALSOptimizer::Update(std::unordered_map<ps::Key, mit::mit_float>& rating_ma
       mit_uint new_key = mit::NewKey(
         user_id, item_id, cli_param_.nbit);
       if (rating_map.find(new_key) != rating_map.end()){
-        //LOG(INFO) << "ata before:" << mit::DebugStr(ne->ata, 3, 15);
-        //LOG(INFO) << "atb before:" << mit::DebugStr(ne->ata, 2, 15);
-        ne->add(*user_res_vector,
-                user_offset,
-                user_len,
-                rating_map[new_key]);
-        //LOG(INFO) << "feature:" << mit::DebugStr(user_res_vector->data(),10, 15);
-        //LOG(INFO) << "offset:" << user_offset;
-        //LOG(INFO) << "rating" << rating_map[new_key];
-        //LOG(INFO) << "ata after:" << mit::DebugStr(ne->ata, 3, 15);
-        //LOG(INFO) << "atb after:" << mit::DebugStr(ne->ata, 2, 15);
+        if (cli_param_.implicit){
+          mit_float c = param_.alpha * rating_map[new_key];
+          ne->add(*user_res_vector, user_offset, user_len, (c + 1.0) / c, c); 
+        }   
+        else {
+          ne->add(*user_res_vector,
+                  user_offset,
+                  user_len,
+                  rating_map[new_key]);
+        }   
         rating_num++;
       }
       user_offset += user_len;
@@ -279,6 +317,29 @@ void ALSOptimizer::Update(std::unordered_map<ps::Key, mit::mit_float>& rating_ma
   }
   delete ne;
 }
+
+void ALSOptimizer::initEquation(NormalEquation* ne,
+                                const std::vector<ps::Key>& keys,
+                                const std::vector<mit_float>& weights,
+                                const std::vector<int>& lens){
+  CHECK_EQ(keys.size(), lens.size());
+  CHECK(lens.size() > 0);
+  CHECK_EQ(lens[0], ne->length);
+  ne->reset();
+  size_t factor_num = keys.size();
+  size_t factor_len = lens[0];
+  mit_uint offset = 0;
+  for (size_t i = 0u; i < factor_num; i++){
+    CHECK_EQ(lens[i], factor_len);
+    LOG(INFO) << "ne_pre->ata:" << mit::DebugStr(ne->ata, 3, 10);
+    LOG(INFO) << "ne_pre->atb:" << mit::DebugStr(ne->atb, 2, 10);
+    ne->add(weights, offset, factor_len, 0);
+    LOG(INFO) << "ne_pre->ata:" << mit::DebugStr(ne->ata, 3, 10);
+    LOG(INFO) << "ne_pre->atb:" << mit::DebugStr(ne->atb, 2, 10);
+    offset += lens[i];
+  }
+}
+
 
 void ALSOptimizer::CholeskySolve(NormalEquation* ne, 
                                  mit_float lambda,

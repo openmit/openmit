@@ -50,6 +50,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string optimizer;
     /*! \brief optimizer for fm/ffm embedding learning */
     std::string optimizer_v;
+    /*! \brief implicit for indicating implict feedback in als */
+    bool implicit;
     /*! \brief loss function */
     std::string loss;
     /*! \brief metric name(s) */
@@ -101,6 +103,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(model).set_default("lr");
       DMLC_DECLARE_FIELD(optimizer).set_default("ftrl");
       DMLC_DECLARE_FIELD(optimizer_v).set_default("");
+      DMLC_DECLARE_FIELD(implicit).set_default(false);
       DMLC_DECLARE_FIELD(loss).set_default("logit");
       DMLC_DECLARE_FIELD(metric).set_default("auc,logloss");
       DMLC_DECLARE_FIELD(is_train_metric).set_default(true);
@@ -183,7 +186,6 @@ struct OptimizerParam : public dmlc::Parameter<OptimizerParam> {
   float gamma;
   /*! \brief epsilon avoid denominator equals to 0 */
   float epsilon;
-
   /*! \brief declare field */
   DMLC_DECLARE_PARAMETER(OptimizerParam) {
     DMLC_DECLARE_FIELD(optimizer).set_default("sgd");
