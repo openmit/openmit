@@ -25,6 +25,9 @@ export LIBRARY_PATH=$HADOOP_HOME/lib/native:$LIBRARY_PATH
 export HDFS_INC_PATH=${HADOOP_HOME}/include
 export HDFS_LIB_PATH=${HADOOP_HOME}/lib/native
 
+
+LD_LIBRARY_PATH=$GCC_LIB_PATH:$LD_LIBRARY_PATH
+cmake_bin=/data1/lantian/open_source/tool/cmake-3.9.2-Linux-x86_64/bin/cmake
 # step1: compile protobuf
 #sh ${wk_dir}/message/compile-pb.sh $wk_dir/test
 
@@ -34,7 +37,7 @@ if [ "X$is_all_build" == "X1" ] || [ ! -d $wk_dir/build ]; then
   rm -rf $wk_dir/build || true
   mkdir -p $wk_dir/build 
   cd $wk_dir/build
-  cmake -D CMAKE_C_COMPILER=${GCC} -D CMAKE_CXX_COMPILER=${GXX} $wk_dir
+  $cmake_bin -D CMAKE_C_COMPILER=${GCC} -D CMAKE_CXX_COMPILER=${GXX} $wk_dir
 else
   cd $wk_dir/build
 fi

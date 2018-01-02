@@ -255,6 +255,65 @@ struct FFMEntry : Entry {
   } // method Load
 }; // struct FFMEntry
 
+
+/*! 
+ * \brief factorization machine model store unit 
+ */
+struct MFEntry : Entry {
+  /*! \brief length of latent factor */
+  size_t embedding_size;
+
+/*! \brief constructor for matrix factorization model */
+  MFEntry(const mit::ModelParam & model_param,
+          mit::EntryMeta * entry_meta,
+          mit::math::Random* distr) {
+    embedding_size = model_param.embedding_size;
+    CHECK(embedding_size > 0)
+      << "embedding_size should be > 0 for fm model.";
+    length = embedding_size;
+    wv = new mit_float[length]();
+    for (auto idx = 0u; idx < length; ++idx) {
+      wv[idx] = distr->random();
+    }
+  }
+
+  /*! \brief destructor */
+  ~MFEntry() {}
+
+  /*! \brief string format entry info */
+  std::string String(mit::EntryMeta * entry_meta = NULL) override {
+    std::string info = std::to_string(wv[0]);
+    for (auto k = 1u; k < embedding_size; ++k) {
+      info += " " + std::to_string(wv[k]);
+    }
+    return info;
+  }
+
+  /*! \brief save entry */
+  void Save(dmlc::Stream * fo,
+            mit::EntryMeta * entry_meta = NULL) override {
+    fo->Write((char *) &embedding_size, sizeof(size_t));
+    for (size_t k = 0; k < embedding_size; ++k) {
+      fo->Write((char *) &wv[k], sizeof(mit_float));
+    }
+  }
+
+  /*! \brief load entry */
+  void Load(dmlc::Stream * fi,
+            mit::EntryMeta * entry_meta = NULL) override {
+    size_t embedsize;
+    fi->Read(&embedsize, sizeof(size_t));
+    CHECK(embedding_size == embedsize && embedsize > 0);
+    mit_float value;
+    fi->Read(&value, sizeof(mit_float));
+    wv[0] = value;
+    for (size_t k = 0; k < embedsize; ++k) {
+      fi->Read(&value, sizeof(mit_float));
+      wv[1 + k] = value;
+    }
+  }
+}; // struct MFEntry
+
 // entry map type 
 typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
 

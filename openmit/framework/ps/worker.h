@@ -19,6 +19,8 @@
 #include "openmit/framework/ps/signal.h"
 #include "openmit/metric/metric.h"
 #include "openmit/tools/profiler/timer_stats.h"
+#include "openmit/model/psmodel.h"
+#include "openmit/tools/monitor/transaction.h"
 
 namespace mit {
 /*!
@@ -44,17 +46,27 @@ class Worker {
     
     /*! \brief predict based ps */
     void RunPredict();
+    /* brief save model in the worker node*/
+    void SaveModel(std::string epoch="", std::string prefix="user-");
+    void SaveBinaryModel(dmlc::Stream * fo);
+    void SaveTextModel(dmlc::Stream * fo);
     
     /*! \brief train model based on mini-batch data */
     void MiniBatch(const dmlc::RowBlock<mit_uint>& batch, 
                    std::vector<float>& batch_metric);
-    
+
     /*! \brief key set */
     void KeySet(const dmlc::RowBlock<mit_uint>& batch, 
                 std::unordered_set<mit_uint>& fset, 
                 std::unordered_map<mit_uint, int>& fkv, 
                 bool extra);   
-
+    
+    /*! \brief key set */
+    void KeySetMF(const dmlc::RowBlock<mit_uint> & batch,
+                  std::unordered_set<mit_uint> & fset,
+                  std::unordered_set<mit_uint> & user_set,
+                  std::unordered_map<ps::Key, mit::mit_float> & rating_map);
+    
   private:
     /*! \brief metric method */
     std::string Metric(mit::DMatrix * data);
@@ -85,6 +97,13 @@ class Worker {
     std::shared_ptr<mit::DMatrix> test_;
     /*! \brief timer stats */
     mit::STATS stats;
+    /*! \brief user latent vector for matrix factorization*/
+    std::unordered_map<ps::Key, mit::Entry *> user_weight_;
+    /*! \brief rating map for matrix factorization*/
+    std::unordered_map<ps::Key, mit::mit_float> rating_map;
+    /*! \brief model for pull request */
+    std::shared_ptr<mit::PSModel> model_;
+
 }; // class Worker
 } // namespace mit
 

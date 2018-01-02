@@ -12,6 +12,9 @@ Entry* Entry::Create(const mit::ModelParam& model_param,
     return new mit::FMEntry(model_param, entry_meta, distr);
   } else if (model_param.model == "ffm") {
     return new mit::FFMEntry(model_param, entry_meta, distr, field);
+  }  else if (model_param.model == "mf"){
+    return new mit::MFEntry(
+      model_param, entry_meta, distr);
   } else {
     LOG(FATAL) << "unknown model. " << model_param.model;
     return nullptr;

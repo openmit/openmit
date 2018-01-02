@@ -8,12 +8,20 @@ Worker::Worker(const mit::KWArgs & kwargs) {
 
 Worker::~Worker() {
   if (kv_worker_) { delete kv_worker_; kv_worker_ = NULL; }
+
+  std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
+  for (iter = user_weight_.begin(); iter != user_weight_.end(); iter++) {
+    if (iter->second) {
+      delete iter->second; iter->second = nullptr;
+    }
+  }
 }
 
 void Worker::Init(const mit::KWArgs & kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   kv_worker_ = new ps::KVWorker<mit_float>(0);
   trainer_.reset(new mit::Trainer(kwargs));
+  model_.reset(mit::PSModel::Create(kwargs));
   
   int partid = ps::MyRank();
   int npart = ps::NumWorkers();
@@ -63,7 +71,6 @@ void Worker::Run() {
         }
         const auto batch = block.Slice(i, end);
         MiniBatch(batch, batch_metric);
-
         for (auto i = 0u; i < train_metric.size(); ++i) train_metric[i] += batch_metric[i];
         batch_count += 1;
       }
@@ -78,9 +85,14 @@ void Worker::Run() {
     // format: "epoch;train:auc^0.80,logloss^0.1;valid:auc^0.78,logloss^0.11"
     std::string metric_info = std::to_string(epoch);
     metric_info += ";train:" + metric_train_info + ";valid:" + metric_valid_info;
+    if (cli_param_.model == "mf"){
+      SaveModel("", "user-");
+    }
     static_cast<ps::SimpleApp *>(kv_worker_)->Request(mit::signal::METRIC, metric_info, ps::kScheduler);
   } // end for epochs
-  
+  if (cli_param_.model == "mf"){
+    SaveModel("", "user-");
+  } 
   // send signal to tell server & scheduler worker finish.
   kv_worker_->Wait(kv_worker_->Request(signal::WORKER_FINISH, "worker finish", ps::kScheduler + ps::kServerGroup));
 
@@ -93,35 +105,107 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
   // sorted unique key 
   trainer_->timer_stats_->begin(stats.ps_worker_pull);
   std::unordered_set<mit_uint> fset;
-  std::unordered_map<mit_uint, int> fkv;
-  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
-  KeySet(batch, fset, fkv, extra);
-  std::vector<ps::Key> keys(fset.begin(), fset.end());
-  sort(keys.begin(), keys.end());
-  
   std::vector<int> extras;
-  if (extra) {
-    extras.resize(keys.size(), 0);
-    for (auto i = 0u; i < keys.size(); ++i) {
-      if (fkv.find(keys[i]) == fkv.end()) continue;
-      extras[i] = fkv[keys[i]];
-    }
-  }
-  // pull operation 
-  std::vector<mit_float> weights;
-  std::vector<int> lens; 
-  kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
-  if (cli_param_.debug) {
-    LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
-  }
-  trainer_->timer_stats_->stop(stats.ps_worker_pull);
-  
-  // worker computing 
-  std::vector<mit_float> grads(weights.size(), 0.0f);
-  trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
+ 
+  if (cli_param_.model != "mf") {
+    std::unordered_map<mit_uint, int> fkv;
+    bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+    KeySet(batch, fset, fkv, extra);
+    std::vector<ps::Key> keys(fset.begin(), fset.end());
+    sort(keys.begin(), keys.end()); 
 
-  // push operation (gradient)
-  kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
+    if (extra) {
+      extras.resize(keys.size(), 0);
+      for (auto i = 0u; i < keys.size(); ++i) {
+        if (fkv.find(keys[i]) == fkv.end()) continue;
+        extras[i] = fkv[keys[i]];
+      }
+    }
+    //pull operation
+    std::vector<mit_float> weights;
+    std::vector<int> lens;
+    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
+    if (cli_param_.debug) {
+      LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
+    }
+    trainer_->timer_stats_->stop(stats.ps_worker_pull);
+
+    // worker computing 
+    std::vector<mit_float> grads(weights.size(), 0.0f);
+    trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
+    // push operation (gradient)
+    kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
+  }
+  else {
+    //user key set for mf model
+    std::unordered_set<mit_uint> user_set;
+    //get fset. if model type is mf, get item_set, user_set, and rating_map
+    KeySetMF(batch, fset, user_set, rating_map);
+    //the model is mf, get the item keys
+    std::vector<ps::Key> keys(fset.begin(), fset.end());
+    sort(keys.begin(), keys.end());
+    //pull operation (weight for the model. if model type is mf, then weights is item weight)
+    std::vector<mit_float> weights;
+    std::vector<int> lens;
+    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
+    if (cli_param_.debug) {
+      LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
+    }
+    std::vector<mit_float> grads(weights.size(), 0.0f);
+
+    // for mf model, get the user keys
+    std::vector<ps::Key> user_keys(user_set.begin(), user_set.end());
+    sort(user_keys.begin(), user_keys.end());
+    ps::KVPairs<mit_float> user_kv_pair;
+    user_kv_pair.keys.CopyFrom(user_keys.data(), user_keys.size());
+    model_->Pull(user_kv_pair, &user_weight_);
+    if (cli_param_.debug) {
+      LOG(INFO) << "keys from server: "
+        << mit::DebugStr(keys.data(), keys.size());
+      LOG(INFO) << "weights from server: "
+        << mit::DebugStr(weights.data(), weights.size(), 12);
+      LOG(INFO) << "lens from server: "
+        << mit::DebugStr(lens.data(), lens.size());
+      LOG(INFO) << "keys from worker: "
+        << mit::DebugStr(user_kv_pair.keys.data(), user_kv_pair.keys.size());
+      LOG(INFO) << "weights from worker: "
+        << mit::DebugStr(user_kv_pair.vals.data(), user_kv_pair.vals.size(), 12);
+      LOG(INFO) << "lens from worker: "
+        << mit::DebugStr(user_kv_pair.lens.data(), user_kv_pair.lens.size());
+    }
+    trainer_->timer_stats_->stop(stats.ps_worker_pull);
+
+    std::vector<mit_float> user_weights;
+    std::vector<int> user_lens;
+    user_weights.resize(user_kv_pair.vals.size());
+    user_lens.resize(user_kv_pair.lens.size());
+    //user gradient for mf(for mf model, user_grads store the user gradient(sgd) or result weight(als))
+    std::vector<mit_float> user_grads(user_weights.size(), 0.0f);
+    for (size_t i = 0; i < user_kv_pair.lens.size(); ++i) {
+      user_lens[i] = user_kv_pair.lens[i];
+    }
+    for (size_t i = 0; i < user_kv_pair.vals.size(); ++i) {
+      user_weights[i] = user_kv_pair.vals[i];
+    }
+    if (cli_param_.debug) {
+      LOG(INFO) << "user res vector before update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
+      LOG(INFO) << "item res vector before update:" << mit::DebugStr(grads.data(), grads.size(), 12);
+    }
+    trainer_->Run(rating_map,
+                  user_keys, user_weights, user_lens,
+                  keys, weights, lens,
+                  &user_grads, &grads, train_metric);
+    if (cli_param_.debug) {
+      LOG(INFO) << "user res vector after update:" << mit::DebugStr(user_grads.data(), user_grads.size(), 15);
+      LOG(INFO) << "item res vector after update:" << mit::DebugStr(grads.data(), grads.size(), 12);
+    }
+    //update user weights
+    model_->Update(ps::SArray<mit_uint>(user_keys),
+                   ps::SArray<mit_float> (user_grads),
+                   ps::SArray<int>(user_lens),
+                   &user_weight_);
+    kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
+  }
 }
 
 std::string Worker::Metric(mit::DMatrix* data) {
@@ -167,27 +251,65 @@ std::string Worker::MetricMsg(std::vector<float>& metrics) {
 void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& metrics_value) {
   std::unordered_set<mit_uint> fset;
   std::unordered_map<mit_uint, int> fkv;
-  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
-  KeySet(batch, fset, fkv, extra);
-  std::vector<ps::Key> keys(fset.begin(), fset.end());
-  sort(keys.begin(), keys.end());
-  
   std::vector<int> extras;
-  if (extra) {
-    extras.resize(keys.size(), 0);
-    for (auto i = 0u; i < keys.size(); ++i) {
-      if (fkv.find(keys[i]) == fkv.end()) continue;
-      extras[i] = fkv[keys[i]];
-    }
-  }
-  // pull operation 
-  std::vector<mit_float> weights;
-  std::vector<int> lens; 
-  kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
-
   // metric computing 
   metrics_value.clear();
-  trainer_->Metric(batch, keys, weights, lens, metrics_value);
+  if (cli_param_.model != "mf") {
+    std::unordered_map<mit_uint, int> fkv;
+    bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+    KeySet(batch, fset, fkv, extra);
+    std::vector<ps::Key> keys(fset.begin(), fset.end());
+    sort(keys.begin(), keys.end());
+
+    if (extra) {
+      extras.resize(keys.size(), 0);
+      for (auto i = 0u; i < keys.size(); ++i) {
+        if (fkv.find(keys[i]) == fkv.end()) continue;
+        extras[i] = fkv[keys[i]];
+      }
+    }
+  
+    // pull operation 
+    std::vector<mit_float> weights;
+    std::vector<int> lens; 
+    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
+    // metric computing 
+    trainer_->Metric(batch, keys, weights, lens, metrics_value);
+  } 
+  else {//mf model
+    // user key set for mf model
+    std::unordered_set<mit_uint> user_set;
+    //get keys (if the model is mf, get the item keys)
+    KeySetMF(batch, fset, user_set, rating_map);
+    std::vector<ps::Key> keys(fset.begin(), fset.end());
+    sort(keys.begin(), keys.end());
+    // pull operation 
+    std::vector<mit_float> weights;
+    std::vector<int> lens; 
+    kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
+    // for mf model, get the user keys
+    std::vector<ps::Key> user_keys(user_set.begin(), user_set.end());
+    sort(user_keys.begin(), user_keys.end());
+    // for mf model, pull the user weights
+    ps::KVPairs<mit_float> user_kv_pair;
+    user_kv_pair.keys.CopyFrom(user_keys.data(), user_keys.size());
+    model_->Pull(user_kv_pair, &user_weight_);
+  
+    std::vector<mit_float> user_weights;
+    std::vector<int> user_lens;
+    user_weights.resize(user_kv_pair.vals.size());
+    user_lens.resize(user_kv_pair.lens.size());
+    for (size_t i = 0; i < user_kv_pair.lens.size(); ++i) {
+      user_lens[i] = user_kv_pair.lens[i];
+    }
+    for (size_t i = 0; i < user_kv_pair.vals.size(); ++i) {
+      user_weights[i] = user_kv_pair.vals[i];
+    }
+    trainer_->Metric(rating_map,
+                     user_keys, user_weights, user_lens,
+                     keys, weights, lens,
+                     metrics_value);
+  }
 } // Worker::MetricBatch
 
 void Worker::KeySet(const dmlc::RowBlock<mit_uint>& batch, 
@@ -204,6 +326,87 @@ void Worker::KeySet(const dmlc::RowBlock<mit_uint>& batch,
       fkv[batch.index[i]] = (int)batch.field[i];
     }
   }
-} // method Worker::KeySet 
+} // method Worker::KeySet
+
+void Worker::KeySetMF(const dmlc::RowBlock<mit_uint> & batch, 
+                      std::unordered_set<mit_uint> & fset,
+                      std::unordered_set<mit_uint> & user_set,
+                      std::unordered_map<ps::Key, mit::mit_float> & rating_map) {
+  CHECK_EQ(cli_param_.model, "mf");
+  CHECK_EQ(cli_param_.data_format, "libsvm");
+  for (size_t row_id = 0; row_id < batch.size; row_id++) {
+    mit_uint user_id = (mit_uint)batch.label[row_id];
+    user_set.insert(user_id);
+    size_t length = batch.offset[row_id + 1] - batch.offset[row_id];
+    for (size_t offset_index = 0; offset_index < length; offset_index++)
+    {
+      mit_uint item_id = batch.index[batch.offset[row_id] + offset_index];
+      mit_float rating = batch.value[batch.offset[row_id] + offset_index];
+      fset.insert(item_id);
+      mit_uint new_key = mit::NewKey(
+        user_id, item_id, cli_param_.nbit);
+      if (rating_map.find(new_key) == rating_map.end()) {
+        rating_map.insert(std::make_pair(new_key, rating));
+      }
+      if (cli_param_.debug) {
+        //LOG(INFO) << "(" << user_id << "," << item_id << "," << rating << ")";
+        //LOG(INFO) << user_id << " " << item_id << " " << new_key << " " << DecodeFeature(new_key, cli_param_.nbit)<<" "<< DecodeField(new_key, cli_param_.nbit) << " " << rating_map[new_key];
+      }
+    }
+  }
+} // Worker::KeySetMF
+
+void Worker::SaveModel(std::string epoch, std::string prefix) {
+  std::string myrank = std::to_string(ps::MyRank());
+  LOG(INFO) << "@worker[" + myrank + "] save model begin";
+  std::string dump_out = cli_param_.model_dump;
+  std::string bin_out = cli_param_.model_binary;
+  if (epoch == "") {
+    dump_out += ("/" + prefix + "part-" + myrank);
+    bin_out += ("/last/" + prefix + "part-" + myrank);
+  } else {   // save middle result by epoch
+    std::string postfix = "/" + prefix + "iter-" + epoch + "/part-" + myrank;
+    dump_out += ".middle" + postfix;
+    bin_out += postfix;
+  }
+  std::unique_ptr<dmlc::Stream> dumpfo(
+    dmlc::Stream::Create(dump_out.c_str(), "w"));
+  SaveTextModel(dumpfo.get());
+  std::unique_ptr<dmlc::Stream> binfo(
+    dmlc::Stream::Create(bin_out.c_str(), "w"));
+  SaveBinaryModel(binfo.get());
+  LOG(INFO) << "@server[" + myrank + "] save model done.";
+}
+
+void Worker::SaveTextModel(dmlc::Stream * fo) {
+  std::unique_ptr<Transaction> trans(new Transaction(1, "server", "dump_out"));
+  mit::EntryMeta * entry_meta = model_->EntryMeta();
+  dmlc::ostream oss(fo);
+  for (auto & kv : user_weight_) {
+    auto key = kv.first;
+    oss << key << "\t" << kv.second->String(entry_meta) << "\n";
+  }
+  // force flush before fo destruct 
+  oss.set_stream(nullptr);
+  Transaction::End(trans.get());
+}
+
+void Worker::SaveBinaryModel(dmlc::Stream * fo) {
+  std::unique_ptr<Transaction> trans(
+    new Transaction(1, "server", "binary_out"));
+  // save entry meta
+  mit::EntryMeta * entry_meta = model_->EntryMeta();
+  entry_meta->Save(fo);
+  // save model 
+  std::unordered_map<ps::Key, mit::Entry * >::iterator iter;
+  iter = user_weight_.begin();
+  while (iter != user_weight_.end()) {
+    // TODO  key special process
+    fo->Write((char *) &iter->first, sizeof(ps::Key));
+    iter->second->Save(fo, entry_meta);
+    iter++;
+  }
+  Transaction::End(trans.get());
+} // method SaveBinaryModel
 
 } // namespace mit
