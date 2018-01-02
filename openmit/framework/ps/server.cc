@@ -21,8 +21,11 @@ void Server::Init(const mit::KWArgs & kwargs) {
   static_cast<ps::SimpleApp *>(kv_server_)->set_response_handle(
     std::bind(&Server::CmdHandle, this, _1, _2));
   
-  // model for update 
+  // model for update && pull
   model_.reset(mit::PSModel::Create(kwargs));
+
+  // thread pool 
+  thread_pool_.reset(new mit::ThreadPool(cli_param_.num_thread));
 
   // parameter 
   complete_worker_number_ = 0;
@@ -64,13 +67,12 @@ void Server::KVHandle(const ps::KVMeta& req_meta,
         LOG(FATAL) << "unknown cmd. " << req_meta.cmd;
     }
   } else { // pull
-    ps::KVPairs<mit_float> response;
-    PullRequest(req_data, response);
-    server->Response(req_meta, response);
+    //PullRequest(req_meta, req_data, server);
+    thread_pool_->Append([this, req_meta, req_data, server]() { PullRequest(req_meta, req_data, server); });
   }
 }
 
-void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
+void Server::CmdHandle(const ps::SimpleData& recved, ps::SimpleApp* app) {
   ps::Message msg;
   msg.meta.head           = recved.head;
   msg.meta.body           = recved.body;
@@ -100,10 +102,15 @@ void Server::CmdHandle(const ps::SimpleData & recved, ps::SimpleApp * app) {
   }
 }
 
-void Server::PullRequest(const ps::KVPairs<mit_float>& req_data, ps::KVPairs<mit_float>& response) {
+void Server::PullRequest(const ps::KVMeta& req_meta, 
+                         const ps::KVPairs<mit_float>& req_data, 
+                         ps::KVServer<mit_float>* server) {
+  ps::KVPairs<mit_float> response;
   response.keys = req_data.keys;
   response.extras = req_data.extras;
-  model_->Pull(response, &weight_);
+  this->model_->Pull(response, &weight_);
+
+  server->Response(req_meta, response);
 }
 
 void Server::ExitCondition() {

@@ -1,137 +1,96 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+#ifndef OPENMIT_TOOLS_THREAD_THREAD_POOL_H_
+#define OPENMIT_TOOLS_THREAD_THREAD_POOL_H_ 
 
-/*!
- * Copyright (c) 2015 by Contributors
- */
-#ifndef MXNET_ENGINE_THREAD_POOL_H_
-#define MXNET_ENGINE_THREAD_POOL_H_
-
-#include <dmlc/base.h>
-#include <cstddef>
-#include <vector>
-#include <list>
+#include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <stdexcept>
 #include <thread>
-#include <utility>
-#include "mxnet/base.h"
+#include <vector>
 
-namespace mxnet {
-namespace engine {
-
+namespace mit {
 /*!
- * \brief Thread pool.
+ * \brief a general thread pool, include return result type
  */
 class ThreadPool {
- public:
-  /*! \brief Simple manually-signalled event gate which remains open */
-  class SimpleEvent {
-   public:
-    SimpleEvent()
-      : signaled_(false) {}
-    void wait() {
-      std::unique_lock<std::mutex> lock(mutex_);
-      if (!signaled_) {
-        condition_variable_.wait(lock);
-      }
-    }
-    void signal() {
-      signaled_ = true;
-      std::unique_lock<std::mutex> lk(mutex_);
-      condition_variable_.notify_all();
-    }
+  public:
+    /*! \brief constructor and initialize thread pool */
+    ThreadPool(size_t threads);
+  
+    /*! \brief destructor free thread */
+    ~ThreadPool();
 
-    /*! \brief Signal event upon destruction, even for exceptions (RAII) */
-    struct SetReadyOnDestroy {
-      explicit inline SetReadyOnDestroy(std::shared_ptr<SimpleEvent> *event)
-        : event_(*event) {
-      }
-      inline ~SetReadyOnDestroy() {
-        if (event_) {
-          event_->signal();
+    /*! 
+     * \brief append a task event
+     * \param class F function 
+     * \param Args arguments
+     */
+    template<class F, class... Args>
+    auto Append(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+
+  private:
+    /*! \brief worker threads */
+    std::vector<std::thread> worker_threads_;
+    /*! \brief ready task */
+    std::queue<std::function<void()>> ready_tasks_;
+    /*! \brief sync task */
+    std::mutex mu_;
+    std::condition_variable cond_;
+    std::atomic<bool> stop_;
+    
+}; // class ThreadPool
+
+inline ThreadPool::ThreadPool(size_t threads) : stop_(false){
+  for (size_t i = 0; i < threads; ++i) {
+    worker_threads_.emplace_back([this] {
+      while (true) {
+        std::function<void()> task;
+        {
+          std::unique_lock<std::mutex> lk(this->mu_);
+          this->cond_.wait(lk, [this] { return this->stop_ || !this->ready_tasks_.empty(); });
+          if (this->stop_ && this->ready_tasks_.empty()) return;
+          task = std::move(this->ready_tasks_.front());
+          this->ready_tasks_.pop();
         }
+        task();
       }
-      std::shared_ptr<SimpleEvent>  event_;
-    };
-
-   private:
-    std::mutex              mutex_;
-    std::condition_variable condition_variable_;
-    std::atomic<bool>       signaled_;
-  };
-
-  /*!
-   * \brief Constructor takes function to run.
-   * \param size size of the thread pool.
-   * \param func the function to run on the thread pool.
-   */
-  explicit ThreadPool(size_t size, std::function<void()> func)
-      : worker_threads_(size) {
-    for (auto& i : worker_threads_) {
-      i = std::thread(func);
-    }
+    });
   }
-  explicit ThreadPool(size_t size,
-                      std::function<void(std::shared_ptr<SimpleEvent> ready)> func,
-                      const bool wait)
-      : worker_threads_(size) {
-    for (auto& i : worker_threads_) {
-      std::shared_ptr<SimpleEvent> ptr = std::make_shared<SimpleEvent>();
-      ready_events_.emplace_back(ptr);
-      i = std::thread(func, ptr);
-    }
-    if (wait) {
-      WaitForReady();
-    }
-  }
-  ~ThreadPool() noexcept(false) {
-    for (auto&& i : worker_threads_) {
-      i.join();
-    }
-  }
+} // ThreadPool::ThreadPool 
 
- private:
-  /*!
-   * \brief Wait for all started threads to signal that they're ready
-   */
-  void WaitForReady() {
-    for (std::shared_ptr<SimpleEvent> ptr : ready_events_) {
-      ptr->wait();
-    }
+inline ThreadPool::~ThreadPool() {
+  {
+    std::unique_lock<std::mutex> lk(mu_);
+    stop_ = true;
   }
+  cond_.notify_all();
+  for (auto&& thread : worker_threads_) {
+    thread.join();
+  }
+} // ThreadPool::~ThreadPool
 
-  /*!
-   * \brief Worker threads.
-   */
-  std::vector<std::thread> worker_threads_;
-  /*!
-   * \brief Startup synchronization objects
-   */
-  std::list<std::shared_ptr<SimpleEvent>> ready_events_;
-  /*!
-   * \brief Disallow default construction.
-   */
-  ThreadPool() = delete;
-  /*!
-   * \brief Disallow copy construction and assignment.
-   */
-  DISALLOW_COPY_AND_ASSIGN(ThreadPool);
-};
-}  // namespace engine
-}  // namespace mxnet
-#endif  // MXNET_ENGINE_THREAD_POOL_H_
+template<class F, class... Args>
+auto ThreadPool::Append(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type> {
+  using return_type = typename std::result_of<F(Args...)>::type;
+  
+  auto task = std::make_shared<std::packaged_task<return_type()>>(
+    std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+  
+  std::future<return_type> rt = task->get_future();
+  {
+    std::unique_lock<std::mutex> lk(mu_);
+    if (stop_) {
+      throw std::runtime_error("ThreadPool has stopped. it can not Append op.");
+    }
+    ready_tasks_.emplace([task]() { (*task)(); });
+  }
+  cond_.notify_one();
+  return rt;
+} // ThreadPool::Append
+
+} // namespace mit
+#endif // OPENMIT_TOOLS_THREAD_THREAD_POOL_H_
