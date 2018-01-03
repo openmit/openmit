@@ -17,6 +17,7 @@
 #include "openmit/common/parameter.h"
 #include "openmit/entry/entry_meta.h"
 #include "openmit/tools/dstruct/dstring.h"
+#include "openmit/tools/dstruct/threadsafe_map.h"
 #include "openmit/tools/math/random.h"
 
 namespace mit {
@@ -256,7 +257,8 @@ struct FFMEntry : Entry {
 }; // struct FFMEntry
 
 // entry map type 
-typedef std::unordered_map<mit_uint, mit::Entry * > entry_map_type;
+//typedef std::unordered_map<mit_uint, mit::Entry* > entry_map_type;
+typedef mit::ThreadsafeMap<mit_uint, mit::Entry*> entry_map_type;
 
 } // namespace mit 
 #endif // OPENMIT_ENTRY_ENTRY_H_

@@ -26,6 +26,7 @@
 #include "openmit/model/psmodel.h"
 #include "openmit/framework/ps/signal.h"
 #include "openmit/tools/thread/thread_pool.h"
+#include "openmit/tools/dstruct/threadsafe_map.h"
 
 namespace mit {
 /*!
@@ -100,7 +101,8 @@ class Server {
     ps::KVServer<mit_float>* kv_server_; 
     
     /*! \brief global model weight */
-    std::unordered_map<ps::Key, mit::Entry*> weight_;
+    //std::unordered_map<ps::Key, mit::Entry*> weight_;
+    mit::ThreadsafeMap<ps::Key, mit::Entry*> weight_;
     
     /*! \brief model for server op: update && pull */
     std::shared_ptr<mit::PSModel> model_;

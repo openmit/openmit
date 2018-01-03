@@ -2,8 +2,8 @@
 cd $(dirname `ls -ls $0 | awk '{print $NF;}'`)/..
 wk_dir=`pwd`
 
-num_workers=5
-num_servers=2
+num_workers=1
+num_servers=1
 
   #train_path = example/data/libsvm/train \
   #valid_path = example/data/libsvm/agaricus.txt.test \
@@ -20,4 +20,4 @@ ${wk_dir}/tracker/dmlc-submit \
   valid_path = example/data/libfm/test.txt \
   test_path = example/data/libfm/test.txt \
   model_dump = example/data/model_out/model_dump.libfm \
-  model_binary = example/data/model_out/model_binary.libfm
+  model_binary = example/data/model_out/model_binary.libfm 

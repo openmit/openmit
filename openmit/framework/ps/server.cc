@@ -26,7 +26,7 @@ void Server::Init(const mit::KWArgs & kwargs) {
 
   // thread pool 
   CHECK_GT(cli_param_.num_thread, 0);
-  thread_pool_.reset(new mit::ThreadPool(1));
+  thread_pool_.reset(new mit::ThreadPool(cli_param_.num_thread));
 
   // parameter 
   complete_worker_number_ = 0;
@@ -35,8 +35,8 @@ void Server::Init(const mit::KWArgs & kwargs) {
 Server::~Server() { 
   if (kv_server_) { delete kv_server_; kv_server_ = nullptr; }
 
-  std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
-  for (iter = weight_.begin(); iter != weight_.end(); iter++) {
+  //std::unordered_map<ps::Key, mit::Entry*>::iterator iter;
+  for (auto iter = weight_.begin(); iter != weight_.end(); iter++) {
     if (iter->second) {
       delete iter->second; iter->second = nullptr;
     }
@@ -59,17 +59,18 @@ void Server::KVHandle(const ps::KVMeta& req_meta,
     switch(cmd) {
       case signal::UPDATE: {
         if (cli_param_.debug) {
-          std::string msg = "grads from worker " + mit::DebugStr(req_data.vals.data(), 10);
+          std::string msg = "grads from worker " + mit::DebugStr(req_data.vals.data(), 5);
           LOG(INFO) << msg;
         }
-        model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight_);
+        //model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight_);
+        //if (cli_param_.debug) LOG(INFO) << "update done";
       } break;
       default:
         LOG(FATAL) << "unknown cmd. " << req_meta.cmd;
     }
   } else { // pull 
-    //PullRequest(req_meta, req_data, server);
-    thread_pool_->Append([this, req_meta, req_data, server]() { PullRequest(req_meta, req_data, server); });
+    PullRequest(req_meta, req_data, server);
+    //thread_pool_->Append([this, req_meta, req_data, server]() { PullRequest(req_meta, req_data, server); });
   }
 }
 
@@ -117,6 +118,7 @@ void Server::PullRequest(const ps::KVMeta& req_meta,
 void Server::ExitCondition() {
   mutex_.lock(); 
   complete_worker_number_++; 
+  LOG(INFO) << "complete_worker_number_: " << complete_worker_number_;
   mutex_.unlock();
   if (complete_worker_number_ == ps::NumWorkers()) {
     SaveModel();
@@ -166,8 +168,8 @@ void Server::SaveBinaryModel(dmlc::Stream * fo) {
   mit::EntryMeta * entry_meta = model_->EntryMeta();
   entry_meta->Save(fo);
   // save model 
-  std::unordered_map<ps::Key, mit::Entry * >::iterator iter;
-  iter = weight_.begin();
+  //std::unordered_map<ps::Key, mit::Entry* >::iterator iter;
+  auto iter = weight_.begin();
   while (iter != weight_.end()) {
     // TODO  key special process
     fo->Write((char *) &iter->first, sizeof(ps::Key));

@@ -31,7 +31,9 @@ void Worker::Init(const mit::KWArgs & kwargs) {
     test_.reset(new mit::DMatrix(
       cli_param_.test_path, partid, npart, cli_param_.data_format));
   }
-  LOG(INFO) << "ps worker init done";
+  std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] worker init done.";
+  LOG(INFO) << msg;
+  //LOG(INFO) << "ps worker init done";
 }
 
 void Worker::Run() {
@@ -110,9 +112,10 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
   // pull operation 
   std::vector<mit_float> weights;
   std::vector<int> lens; 
+  if (cli_param_.debug) LOG(INFO) << "@w[" << ps::MyRank() << "] pull before.";
   kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
   if (cli_param_.debug) {
-    LOG(INFO) << "weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
+    LOG(INFO) << "@w[" << ps::MyRank() << "] pull done. weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
   }
   trainer_->timer_stats_->stop(stats.ps_worker_pull);
   

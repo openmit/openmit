@@ -13,6 +13,7 @@ PSFFM* PSFFM::Get(const mit::KWArgs& kwargs) {
   return new PSFFM(kwargs);
 }
 
+/*
 // single thread
 void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
@@ -20,29 +21,37 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   CHECK_EQ(keys_size, response.extras.size());   // store field id
   response.lens.resize(keys_size);
   // key 
+  if (cli_param_.debug) LOG(INFO) << "PSFFM::Pull begin";
   for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
+      if (cli_param_.debug) LOG(INFO) << "PSFFM::Pull 1 key not in weight-" << key;
       auto fid = response.extras[i];
       if (key > 0) CHECK(fid > 0) << "fid = 0, key: " << key;
       entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
       {
-        std::lock_guard<std::mutex> lk(mu_);
+        //std::lock_guard<std::mutex> lk(mu_);
+        mu_.lock();
         weight->insert(std::make_pair(key, entry));
+        mu_.unlock();
       }
     } else {
+      if (cli_param_.debug) LOG(INFO) << "PSFFM::Pull 1 key in weight-" << key;
       entry = (*weight)[key];
     }
+    if (cli_param_.debug) LOG(INFO) << "PSFFM::Pull 2 key: " << key;
     CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
     for (auto i = 0u; i < entry->Size(); ++i) {
       response.vals.push_back(entry->Get(i));
     }
     response.lens[i] = entry->Size();
+    if (cli_param_.debug) LOG(INFO) << "PSFFM::Pull 3 key: " << key;
   }
+  if (cli_param_.debug) LOG(INFO) << "PSFFM::Pull done";
 }
+*/
 
-/*
 void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
   CHECK(keys_size > 0);
@@ -51,6 +60,7 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+  //size_t nthread = 1;
   int chunksize = keys_size / nthread;
   if (keys_size % nthread != 0) chunksize += 1;
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
@@ -65,17 +75,21 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
     if (weight->find(key) == weight->end()) {
       auto fid = response.extras[i];
       if (key > 0) CHECK(fid > 0);
-      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
-      CHECK_NOTNULL(entry);
       #pragma omp critical 
       {
+        entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
+        CHECK_NOTNULL(entry);
+        LOG(INFO) << "tid: " << omp_get_thread_num() << ", key-" << key << " not exist weight";
         std::lock_guard<std::mutex> lk(mu_);
         weight->insert(std::make_pair(key, entry));
       }
     } else {
+      LOG(INFO) << "tid: " << omp_get_thread_num() << ", key-" << key << " exist weight";
       entry = (*weight)[key];
     }
-    CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
+    CHECK(entry != nullptr) << "tid: " << omp_get_thread_num() << ", entry key-" << key;
+    //CHECK_NOTNULL(entry);
+    CHECK_GT(entry->Size(), 0);
     if (entry->Size() > 15) {
       vals_thread[omp_get_thread_num()]->insert(
         vals_thread[omp_get_thread_num()]->end(), entry->Data(), entry->Data() + entry->Size());
@@ -96,8 +110,8 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       delete vals_thread[i]; vals_thread[i] = NULL;
     }
   }
+  LOG(INFO) << "pull done";
 }
-*/
  
 void PSFFM::Update(const ps::SArray<mit_uint>& keys, 
                    const ps::SArray<mit_float>& vals, 
