@@ -2,7 +2,7 @@
 
 namespace mit {
 
-Write::Write(const char * file, 
+Write::Write(const char* file, 
              bool is_binary,
              bool is_append) {
   is_binary_ = is_binary;
@@ -13,13 +13,13 @@ Write::Write(const char * file,
   open(file, mode);
 }
 
-bool Write::open(const char * file, 
+bool Write::open(const char* file, 
                  std::ios_base::openmode mode) {
   ofs_.open(file, mode);
   return ofs_.is_open() && ofs_.good();
 }
 
-bool Write::write_line(const char * content) {
+bool Write::write_line(const char* content) {
   // CHECK
   if (is_binary_) {
     std::cout << "write_line function not suitable to write binary file." << std::endl;
@@ -28,7 +28,7 @@ bool Write::write_line(const char * content) {
   return write(content, true);
 }
 
-bool Write::write(const char * content, bool endln) {
+bool Write::write(const char* content, bool endln) {
   if (is_binary_) {
     std::cout << "write_line function not suitable to write binary file." << std::endl;
     return false;
@@ -41,7 +41,7 @@ bool Write::write(const char * content, bool endln) {
   return false;
 }
 
-bool Write::write_binary(const char * content, size_t size) {
+bool Write::write_binary(const char* content, size_t size) {
   if (! is_binary_) {
     std::cout << "current out fstream is not ios_base::binary mode." << std::endl;
     return false;

@@ -22,14 +22,10 @@ class CliParam : public dmlc::Parameter<CliParam> {
     std::string valid_path;
     /*! \brief test data path */
     std::string test_path;
-    /*! \brief predict result output path */
-    std::string predict_out;
-    /*! \brief model dump output path */
-    std::string model_dump;
-    /*! \brief model binary output path */
-    std::string model_binary;
     /*! \brief model load input path (binary) */
     std::string model_in;
+    /*! \brief result out path */
+    std::string out_path;
     /*! \brief data format type. such as "auto"/"libsvm"/"libfm" */
     std::string data_format;
     /*! \brief whether instance data contains intercept */
@@ -84,10 +80,8 @@ class CliParam : public dmlc::Parameter<CliParam> {
       DMLC_DECLARE_FIELD(train_path).set_default("");
       DMLC_DECLARE_FIELD(valid_path).set_default("");
       DMLC_DECLARE_FIELD(test_path).set_default("");
-      DMLC_DECLARE_FIELD(predict_out).set_default("");
-      DMLC_DECLARE_FIELD(model_dump).set_default("");
-      DMLC_DECLARE_FIELD(model_binary).set_default("");
       DMLC_DECLARE_FIELD(model_in).set_default("");
+      DMLC_DECLARE_FIELD(out_path).set_default("");
       DMLC_DECLARE_FIELD(data_format).set_default("libsvm")
         .describe("data format. it supports 'auto'/'libsvm'/'libfm'.");
       DMLC_DECLARE_FIELD(is_contain_intercept).set_default(false)

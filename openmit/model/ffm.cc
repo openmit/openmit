@@ -60,7 +60,6 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
 
   // feature (multi-thread)
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
-  //size_t nthread = 1;
   int chunksize = keys_size / nthread;
   if (keys_size % nthread != 0) chunksize += 1;
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
@@ -70,34 +69,26 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
   }
   #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 0u; i < keys_size; ++i) {
+    int threadid = omp_get_thread_num();
     ps::Key key = response.keys[i];
     mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
       auto fid = response.extras[i];
       if (key > 0) CHECK(fid > 0);
+      entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
+      CHECK_NOTNULL(entry);
       #pragma omp critical 
       {
-        entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
-        CHECK_NOTNULL(entry);
-        LOG(INFO) << "tid: " << omp_get_thread_num() << ", key-" << key << " not exist weight";
         std::lock_guard<std::mutex> lk(mu_);
         weight->insert(std::make_pair(key, entry));
       }
     } else {
-      //LOG(INFO) << "tid: " << omp_get_thread_num() << ", key-" << key << " exist weight";
       entry = (*weight)[key];
     }
-    CHECK(entry != nullptr) << "tid: " << omp_get_thread_num() << ", entry key-" << key;
-    //CHECK_NOTNULL(entry);
-    CHECK_GT(entry->Size(), 0);
-    if (entry->Size() > 15) {
-      vals_thread[omp_get_thread_num()]->insert(
-        vals_thread[omp_get_thread_num()]->end(), entry->Data(), entry->Data() + entry->Size());
-    } else {
-      for (auto idx = 0u; idx < entry->Size(); ++idx) {
-        vals_thread[omp_get_thread_num()]->push_back(entry->Get(idx));
-      }
-    }
+    CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
+    vals_thread[threadid]->insert(vals_thread[threadid]->end(), 
+                                  entry->Data(), 
+                                  entry->Data() + entry->Size());
     response.lens[i] = entry->Size();
   }
 

@@ -62,8 +62,9 @@ void MPIAdmm::RunTrain() {
     }
   }
   if (rabit::GetRank() == 0) {
+    std::string dump_out = cli_param_.out_path + "/model_dump";
     std::unique_ptr<dmlc::Stream> fo(
-      dmlc::Stream::Create(cli_param_.model_dump.c_str(), "w"));
+      dmlc::Stream::Create(dump_out.c_str(), "w"));
     mpi_server_->SaveModel(fo.get());
   }
 }

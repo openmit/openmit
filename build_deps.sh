@@ -32,17 +32,17 @@ cp -r $HADOOP_HOME/lib/native/* hadoop/lib
 URL=https://raw.githubusercontent.com/openmit/deps/master/build/
 
 # tbb
-FILE=tbb-2018.tar.gz
-DIR=tbb-2018 
-rm -rf $DIR $FILE || true 
-wget $URL/$FILE && tar --no-same-owner -zxvf $FILE 
-cd $DIR && make 
-cd build && chmod +x *.sh && sh generate_tbbvars.sh && chmod +x tbbvars.sh && sh tbbvars.sh
-cd *_release && ar cqs libtbb.a *.o
-cp libtbb.a $third_party_dir/lib 
-cd $third_party_dir/$DIR/include/tbb 
-cd $third_party_dir && cp -R $DIR/include/tbb $third_party_dir/include
-rm -rf $DIR $FILE
+#FILE=tbb-2018.tar.gz
+#DIR=tbb-2018 
+#rm -rf $DIR $FILE || true 
+#wget $URL/$FILE && tar --no-same-owner -zxvf $FILE 
+#cd $DIR && make 
+#cd build && chmod +x *.sh && sh generate_tbbvars.sh && chmod +x tbbvars.sh && sh tbbvars.sh
+#cd *_release && ar cqs libtbb.a *.o
+#cp libtbb.a $third_party_dir/lib 
+#cd $third_party_dir/$DIR/include/tbb 
+#cd $third_party_dir && cp -R $DIR/include/tbb $third_party_dir/include
+#rm -rf $DIR $FILE
 
 #cd $third_party_dir/liblbfgs
 #./autogen.sh && ./configure --prefix=$third_party_dir --disable-shared --enable-static --enable-sse2

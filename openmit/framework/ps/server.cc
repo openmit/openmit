@@ -1,4 +1,5 @@
 #include "openmit/framework/ps/server.h"
+#include <cstdlib>
 
 namespace mit {
 
@@ -69,11 +70,13 @@ void Server::KVHandle(const ps::KVMeta& req_meta,
         LOG(FATAL) << "unknown cmd. " << req_meta.cmd;
     }
   } else { // pull 
-    //PullRequest(req_meta, req_data, server);
+    PullRequest(req_meta, req_data, server);
+    /*
     thread_pool_->Append(
       [this, req_meta, req_data, server]() { 
         PullRequest(req_meta, req_data, server); 
       });
+      */
   }
 }
 
@@ -135,28 +138,35 @@ void Server::ExitCondition() {
 void Server::SaveModel(std::string epoch) {
   std::string myrank = std::to_string(ps::MyRank());
   LOG(INFO) << "@server[" + myrank + "] save model begin";
-  std::string dump_out = cli_param_.model_dump;
-  std::string bin_out = cli_param_.model_binary;
-  if (epoch == "") {
-    dump_out += "/part-" + myrank;
-    bin_out += "/last/part-" + myrank;
-  } else {   // save middle result by epoch
-    std::string postfix = "/iter-" + epoch + "/part-" + myrank;
-    dump_out += ".middle" + postfix;
-    bin_out += postfix;
+  std::string dump_out = cli_param_.out_path + "/model_dump"; 
+  std::string bin_out = cli_param_.out_path + "/model_binary/last";
+  if (cli_param_.out_path.compare(0, 4, "hdfs") != 0  &&
+      cli_param_.out_path.compare(0, 6, "viewfs") != 0 && 
+      cli_param_.out_path.compare(0, 2, "s3") != 0) {
+    LOG(INFO) << "local dir " << cli_param_.out_path;
+    std::string cmd = "rm -rf " + dump_out + " || true"; 
+    CHECK_EQ(system(cmd.c_str()), 0);
+    cmd = "mkdir -p " + dump_out; 
+    CHECK_EQ(system(cmd.c_str()), 0);
+    cmd = "rm -rf " + bin_out + " || true";
+    CHECK_EQ(system(cmd.c_str()), 0);
+    cmd = "mkdir -p " + bin_out;
+    CHECK_EQ(system(cmd.c_str()), 0);
   }
-  std::unique_ptr<dmlc::Stream> dumpfo(
-    dmlc::Stream::Create(dump_out.c_str(), "w"));
+
+  dump_out += "/part-" + myrank;
+  bin_out += "/part-" + myrank;
+  
+  std::unique_ptr<dmlc::Stream> dumpfo(dmlc::Stream::Create(dump_out.c_str(), "w"));
   SaveTextModel(dumpfo.get());
-  std::unique_ptr<dmlc::Stream> binfo(
-    dmlc::Stream::Create(bin_out.c_str(), "w"));
+  std::unique_ptr<dmlc::Stream> binfo(dmlc::Stream::Create(bin_out.c_str(), "w"));
   SaveBinaryModel(binfo.get());
   LOG(INFO) << "@server[" + myrank + "] save model done.";
 }
 
 
-void Server::SaveTextModel(dmlc::Stream * fo) {
-  mit::EntryMeta * entry_meta = model_->EntryMeta();
+void Server::SaveTextModel(dmlc::Stream* fo) {
+  mit::EntryMeta* entry_meta = model_->EntryMeta();
   dmlc::ostream oss(fo);
   for (auto & kv : weight_) {
     auto key = kv.first;
@@ -166,22 +176,22 @@ void Server::SaveTextModel(dmlc::Stream * fo) {
   oss.set_stream(nullptr);
 }
 
-void Server::SaveBinaryModel(dmlc::Stream * fo) {
+void Server::SaveBinaryModel(dmlc::Stream* fo) {
   // save entry meta
-  mit::EntryMeta * entry_meta = model_->EntryMeta();
+  mit::EntryMeta* entry_meta = model_->EntryMeta();
   entry_meta->Save(fo);
   // save model 
   //std::unordered_map<ps::Key, mit::Entry* >::iterator iter;
   auto iter = weight_.begin();
   while (iter != weight_.end()) {
     // TODO  key special process
-    fo->Write((char *) &iter->first, sizeof(ps::Key));
+    fo->Write((char*) &iter->first, sizeof(ps::Key));
     iter->second->Save(fo, entry_meta);
     iter++;
   }
 } // method SaveBinaryModel
 
-void Server::DumpModel(dmlc::Stream * fi, dmlc::Stream * fo) {
+void Server::DumpModel(dmlc::Stream* fi, dmlc::Stream* fo) {
   dmlc::ostream oss(fo);
   // TODO
   // force flush before fo destruct 

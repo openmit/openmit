@@ -2,14 +2,14 @@
 cd $(dirname `ls -ls $0 | awk '{print $NF;}'`)/..
 wk_dir=`pwd`
 
-num_workers=10
-num_servers=2
+dir="/home/zhouyongsdzh/workspace/openmit/openmit"
+num_workers=1
+num_servers=1
 
   #train_path = example/data/libsvm/train \
   #valid_path = example/data/libsvm/agaricus.txt.test \
   #test_path = example/data/libsvm/agaricus.txt.test \
-  #model_dump = example/data/model_out/model_dump \
-  #model_binary = example/data/model_out/model_binary
+  #out_path = example/data/out/libsvm
 
 ${wk_dir}/tracker/dmlc-submit \
   --cluster local \
@@ -19,5 +19,4 @@ ${wk_dir}/tracker/dmlc-submit \
   train_path = example/data/libfm/train.txt \
   valid_path = example/data/libfm/test.txt \
   test_path = example/data/libfm/test.txt \
-  model_dump = example/data/model_out/model_dump.libfm \
-  model_binary = example/data/model_out/model_binary.libfm 
+  out_path = ${dir}/example/data/out/libfm

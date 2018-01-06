@@ -40,6 +40,7 @@ third_party/lib/
 third_party/mxnet/
 
 # tmp file
+out/
 test/ 
 
 # Data files

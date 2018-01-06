@@ -1,6 +1,6 @@
 /*!
  *  Copyright 2016 by Contributors
- *  \file openmit/tools/io/write.h
+ *  \file write.h
  *  \brief io write operate
  *  \author ZhouYong
  */
@@ -18,7 +18,7 @@ namespace mit {
 class Write {
   public:
     /*! \brief constructor by file and mode */
-    explicit Write(const char * file,
+    explicit Write(const char* file,
                    bool is_binary = false,
                    bool is_append = false);
     
@@ -26,18 +26,17 @@ class Write {
     ~Write() { close(); }
     
     /*! \brief open file road */
-    bool open(const char * file, 
-              std::ios_base::openmode mode);
+    bool open(const char* file, std::ios_base::openmode mode);
     
     /*! \brief write text data, add linefeeds */
-    bool write_line(const char * content);
+    bool write_line(const char* content);
     
     /*! \brief write text data */
     bool write(const char * content, 
                bool endln = false);
     
     /*! \brief write binary data */
-    bool write_binary(const char * content, size_t size);
+    bool write_binary(const char* content, size_t size);
 
     /*! \brief check if a file is open */
     inline bool is_open() { return ofs_.is_open(); }
