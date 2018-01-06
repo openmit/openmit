@@ -56,7 +56,7 @@ list(APPEND openmit_LINKER_LIBS hdfs)
 list(APPEND openmit_LINKER_LIBS hadoop)
 list(APPEND openmit_LINKER_LIBS jvm)
 list(APPEND openmit_LINKER_LIBS rt)
+list(APPEND openmit_LINKER_LIBS tbb)
 list(APPEND openmit_LINKER_LIBS dl)
-list(APPEND openmit_LINKER_LIBS mit)
 
 target_link_libraries(${exec_name} ${openmit_LINKER_LIBS})

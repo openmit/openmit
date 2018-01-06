@@ -84,7 +84,7 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
         weight->insert(std::make_pair(key, entry));
       }
     } else {
-      LOG(INFO) << "tid: " << omp_get_thread_num() << ", key-" << key << " exist weight";
+      //LOG(INFO) << "tid: " << omp_get_thread_num() << ", key-" << key << " exist weight";
       entry = (*weight)[key];
     }
     CHECK(entry != nullptr) << "tid: " << omp_get_thread_num() << ", entry key-" << key;
@@ -110,7 +110,6 @@ void PSFFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) 
       delete vals_thread[i]; vals_thread[i] = NULL;
     }
   }
-  LOG(INFO) << "pull done";
 }
  
 void PSFFM::Update(const ps::SArray<mit_uint>& keys, 
@@ -121,9 +120,7 @@ void PSFFM::Update(const ps::SArray<mit_uint>& keys,
   auto offset = 0u;
   for (auto i = 0u; i < keys_size; ++i) {
     auto key = keys[i];
-    if (weight->find(key) == weight->end()) {
-      LOG(FATAL) << key << " not in model structure";
-    }
+    CHECK(weight->find(key) != weight->end()) << key << " not in weight";
     // update_w (1-order linear item)
     auto w = (*weight)[key]->Get(0);
     auto g = vals[offset++];
@@ -138,7 +135,7 @@ void PSFFM::Update(const ps::SArray<mit_uint>& keys,
       (*weight)[key]->Set(k, v);
     }
   }
-  CHECK_EQ(offset, vals.size()) << "offset not match vals.size for model update";
+  CHECK_EQ(offset, vals.size()) << "no match between offset and vals.size";
 } // PSFFM::Update
 
 void PSFFM::Gradient(const dmlc::Row<mit_uint>& row, 

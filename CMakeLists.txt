@@ -50,4 +50,4 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
 
 # Add Subdirectory
 add_subdirectory(openmit)
-#add_subdirectory(test/zmq)
+#add_subdirectory(test)
