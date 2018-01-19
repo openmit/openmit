@@ -37,8 +37,7 @@ class FFM : public Model {
 
     /*! \brief prediction based one instance */
     mit_float Predict(const dmlc::Row<mit_uint>& row,
-                      const mit::SArray<mit_float>& weight,
-                      bool norm) override;
+                      const mit::SArray<mit_float>& weight) override;
 
   private:
     /*! \brief lr model optimizer for v */
@@ -55,15 +54,7 @@ class PSFFM : public PSModel {
      * \brief default constructor. 
      *        initialize custom optimizer for embedding learning
      */
-    PSFFM(const mit::KWArgs& kwargs) : PSModel(kwargs) {
-      optimizer_v_.reset(
-        mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
-      
-      LOG(INFO) << "embedding_size: " << model_param_.embedding_size;
-      CHECK(model_param_.embedding_size > 0);
-      blocksize = (model_param_.embedding_size / 4) * 4;
-      remainder = model_param_.embedding_size % 4;
-    }
+    PSFFM(const mit::KWArgs& kwargs);
 
     /*! \brief destructor */
     virtual ~PSFFM();
@@ -72,27 +63,26 @@ class PSFFM : public PSModel {
     static PSFFM* Get(const mit::KWArgs& kwargs);
 
     /*! \brief pull request method for server */
-    void Pull(ps::KVPairs<mit_float> & response, 
-              mit::entry_map_type * weight) override;
+    void Pull(ps::KVPairs<mit_float>& response, 
+              mit::entry_map_type* weight) override;
  
     /*! \brief calcuate gradient based on one instance */
-    void Gradient(const dmlc::Row<mit_uint> & row, 
-                  const std::vector<mit_float> & weights,
-                  mit::key2offset_type & key2offset,
-                  std::vector<mit_float> * grads,
-                  const mit_float & lossgrad_value) override; 
+    void Gradient(const dmlc::Row<mit_uint>& row, 
+                  const std::vector<mit_float>& weights,
+                  mit::key2offset_type& key2offset,
+                  std::vector<mit_float>* grads,
+                  const mit_float& lossgrad_value) override; 
 
     /*! \brief prediction based one instance */
-    mit_float Predict(const dmlc::Row<mit_uint> & row, 
-                      const std::vector<mit_float> & weights, 
-                      mit::key2offset_type & key2offset, 
-                      bool is_norm) override;
+    mit_float Predict(const dmlc::Row<mit_uint>& row, 
+                      const std::vector<mit_float>& weights, 
+                      mit::key2offset_type& key2offset) override;
 
     /*! \brief update */
-    void Update(const ps::SArray<mit_uint> & keys, 
-                const ps::SArray<mit_float> & vals, 
-                const ps::SArray<int> & lens, 
-                mit::entry_map_type * weight) override;
+    void Update(const ps::SArray<mit_uint>& keys, 
+                const ps::SArray<mit_float>& vals, 
+                const ps::SArray<int>& lens, 
+                mit::entry_map_type* weight) override;
 
   private:
     /*! \brief ffm 1-order linear item */
@@ -105,9 +95,13 @@ class PSFFM : public PSModel {
                     const std::vector<mit_float> & weights, 
                     mit::key2offset_type & key2offset);
 
-    /*! \brief acceleration using sse instructor */
+    /*! \brief ffm cross predict acceleration using sse instructor */
     float InProdWithSSE(const float* p1, const float* p2);
 
+    /*! \brief ffm cross gradient acceleration using sse instructor */
+    void GradEmbeddingWithSSE(const float* pweight, 
+                              float* pgrad, 
+                              mit_float& xij_middle);
   private:
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;

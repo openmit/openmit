@@ -24,10 +24,8 @@ void LR::Gradient(const dmlc::Row<mit_uint>& row,
 } // LR::Gradient
 
 mit_float LR::Predict(const dmlc::Row<mit_uint>& row,
-                      const mit::SArray<mit_float>& weight,
-                      bool norm) {
+                      const mit::SArray<mit_float>& weight) {
   auto wTx = row.SDot(weight.data(), weight.size());
-  if (norm) return mit::math::sigmoid(wTx);
   return wTx;
 } // LR::Predict
 
@@ -73,42 +71,40 @@ void PSLR::Pull(ps::KVPairs<mit_float>& response,
 
 mit_float PSLR::Predict(const dmlc::Row<mit_uint>& row, 
                         const std::vector<mit_float>& weights, 
-                        mit::key2offset_type& key2offset, 
-                        bool norm) {
+                        mit::key2offset_type& key2offset) {
   mit_float wTx = 0.0f;
-  #pragma omp parallel for num_threads(cli_param_.num_thread)
-  for (auto idx = 0u; idx < row.length; ++idx) {
-    mit_uint key = row.get_index(idx);
-    if (key2offset.find(key) == key2offset.end()) {
-      LOG(FATAL) << key << " not in key2offset";
-    }
-    auto offset = key2offset[key].first;
-    wTx += weights[offset] * row.get_value(idx);
-  }
-  // intercept
+  // intercept 
+  auto offset0 = key2offset[0].first;
   if (! cli_param_.is_contain_intercept) {
-    wTx += weights[key2offset[0].first]; 
+    wTx += weights[offset0]; 
   }
-  if (norm) return mit::math::sigmoid(wTx);
+  #pragma omp parallel for reduction(+:wTx) num_threads(cli_param_.num_thread)
+  for (auto idx = 0u; idx < row.length; ++idx) {
+    auto key = row.get_index(idx);
+    if (! cli_param_.is_contain_intercept && key == 0) continue;
+    CHECK(key2offset.find(key) != key2offset.end());
+    auto offseti = key2offset[key].first;
+    wTx += weights[offseti] * row.get_value(idx);
+  }
   return wTx;
 } // PSLR::Predict
 
-void PSLR::Gradient(const dmlc::Row<mit_uint> & row, 
-                  const std::vector<mit_float> & weights, 
-                  mit::key2offset_type & key2offset, 
-                  std::vector<mit_float> * grads, 
-                  const mit_float & lossgrad_value) {
+void PSLR::Gradient(const dmlc::Row<mit_uint>& row, 
+                    const std::vector<mit_float>& weights, 
+                    mit::key2offset_type& key2offset, 
+                    std::vector<mit_float>* grads, 
+                    const mit_float& loss_grad) {
   auto instweight = row.get_weight();
-  // TODO OpenMP
+  auto middle = loss_grad * instweight;
+  #pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto idx = 0u; idx < row.length; ++idx) {
     auto key = row.get_index(idx);
     auto offset = key2offset[key].first;
-    auto xi = row.get_value(idx);
-    (*grads)[offset] += lossgrad_value * xi * instweight;
+    (*grads)[offset] += row.get_value(idx) * middle;
   }
   if (! cli_param_.is_contain_intercept) {
-    auto index0 = key2offset[0].first;
-    (*grads)[index0] += lossgrad_value * 1 * instweight;
+    auto offset0 = key2offset[0].first;
+    (*grads)[offset0] += 1 * middle;
   }
 } // PSLR::Gradient 
 

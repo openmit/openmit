@@ -39,7 +39,7 @@ int EntryMeta::FieldIndex(const mit_uint & fieldid, const mit_uint & rfieldid) {
   if (fields_map.find(fieldid) == fields_map.end()) {
     return -1;
   } else {
-    auto * related_fields_list = fields_map[fieldid];
+    auto* related_fields_list = fields_map[fieldid];
     for (auto i = 0u; i < related_fields_list->size(); ++i) {
       if ((*related_fields_list)[i] == rfieldid) return i;
     }

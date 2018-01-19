@@ -21,11 +21,9 @@ struct Loss {
   static Loss * Create(std::string type);
 
   /*! 
-   * \brief constructor by register 
-   *        loss expr & gradient 
+   * \brief constructor by register loss expr & gradient 
    */
-  Loss(const lossfunc_type & loss, 
-       const lossfunc_type & gradient) : 
+  Loss(const lossfunc_type & loss, const lossfunc_type & gradient) : 
     loss(loss), gradient(gradient) {} 
 
   /*! \brief loss function expression */

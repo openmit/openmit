@@ -138,8 +138,10 @@ void Server::ExitCondition() {
 void Server::SaveModel(std::string epoch) {
   std::string myrank = std::to_string(ps::MyRank());
   LOG(INFO) << "@server[" + myrank + "] save model begin";
-  std::string dump_out = cli_param_.out_path + "/model_dump"; 
-  std::string bin_out = cli_param_.out_path + "/model_binary/last";
+  std::string dump_out = cli_param_.out_path + "/model_dump/last"; 
+  std::string bin_out = cli_param_.out_path + "/model_binary";
+
+  // check local file
   if (cli_param_.out_path.compare(0, 4, "hdfs") != 0  &&
       cli_param_.out_path.compare(0, 6, "viewfs") != 0 && 
       cli_param_.out_path.compare(0, 2, "s3") != 0) {

@@ -62,7 +62,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
   if (cli_param_.task_type == "train") {
     // ldim: worker local partial-data max dimension 
     //uint32_t ldim = std::max(train_->NumCol(), valid_->NumCol());
-    uint32_t ldim = 1e8; // TODO
+    uint32_t ldim = cli_param_.max_key; // TODO
     std::vector<uint32_t> dim(1, ldim);
     rabit::Allreduce<rabit::op::Max>(&dim[0], dim.size());
     rabit::Broadcast(dim.data(), sizeof(uint32_t) * dim.size(), 0);
@@ -75,8 +75,7 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
     // optimizer
     optimizer_.reset(mit::Optimizer::Create(kwargs));
     optimizer_->Init(max_dim);
-    LOG(INFO) << "@worker[" <<  rabit::GetRank() 
-      << "] mpiworker init done for train task.";
+    LOG(INFO) << "@worker[" <<  rabit::GetRank() << "] init done";
   } else if (cli_param_.task_type == "predict") {
     // TODO Load Model for prediction
   } else {
@@ -87,22 +86,18 @@ void MPIWorker::Init(const mit::KWArgs & kwargs) {
   // metric 
   std::vector<std::string> metric_names;
   mit::string::Split(cli_param_.metric, &metric_names, ',');
-  CHECK(metric_names.size() > 0) 
-    << "metric_names is null. metric: " << cli_param_.metric;
+  CHECK(metric_names.size() > 0) << "metric_names is null. metric: " << cli_param_.metric;
   metrics_.clear();
   for (auto i = 0u; i < metric_names.size(); ++i) {
-    mit::Metric * metric = mit::Metric::Create(metric_names[i]);
+    mit::Metric* metric = mit::Metric::Create(metric_names[i]);
     CHECK(metric) << "Metric::Create(" << metric_names[i] << ")";
     metrics_.push_back(metric);
   }
 }
 
-void MPIWorker::Run(mit_float * global, 
-                    const size_t size, 
-                    const size_t epoch) {
+void MPIWorker::Run(mit_float* global, const size_t size, const size_t epoch) {
   auto lsize = weight_.size();
-  CHECK_EQ(size, lsize) 
-    << "global_model.size != local_model.size";
+  CHECK_EQ(size, lsize) << "global_model.size != local_model.size";
   weight_.clear(); 
   weight_.CopyFrom(global, size);
 
@@ -112,6 +107,7 @@ void MPIWorker::Run(mit_float * global,
   train_->BeforeFirst();
   while (train_->Next()) {
     auto & block = train_->Value();
+    //LOG(INFO) << "block size: " << block.size;
     // TODO optimized to matrix/vector computation
     uint32_t end = 0;
     for (auto i = 0u; i < block.size; i += cli_param_.batch_size) {

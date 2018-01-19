@@ -36,12 +36,11 @@ PSModel* PSModel::Create(const mit::KWArgs& kwargs) {
 void PSModel::Predict(const dmlc::RowBlock<mit_uint>& batch, 
                       const std::vector<mit_float>& weights, 
                       key2offset_type& key2offset, 
-                      std::vector<mit_float>& preds, 
-                      bool norm) {
+                      std::vector<mit_float>& preds) {
   CHECK_EQ(batch.size, preds.size());
   #pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < batch.size; ++i) {
-    preds[i] = Predict(batch[i], weights, key2offset, norm);
+    preds[i] = Predict(batch[i], weights, key2offset);
   }
 }
 

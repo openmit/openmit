@@ -7,6 +7,18 @@ namespace mit {
 // ffm model complemention for parameter server framework
 /////////////////////////////////////////////////////////////
 
+PSFFM::PSFFM(const mit::KWArgs& kwargs) : PSModel(kwargs) {
+  optimizer_v_.reset(
+    mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
+  CHECK(model_param_.embedding_size > 0);
+  blocksize = (model_param_.embedding_size / 4) * 4;
+  remainder = model_param_.embedding_size % 4;
+  std::string info = "embedding_size: " + std::to_string(model_param_.embedding_size);
+  info += "(sse)blocksize: " + std::to_string(blocksize);
+  info += ", remainder: " + std::to_string(remainder);
+  LOG(INFO) << info;
+}
+
 PSFFM::~PSFFM() {}
 
 PSFFM* PSFFM::Get(const mit::KWArgs& kwargs) {
@@ -135,19 +147,20 @@ void PSFFM::Gradient(const dmlc::Row<mit_uint>& row,
                      std::vector<mit_float>* grads, 
                      const mit_float& loss_grad) { 
   auto instweight = row.get_weight();
+  auto middle = loss_grad * instweight;
   // 0-order intercept
   if (! cli_param_.is_contain_intercept) {
     auto offset0 = key2offset[0].first;
-    (*grads)[offset0] += loss_grad * 1 * instweight;
+    (*grads)[offset0] += 1 * middle;
   }
   // 1-order linear item 
   #pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length; ++i) {
     mit_uint key = row.index[i];
-    CHECK(key2offset.find(key) != key2offset.end()) << key << " not in key2offset";
+    CHECK(key2offset.find(key) != key2offset.end());
     auto offset = key2offset[key].first;
     auto xi = row.get_value(i);
-    (*grads)[offset] += loss_grad * xi * instweight;
+    (*grads)[offset] += xi * middle;
   }
   // 2-order cross item 
   #pragma omp parallel for num_threads(cli_param_.num_thread)
@@ -172,24 +185,50 @@ void PSFFM::Gradient(const dmlc::Row<mit_uint>& row,
       auto vjfi_index = entry_meta_->FieldIndex(fj, fi);
       if (vjfi_index == -1) continue;
       auto vjfi_offset = key2offset[keyj].first + (1 + vjfi_index * model_param_.embedding_size);
-
-      // vifj * vjfi * xi * xj
-      // SSE Accelerated ?  const initialize for sse
-      for (auto k = 0u; k < model_param_.embedding_size; ++k) {
-        (*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
-        (*grads)[vjfi_offset+k] += loss_grad * (weights[vifj_offset+k] * xi * xj) * instweight;
+      
+      auto xij_middle = xi * xj * middle;
+      #pragma omp critical 
+      {
+        // sse implementation
+        GradEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
+        GradEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
+        /*
+        //(*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
+        for (auto k = 0u; k < model_param_.embedding_size; ++k) {
+          (*grads)[vifj_offset+k] += weights[vjfi_offset+k] * xij_middle;
+          (*grads)[vjfi_offset+k] += weights[vifj_offset+k] * xij_middle;
+        }
+        */
       }
     }
   } 
 }
 
+void PSFFM::GradEmbeddingWithSSE(const float* pweight, 
+                                 float* pgrad, 
+                                 mit_float& xij_middle) {
+  __m128 mMiddle = _mm_set1_ps(xij_middle);
+  __m128 mWeight;
+  __m128 mRes;
+  for (auto i = 0u; i < blocksize; i += 4) {
+    mWeight = _mm_loadu_ps(pweight + i);
+    mRes = _mm_mul_ps(mWeight, mMiddle);
+    const float* q = (const float*)&mRes;
+    for (int j = 0; j < 4; ++j) pgrad[i + j] += q[j];  
+  }
+  
+  if (remainder > 0) {
+    for (auto j = 0u; j < remainder; ++j) {
+      pgrad[blocksize + j] = pweight[blocksize + j] * xij_middle;
+    }
+  }
+}
+
 mit_float PSFFM::Predict(const dmlc::Row<mit_uint>& row, 
-                       const std::vector<mit_float>& weights, 
-                       mit::key2offset_type& key2offset, 
-                       bool norm) {
+                         const std::vector<mit_float>& weights, 
+                         mit::key2offset_type& key2offset) {
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
-  if (norm) return mit::math::sigmoid(wTx);
   return wTx;
 }
 
@@ -197,14 +236,16 @@ mit_float PSFFM::Linear(const dmlc::Row<mit_uint>& row,
                         const std::vector<mit_float>& weights, 
                         mit::key2offset_type& key2offset) {
   mit_float wTx = 0.0f;
-  // intercept
+  // intercept 
+  auto keyintercept = 0l;
   if (! cli_param_.is_contain_intercept) {
-    wTx += weights[key2offset[0].first];
+    wTx += weights[key2offset[keyintercept].first];
   }
   #pragma omp parallel for reduction(+:wTx) num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length; ++i) {
     auto key = row.index[i];
-    CHECK(key2offset.find(key) != key2offset.end()) << key << " not in key2offset";
+    if (! cli_param_.is_contain_intercept && key == 0) continue;
+    CHECK(key2offset.find(key) != key2offset.end());
     auto offseti = key2offset[key].first;
     wTx += weights[offseti] * row.get_value(i);
   }
@@ -292,7 +333,7 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row, const mit_float& pred, mit::S
   // TODO
 } // FFM::Gradient
 
-mit_float FFM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight, bool norm) {
+mit_float FFM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight) {
   // TODO
   return 0.0f;
 } // FFM::Predict

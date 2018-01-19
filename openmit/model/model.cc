@@ -33,14 +33,14 @@ Model* Model::Create(const mit::KWArgs& kwargs) {
   }
 }
 
-void Model::Gradient(const dmlc::RowBlock<mit_uint> & batch, std::vector<mit_float> & preds, mit::SArray<mit_float> * grads) {
+void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch, std::vector<mit_float>& preds, mit::SArray<mit_float>* grads) {
   // TODO OpenMP ?
   for (auto i = 0u; i < batch.size; ++i) {
     Gradient(batch[i], preds[i], grads);
   }
 } // Model::Gradient
 
-void Model::Predict(const dmlc::RowBlock<mit_uint>& batch, mit::SArray<mit_float>& weight, std::vector<mit_float>* preds, bool norm) {
+void Model::Predict(const dmlc::RowBlock<mit_uint>& batch, mit::SArray<mit_float>& weight, std::vector<mit_float>* preds) {
   // TODO
 } // Model::Predict
 

@@ -43,8 +43,7 @@ class Model {
     /*! \brief prediction based on batch data */
     void Predict(const dmlc::RowBlock<mit_uint>& batch,
                  mit::SArray<mit_float>& weight, 
-                 std::vector<mit_float>* preds,
-                 bool norm = true);
+                 std::vector<mit_float>* preds);
 
     /*! \brief calculate gradient based one instance */
     virtual void Gradient(const dmlc::Row<mit_uint>& row,
@@ -53,8 +52,7 @@ class Model {
 
     /*! \brief prediction based one instance */
     virtual mit_float Predict(const dmlc::Row<mit_uint>& row, 
-                              const mit::SArray<mit_float>& weight,
-                              bool norm) = 0;
+                              const mit::SArray<mit_float>& weight) = 0;
 
   public:
     /*! \brief get model type */

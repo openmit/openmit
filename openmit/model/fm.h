@@ -51,8 +51,7 @@ class FM : public Model {
   
     /*! \brief prediction based on one instance */
     mit_float Predict(const dmlc::Row<mit_uint>& row,
-                      const mit::SArray<mit_float>& weight,
-                      bool norm) override;
+                      const mit::SArray<mit_float>& weight) override;
   
   private:
     /*! \brief fm model optimizer for v */
@@ -62,10 +61,7 @@ class FM : public Model {
 class PSFM : public PSModel {
   public:
     /*! \brief default constructor */
-    PSFM(const mit::KWArgs& kwargs) : PSModel(kwargs) {
-      optimizer_v_.reset(
-        mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
-    }
+    PSFM(const mit::KWArgs& kwargs);
 
     /*! \brief destructor */
     virtual ~PSFM();
@@ -87,8 +83,7 @@ class PSFM : public PSModel {
     /*! \brief prediction based on one instance */
     mit_float Predict(const dmlc::Row<mit_uint>& row, 
                       const std::vector<mit_float>& weights, 
-                      mit::key2offset_type& key2offset, 
-                      bool norm) override;
+                      mit::key2offset_type& key2offset) override;
 
     /*! \brief updater */
     void Update(const ps::SArray<mit_uint>& keys, 

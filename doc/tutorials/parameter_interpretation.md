@@ -6,11 +6,12 @@
 | 路径信息 | `train_path` | 训练数据路径（目录or文件） | `""` | 训练时必填 |
 |  | `valid_path` | 验证数据路径（目录or文件） | `""` | 训练时必填 |
 |  | `test_path` | 验证数据路径（目录or文件） | `""` | 预测时必填|
-|  | `out_path` | 模型输出路径（二进制） | `""` | 训练时必填| 
+|  | `out_path` | 输出路径，包括模型、预测结果、日志、指标输出等 | `""` | 必填| 
 |  | `model_in` | 模型加载路径 | `""` | 预测时必填| 
 | | `data_format` | 数据格式，支持`libsvm/libfm`两种格式 | `libsvm` | |
 | | `nbit` | 用于位移操作生成新key（通过feature和feild） | `4` | 当数据格式为libfm时会使用 |
-| 任务信息 | `task_type` | 任务类型, train/predict/dump | `"train"` | 
+| 任务信息 | `task_type` | 任务类型, train/predict | `"train"` | 
+| | `objective` | ML任务目标，支持回归(`regression`)／二分类(`binary`)／多分类(`multiclass`)等 | `binary` | 回归／多分类任务必填 |
 | | `framework` | 分布式计算框架, `mpi/ps` | `ps` | 分布式任务 必填 |
 | | `sync_mode` | 参数同步方式, `asp, bsp, ssp` | `asp` | PS框架使用 |
 | | `model` | 模型，可选择"lr/fm/ffm/mf" | `"lr"` | 必填 |
@@ -19,7 +20,7 @@
 | | `batch_size` | batch大小（样本数） | `100` |  必填 |
 | | `max_key` | 最大特征维度id | `<uint64_t>::max()` | optional |
 | | `nsample_rate` | 负样本采样率 | `0.0` | 默认不采样 |
-| | `num_threads` | 线程数（或CPU核数)，用于并行计算 | `4` | CPU支持OpenMP/OpenCL加速 |
+| | `num_thread` | 线程数（或CPU核数)，用于并行计算 | `4` | CPU支持OpenMP/OpenCL加速 |
 | ADMM算法框架 | `rho` | 增广拉格朗日系数（步长）| `1` | MPI框架使用 |
 | | `lambda_obj` | 拉格朗日对偶系数 | `0.05` | MPI框架使用 |
 | 模型 | `embedding_size` | 隐向量长度 | `4` | FM／FFM模型使用 |

@@ -17,13 +17,13 @@ namespace mit {
 class SGDOptimizer : public Optimizer {
   public:
     /*! \brief constructor for SGD */
-    SGDOptimizer(const mit::KWArgs & kwargs);
+    SGDOptimizer(const mit::KWArgs& kwargs);
     
     /*! \brief destructor */
     ~SGDOptimizer();
     
     /*! \brief get SGD optimizer */
-    static SGDOptimizer * Get(const mit::KWArgs & kwargs) {
+    static SGDOptimizer* Get(const mit::KWArgs& kwargs) {
       return new SGDOptimizer(kwargs);
     }
     
@@ -36,8 +36,8 @@ class SGDOptimizer : public Optimizer {
      * \param w model index weight
      */
      void Update(const mit_uint idx,
-                const mit_float g,
-                mit_float & w) override;
+                 const mit_float g,
+                 mit_float& w) override;
     
     /*! 
      * \brief model updater for parameter server interface
@@ -74,22 +74,20 @@ SGDOptimizer::SGDOptimizer(const mit::KWArgs & kwargs) {
 
 SGDOptimizer::~SGDOptimizer() {}
 
-void SGDOptimizer::Update(const mit_uint idx, 
-                 const mit_float g, 
-                 mit_float & w) {
+void SGDOptimizer::Update(const mit_uint idx, const mit_float g, mit_float & w) {
   w -= param_.lr * g;
 }
 
-void SGDOptimizer::Update(const mit::OptimizerParam & param, 
-                          const mit_uint & key, 
-                          const size_t & idx, 
-                          const mit_float & g,
-                          mit_float & w, 
-                          mit::Entry * weight) {
+void SGDOptimizer::Update(const mit::OptimizerParam& param, 
+                          const mit_uint& key, 
+                          const size_t& idx, 
+                          const mit_float& g,
+                          mit_float& w, 
+                          mit::Entry* weight) {
   w -= param.lr * g;
 } // SGDOptimizer::Update
 
-void SGDOptimizer::Update(const mit_uint & key, const size_t & idx, const mit_float & g, mit_float & w, mit::Entry * weight) {
+void SGDOptimizer::Update(const mit_uint& key, const size_t& idx, const mit_float& g, mit_float& w, mit::Entry* weight) {
   w -= param_.lr * g;
 } 
 

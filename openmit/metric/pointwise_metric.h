@@ -31,22 +31,20 @@ class LogLoss : public Metric {
 }; // class LogLoss
 
 // implement
-inline float LogLoss::
-Eval(const std::vector<float> & preds, 
-     const std::vector<float> & labels) const {
-  CHECK_NE(labels.size(), 0) 
-      << "label cannot be empty!";
-  CHECK_NE(preds.size(), 0) 
-      << "prediction variable cannot be empty!";
-  CHECK_EQ(labels.size(), preds.size()) 
-    << "label and prediction size not match, ";
-  // TODO omp_ulong ndata = static_cast<omp_ulong>(info.labels.size());
+inline float LogLoss::Eval(const std::vector<float>& preds, const std::vector<float>& labels) const {
+  auto ndata = labels.size(); CHECK(ndata > 0);
+  CHECK_EQ(labels.size(), preds.size()) << "not match size";
   float sum = 0.0;
-  //#pragma omp parallel for reduction(+: sum, wsum) schedule(static)
-  auto ndata = labels.size();
+  #pragma omp parallel for reduction(+:sum) schedule(static)
   for (auto i = 0u; i < ndata; ++i) {
     sum += EvalRow(preds[i], labels[i]);
   }
+  /*
+  for (auto i = 0u; i < ndata; ++i) {
+    LOG(INFO) << "<p, y>: <" << preds[i] << ", " << labels[i] << ">";
+  }
+  LOG(INFO) << "LogLoss::Eval sum: " << sum << ", ndata: " << ndata << ", avg(sum): " << sum/ndata;
+  */
   return sum / ndata;
 }
 
@@ -54,13 +52,15 @@ Eval(const std::vector<float> & preds,
 inline float LogLoss::EvalRow(float pred, float y) const {
   const float eps = 1e-15f;
   const float pneg = 1.0f - pred;
+  float res = 0.0f;
   if (pred < eps) {
-    return -y * std::log(eps) - (1.0f - y) * std::log(1.0f - eps);
+    res = -y * std::log(eps) - (1.0f - y) * std::log(1.0f - eps);
   } else if (pneg < eps) {
-    return -y * std::log(1.0f - eps) - (1.0f - y) * std::log(eps);
+    res = -y * std::log(1.0f - eps) - (1.0f - y) * std::log(eps);
   } else {
-    return -y * std::log(pred) - (1.0f - y) * std::log(pneg);
+    res = -y * std::log(pred) - (1.0f - y) * std::log(pneg);
   }
+  return res;
 }
 
 } // namespace metric

@@ -122,6 +122,7 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
   // worker computing 
   std::vector<mit_float> grads(weights.size(), 0.0f);
   trainer_->Run(batch, keys, weights, lens, &grads, train_metric);
+  //LOG(INFO) << "minibatch train_metric auc: " << train_metric[0] << ", logloss: " << train_metric[1];
 
   // push operation (gradient)
   kv_worker_->Push(keys, extras, grads, lens, mit::signal::UPDATE);
@@ -130,29 +131,31 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
 std::string Worker::Metric(mit::DMatrix* data) {
   std::vector<float> metrics(trainer_->MetricInfo().size(), 0.0f);
   std::vector<float> batch_metric(metrics.size(), 0.0f);
-  auto metric_batch = cli_param_.batch_size * 10;
-  auto metric_batch_count = 0l;
+  auto batchsize = cli_param_.batch_size * 10;
+  auto num_batch = 0l;
+  auto num_inst = 0;
   std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] valid <batch,inst> : <";
   data->BeforeFirst();
   while (true) {
     if (! data->Next()) break;
     auto& block = data->Value();
     uint32_t end = 0;
-    for (auto i = 0u; i < block.size; i += metric_batch) {
-      end = i + metric_batch > block.size ? block.size : i + metric_batch;
+    for (auto i = 0u; i < block.size; i += batchsize) {
+      end = i + batchsize > block.size ? block.size : i + batchsize;
       const auto batch = block.Slice(i, end);
       MetricBatch(batch, batch_metric);
       for (auto idx = 0u; idx < batch_metric.size(); ++idx) {
         metrics[idx] += batch_metric[idx];
       }
-      metric_batch_count += 1;
-      if (cli_param_.is_progress) {
-        LOG(INFO) << msg << metric_batch_count << "," << end << ">";
-      }
+      num_batch += 1;
+    }
+    if (cli_param_.is_progress) {
+      num_inst += block.size;
+      LOG(INFO) << msg << num_batch << "," << num_inst << ">";
     }
   } // while 
 
-  for (auto& metric_value : metrics) metric_value /= metric_batch_count;
+  for (auto& metric_value : metrics) metric_value /= num_batch;
   
   return MetricMsg(metrics);
 } // Worker::Metric
@@ -163,6 +166,7 @@ std::string Worker::MetricMsg(std::vector<float>& metrics) {
     metric_info += const_cast<char *>(trainer_->MetricInfo()[i]->Name()) + std::string("^") + std::to_string(metrics[i]);
     if (i != metrics.size() - 1) metric_info += ",";
   }
+  //LOG(INFO) << "metric_msg: " << metric_info;
   return metric_info;
 } // MetricMsg
 

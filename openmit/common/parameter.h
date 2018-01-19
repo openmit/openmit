@@ -34,8 +34,10 @@ class CliParam : public dmlc::Parameter<CliParam> {
     size_t nbit;
 
     // 2. task information
-    /*! \brief task type. "train", "predict" etc. default "train" */
+    /*! \brief task type. "train"/"predict" etc. default "train" */
     std::string task_type;
+    /*! \brief task objective. "regression"/"binary"/"multiclass" etc. default "binary" */
+    std::string objective;
     /*! \brief computational framework. "mpi"/"ps" */
     std::string framework;
     /*! \brief server global parameter update mode */
@@ -90,6 +92,7 @@ class CliParam : public dmlc::Parameter<CliParam> {
         .describe("number of bit used to key & field shifting op.");
     
       DMLC_DECLARE_FIELD(task_type).set_default("train");
+      DMLC_DECLARE_FIELD(objective).set_default("objective");
       DMLC_DECLARE_FIELD(framework).set_default("ps");
       DMLC_DECLARE_FIELD(sync_mode).set_default("asp");
       DMLC_DECLARE_FIELD(model).set_default("lr");

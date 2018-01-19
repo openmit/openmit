@@ -33,8 +33,7 @@ class LR : public Model {
 
     /*! \brief prediction based on one instance */
     mit_float Predict(const dmlc::Row<mit_uint>& row,
-                      const mit::SArray<mit_float>& weight,
-                      bool norm) override;
+                      const mit::SArray<mit_float>& weight) override;
 }; // class LR
 
 /*!
@@ -62,8 +61,7 @@ class PSLR : public PSModel {
     /*! \brief prediction based on one instance */
     mit_float Predict(const dmlc::Row<mit_uint>& row, 
                       const std::vector<mit_float>& weights, 
-                      mit::key2offset_type& key2offset, 
-                      bool norm) override;   
+                      mit::key2offset_type& key2offset) override;
     
     /*! \brief pull request process */
     void Pull(ps::KVPairs<mit_float>& response, 

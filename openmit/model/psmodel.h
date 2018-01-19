@@ -47,26 +47,22 @@ class PSModel {
      * \param weights model parameter by pull op from server 
      * \param key2offset map between key and value offset 
      * \param preds prediction result saved
-     * \param norm whether normalization 
      */
     void Predict(const dmlc::RowBlock<mit_uint>& batch, 
                  const std::vector<mit_float>& weights,
                  key2offset_type& key2offset,
-                 std::vector<mit_float>& preds,
-                 bool norm = true);
+                 std::vector<mit_float>& preds);
 
     /*! 
      * \brief prediction based on one instance (pure-virtual)
      * \param row one instance 
      * \param weights model parameter by pull op from server 
      * \param key2offset map between key and value offset 
-     * \param norm whether normalization 
      * \return prediction result
      */
     virtual mit_float Predict(const dmlc::Row<mit_uint>& row,
                               const std::vector<mit_float>& weights, 
-                              key2offset_type& key2offset,
-                              bool norm) = 0;
+                              key2offset_type& key2offset) = 0;
 
     /*! 
      * \brief model gradient based on batch data (row block)

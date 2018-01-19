@@ -18,24 +18,16 @@ MPIAdmm::MPIAdmm(const mit::KWArgs& kwargs) {
 void MPIAdmm::Run() {
   double startTime = dmlc::GetTime();
   if (cli_param_.task_type == "train") {
-    std::unique_ptr<Transaction> trans(
-        new Transaction(0, "mpi", "train", true));
     RunTrain();
-    Transaction::End(trans.get());
   } else if (cli_param_.task_type == "predict") {
-    std::unique_ptr<Transaction> trans(
-        new Transaction(0, "mpi", "predict", true));
     RunPredict();
-    Transaction::End(trans.get());
   } else {
-    LOG(ERROR) << "'task_type' not in [train, predict]. task: " 
-      << cli_param_.task_type;
+    LOG(ERROR) << "unknown 'task_type' task: " << cli_param_.task_type;
   }
   double endTime = dmlc::GetTime();
   rabit::TrackerPrintf("@worker[%d] [OpenMIT-MPI] \
       The total time of the task %s is %g s \n", 
-      rabit::GetRank(), cli_param_.task_type.c_str(), 
-      endTime-startTime);
+      rabit::GetRank(), cli_param_.task_type.c_str(), endTime-startTime);
 
   rabit::Finalize();
 }

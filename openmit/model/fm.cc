@@ -16,7 +16,7 @@ void FM::Gradient(const dmlc::Row<mit_uint>& row, const mit_float& pred, mit::SA
   // TODO
 } // FM::Gradient
 
-mit_float FM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight, bool norm) {
+mit_float FM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight) {
   // TODO
   return 0.0;
 } // FM::Predict
@@ -24,6 +24,11 @@ mit_float FM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_floa
 /////////////////////////////////////////////////////////////
 // fm model complemention for parameter server framework
 /////////////////////////////////////////////////////////////
+
+PSFM::PSFM(const mit::KWArgs& kwargs) : PSModel(kwargs) {
+  optimizer_v_.reset(
+    mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
+}
 
 PSFM::~PSFM() {}
 
@@ -71,10 +76,10 @@ void PSFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   if (key0_size == 1) response.lens[0] = 1;
   
   // keys (multi-thread)
-  omp_set_num_threads(cli_param_.num_thread);
+  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
   size_t chunksize = keys_size / cli_param_.num_thread;
   if (keys_size % cli_param_.num_thread != 0) chunksize += 1;
-  #pragma omp parallel for schedule(static, chunksize)
+  #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
   for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     mit::Entry* entry = nullptr;
@@ -99,11 +104,9 @@ void PSFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
 
 mit_float PSFM::Predict(const dmlc::Row<mit_uint>& row, 
                         const std::vector<mit_float>& weights, 
-                        mit::key2offset_type& key2offset, 
-                        bool norm) {
+                        mit::key2offset_type& key2offset) {
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
-  if (norm) return mit::math::sigmoid(wTx);
   return wTx;
 } // PSFM::Predict
 
@@ -119,8 +122,7 @@ mit_float PSFM::Linear(const dmlc::Row<mit_uint>& row,
   for (auto i = 0u; i < row.length; ++i) {
     auto key = row.index[i];
     if (key == 0) continue;
-    CHECK(key2offset.find(key) != key2offset.end())
-      << "key: " << key << " not in key2offset";
+    CHECK(key2offset.find(key) != key2offset.end());
     auto wi = weights[key2offset[key].first];
     wTx += wi * row.get_value(i);
   }
@@ -140,13 +142,12 @@ mit_float PSFM::Cross(const dmlc::Row<mit_uint>& row,
       auto xi = row.get_value(i);
       if (key == 0) continue;
       auto offset_count = key2offset[key];
-      CHECK_EQ(offset_count.second, 1 + embedsize) 
-        << "lens[i] != 1 + embedding_size for fm model ." 
-        << "is error. and key: " << key;
+      CHECK_EQ(offset_count.second, 1 + embedsize);
       auto offset = offset_count.first;
       auto vik = weights[offset + 1 + k];
-      linsum_quad += vik * xi;
-      quad_linsum += vik * vik * xi * xi;
+      auto mul_vik_xi = vik * xi;
+      linsum_quad += mul_vik_xi;
+      quad_linsum += mul_vik_xi * mul_vik_xi;
     }
     cross += (linsum_quad * linsum_quad - quad_linsum);
   }
@@ -154,21 +155,22 @@ mit_float PSFM::Cross(const dmlc::Row<mit_uint>& row,
 }
 
 /**
- * for w0: lossgrad_value * 1
- * for wi: lossgrad_value * xi
- * for w(i,f): lossgrad_value * (xi * \sum_{j=1}^{n} (v(j,f) * xj) - v(i,f) * xi^2)
+ * for w0: loss_grad * 1
+ * for wi: loss_grad * xi
+ * for w(i,f): loss_grad * (xi * \sum_{j=1}^{n} (v(j,f) * xj) - v(i,f) * xi^2)
  */
-void PSFM::Gradient(const dmlc::Row<mit_uint> & row, 
-                  const std::vector<mit_float> & weights, 
-                  mit::key2offset_type & key2offset, 
-                  std::vector<mit_float> * grads, 
-                  const mit_float & lossgrad_value) {
+void PSFM::Gradient(const dmlc::Row<mit_uint>& row, 
+                    const std::vector<mit_float>& weights, 
+                    mit::key2offset_type& key2offset, 
+                    std::vector<mit_float>* grads, 
+                    const mit_float& loss_grad) {
   CHECK_EQ(weights.size(), grads->size());
   auto instweight = row.get_weight();
+  auto middle = loss_grad * instweight;
   // 0-order intercept 
   if (! cli_param_.is_contain_intercept) {
     auto offset0 = key2offset[0].first;
-    (*grads)[offset0] += lossgrad_value * 1 * instweight; 
+    (*grads)[offset0] += 1 * middle; 
   }
   // TODO SMID Accelerated 
   // 1-order linear item
@@ -177,7 +179,7 @@ void PSFM::Gradient(const dmlc::Row<mit_uint> & row,
     auto xi = row.get_value(i);
     auto key = row.index[i];
     auto offset = key2offset[key].first;
-    auto partial_wi = lossgrad_value * xi * instweight;
+    auto partial_wi = xi * middle;
     (*grads)[offset] += partial_wi;
   }
   // 2-order cross item 
@@ -195,7 +197,7 @@ void PSFM::Gradient(const dmlc::Row<mit_uint> & row,
     auto offseti = key2offset[keyi].first;
     for (auto k = 0u; k < embedsize; ++k) {
       auto gik = sum[k] - weights[offseti + 1 + k] * xi;
-      auto partial_wik = lossgrad_value * xi * gik * instweight;
+      auto partial_wik = xi * gik * middle;
       (*grads)[offseti + 1 + k] += partial_wik;
     }
   }
