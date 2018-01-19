@@ -4,8 +4,8 @@
  *  \brief server logic for parameter server
  *  \author ZhouYong
  */
-#ifndef OPENMIT_FRAMEWORK_PS_SERVER_H_
-#define OPENMIT_FRAMEWORK_PS_SERVER_H_
+#ifndef OPENMIT_FRAMEWORKgSERVER_H_
+#define OPENMIT_FRAMEWORKgSERVER_H_
 
 #include <functional>
 #include <memory>
@@ -24,8 +24,8 @@
 #include "openmit/common/base.h"
 #include "openmit/common/type.h"
 #include "openmit/entry/entry.h"
-#include "openmit/model/psmodel.h"
-#include "openmit/framework/ps/signal.h"
+#include "openmit/model/model.h"
+#include "openmit/framework/signal.h"
 #include "openmit/tools/thread/thread_pool.h"
 
 namespace mit {
@@ -104,7 +104,7 @@ class Server {
     mit::entry_map_type weight_;
     
     /*! \brief model for server op: update && pull */
-    std::shared_ptr<mit::PSModel> model_;
+    std::shared_ptr<mit::Model> model_;
 
     /*! \brief thread pool for pull request */
     std::shared_ptr<mit::ThreadPool> thread_pool_;
@@ -123,4 +123,4 @@ class Server {
 
 } // namespace mit
 
-#endif // OPENMIT_FRAMEWORK_PS_SERVER_H_
+#endif // OPENMIT_FRAMEWORKgSERVER_H_

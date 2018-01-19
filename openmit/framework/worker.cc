@@ -1,4 +1,4 @@
-#include "openmit/framework/ps/worker.h"
+#include "openmit/framework/worker.h"
 
 namespace mit {
 

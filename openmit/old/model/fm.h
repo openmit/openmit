@@ -8,6 +8,7 @@
 #define OPENMIT_MODEL_FM_H_
 
 #include "openmit/model/model.h"
+#include "openmit/model/psmodel.h"
 
 namespace mit {
 /*!
@@ -32,13 +33,41 @@ namespace mit {
 class FM : public Model {
   public:
     /*! \brief default constructor */
-    FM(const mit::KWArgs& kwargs);
+    FM(const mit::KWArgs& kwargs) : Model(kwargs) {
+      optimizer_v_.reset(
+        mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
+    }
 
     /*! \brief destructor */
     virtual ~FM();
 
     /*! \brief get fm model pointer */
     static FM* Get(const mit::KWArgs& kwargs);
+
+    /*! \brief model gradient based on one instance */
+    void Gradient(const dmlc::Row<mit_uint>& row,
+                  const mit_float& pred,
+                  mit::SArray<mit_float>* grad) override;
+  
+    /*! \brief prediction based on one instance */
+    mit_float Predict(const dmlc::Row<mit_uint>& row,
+                      const mit::SArray<mit_float>& weight) override;
+  
+  private:
+    /*! \brief fm model optimizer for v */
+    std::unique_ptr<mit::Optimizer> optimizer_v_;
+}; // class FM 
+
+class PSFM : public PSModel {
+  public:
+    /*! \brief default constructor */
+    PSFM(const mit::KWArgs& kwargs);
+
+    /*! \brief destructor */
+    virtual ~PSFM();
+
+    /*! \brief get fm model pointer */
+    static PSFM* Get(const mit::KWArgs& kwargs);
 
     /*! \brief pull request process method for server */
     void Pull(ps::KVPairs<mit_float>& response, 
@@ -76,7 +105,7 @@ class FM : public Model {
   private:
     /*! \brief fm model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
-}; // class FM 
+}; // class PSFM 
 
 } // namespace mit
 #endif // OPENMIT_MODEL_FM_H_

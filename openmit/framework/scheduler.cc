@@ -1,4 +1,4 @@
-#include "openmit/framework/ps/scheduler.h"
+#include "openmit/framework/scheduler.h"
 
 namespace mit {
 

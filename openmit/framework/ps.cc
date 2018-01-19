@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
-#include "openmit/framework/ps/ps.h"
+#include "openmit/framework/ps.h"
 #include "ps/ps.h"
 namespace mit {
 

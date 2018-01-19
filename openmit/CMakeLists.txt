@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 2.7)
 aux_source_directory(common SRCS_COMMON)
 aux_source_directory(executor SRCS_EXECUTOR)
 aux_source_directory(entry SRCS_ENTRY)
-aux_source_directory(framework/mpi SRCS_FRAMEWORK_MPI)
-aux_source_directory(framework/ps SRCS_FRAMEWORK_PS)
+aux_source_directory(framework SRCS_FRAMEWORK)
 aux_source_directory(loss SRCS_LOSS)
 aux_source_directory(metric SRCS_METRIC)
 aux_source_directory(model SRCS_MODEL)
@@ -21,8 +20,7 @@ set(mit_SRCS
   ${SRCS_COMMON}
   ${SRCS_EXECUTOR}
   ${SRCS_ENTRY}
-  ${SRCS_FRAMEWORK_MPI}
-  ${SRCS_FRAMEWORK_PS}
+  ${SRCS_FRAMEWORK}
   ${SRCS_LOSS}
   ${SRCS_METRIC}
   ${SRCS_MODEL}
@@ -42,7 +40,7 @@ set_target_properties(${static_lib} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 target_link_libraries(${static_lib} dmlc ps rabit)
 
 set(exec_name "openmit")
-add_executable(${exec_name} "learner.h" "learner.cc" "cli_main.cc")
+add_executable(${exec_name} "learner.h" "cli_main.cc")
 
 set(openmit_LINKER_LIBS "")
 list(APPEND openmit_LINKER_LIBS ${static_lib})

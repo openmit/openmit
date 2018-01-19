@@ -4,8 +4,8 @@
  *  \brief scheduler node logic for parameter server
  *  \author ZhouYong
  */
-#ifndef OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
-#define OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
+#ifndef OPENMIT_FRAMEWORK_SCHEDULER_H_
+#define OPENMIT_FRAMEWORK_SCHEDULER_H_
 
 #include <condition_variable>
 #include <cstdlib>
@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include "ps/ps.h"
 #include "openmit/common/arg.h"
-#include "openmit/framework/ps/signal.h"
+#include "openmit/framework/signal.h"
 #include "openmit/tools/dstruct/dstring.h"
 
 namespace mit {
@@ -72,4 +72,4 @@ class Scheduler {
 
 }; // class Scheduler
 } // namespace mit
-#endif // OPENMIT_FRAMEWORK_PS_SCHEDULER_H_
+#endif // OPENMIT_FRAMEWORK_SCHEDULER_H_

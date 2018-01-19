@@ -1,5 +1,5 @@
-#include "openmit/framework/ps/server.h"
 #include <cstdlib>
+#include "openmit/framework/server.h"
 
 namespace mit {
 
@@ -23,7 +23,7 @@ void Server::Init(const mit::KWArgs & kwargs) {
     std::bind(&Server::CmdHandle, this, _1, _2));
   
   // model for update && pull
-  model_.reset(mit::PSModel::Create(kwargs));
+  model_.reset(mit::Model::Create(kwargs));
 
   // thread pool 
   CHECK_GT(cli_param_.num_thread, 0);

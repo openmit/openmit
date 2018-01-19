@@ -4,8 +4,8 @@
  *  \brief parameter server framework date node (worker) logic
  *  \author ZhouYong
  */
-#ifndef OPENMIT_FRAMEWORK_PS_WORKER_H_
-#define OPENMIT_FRAMEWORK_PS_WORKER_H_
+#ifndef OPENMIT_FRAMEWORK_WORKER_H_
+#define OPENMIT_FRAMEWORK_WORKER_H_
 
 #include <memory>
 #include "dmlc/logging.h"
@@ -16,7 +16,7 @@
 #include "openmit/common/data.h"
 #include "openmit/executor/trainer.h"
 #include "openmit/executor/predictor.h"
-#include "openmit/framework/ps/signal.h"
+#include "openmit/framework/signal.h"
 #include "openmit/metric/metric.h"
 #include "openmit/tools/profiler/timer_stats.h"
 
@@ -88,4 +88,4 @@ class Worker {
 }; // class Worker
 } // namespace mit
 
-#endif // OPENMIT_FRAMEWORK_PS_WORKER_H_
+#endif // OPENMIT_FRAMEWORK_WORKER_H_

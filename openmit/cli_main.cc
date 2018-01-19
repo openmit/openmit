@@ -10,7 +10,7 @@ int main(int argc, char * argv[]) {
   parser.ReadArgs(argc - 2, argv + 2);
   const mit::KWArgs kwargs = parser.GetKWArgs();
 
-  mit::MILearner* mi = mit::MILearner::Create(kwargs);
+  mit::MILearner* mi = new mit::MILearner(kwargs);
   mi->Run();
   delete mi; mi = nullptr;
   return 0;

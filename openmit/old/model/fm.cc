@@ -2,10 +2,9 @@
 
 namespace mit {
 
-FM::FM(const mit::KWArgs& kwargs) : Model(kwargs) {
-  optimizer_v_.reset(
-    mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
-}
+/////////////////////////////////////////////////////////////
+// fm model complemention for mpi or local
+/////////////////////////////////////////////////////////////
 
 FM::~FM() {}
 
@@ -13,7 +12,31 @@ FM* FM::Get(const mit::KWArgs& kwargs) {
   return new FM(kwargs);
 }
 
-void FM::Update(const ps::SArray<mit_uint> & keys, 
+void FM::Gradient(const dmlc::Row<mit_uint>& row, const mit_float& pred, mit::SArray<mit_float>* grad) {
+  // TODO
+} // FM::Gradient
+
+mit_float FM::Predict(const dmlc::Row<mit_uint>& row, const mit::SArray<mit_float>& weight) {
+  // TODO
+  return 0.0;
+} // FM::Predict
+
+/////////////////////////////////////////////////////////////
+// fm model complemention for parameter server framework
+/////////////////////////////////////////////////////////////
+
+PSFM::PSFM(const mit::KWArgs& kwargs) : PSModel(kwargs) {
+  optimizer_v_.reset(
+    mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
+}
+
+PSFM::~PSFM() {}
+
+PSFM* PSFM::Get(const mit::KWArgs& kwargs) {
+  return new PSFM(kwargs);
+}
+
+void PSFM::Update(const ps::SArray<mit_uint> & keys, 
                 const ps::SArray<mit_float> & vals, 
                 const ps::SArray<int> & lens, 
                 mit::entry_map_type * weight) {
@@ -43,7 +66,7 @@ void FM::Update(const ps::SArray<mit_uint> & keys,
   CHECK_EQ(offset, vals.size()) << "offset not match vals.size";
 }
 
-void FM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
+void PSFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t entry_size = 1 + model_param_.embedding_size;
   size_t keys_size = response.keys.size();
   response.lens.resize(keys_size, entry_size);
@@ -79,15 +102,15 @@ void FM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   }
 }
 
-mit_float FM::Predict(const dmlc::Row<mit_uint>& row, 
+mit_float PSFM::Predict(const dmlc::Row<mit_uint>& row, 
                         const std::vector<mit_float>& weights, 
                         mit::key2offset_type& key2offset) {
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
   return wTx;
-} // FM::Predict
+} // PSFM::Predict
 
-mit_float FM::Linear(const dmlc::Row<mit_uint>& row, 
+mit_float PSFM::Linear(const dmlc::Row<mit_uint>& row, 
                        const std::vector<mit_float>& weights, 
                        mit::key2offset_type& key2offset) {
   mit_float wTx = 0.0f;
@@ -106,7 +129,7 @@ mit_float FM::Linear(const dmlc::Row<mit_uint>& row,
   return wTx;
 }
 
-mit_float FM::Cross(const dmlc::Row<mit_uint>& row, 
+mit_float PSFM::Cross(const dmlc::Row<mit_uint>& row, 
                       const std::vector<mit_float>& weights, 
                       mit::key2offset_type& key2offset) {
   mit_float cross = 0.0f;
@@ -136,7 +159,7 @@ mit_float FM::Cross(const dmlc::Row<mit_uint>& row,
  * for wi: loss_grad * xi
  * for w(i,f): loss_grad * (xi * \sum_{j=1}^{n} (v(j,f) * xj) - v(i,f) * xi^2)
  */
-void FM::Gradient(const dmlc::Row<mit_uint>& row, 
+void PSFM::Gradient(const dmlc::Row<mit_uint>& row, 
                     const std::vector<mit_float>& weights, 
                     mit::key2offset_type& key2offset, 
                     std::vector<mit_float>* grads, 
@@ -178,6 +201,6 @@ void FM::Gradient(const dmlc::Row<mit_uint>& row,
       (*grads)[offseti + 1 + k] += partial_wik;
     }
   }
-} // FM::Gradient
+} // PSFM::Gradient
 
 } // namespace mit 

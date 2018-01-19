@@ -2,10 +2,10 @@
 
 namespace mit {
 
-Trainer::Trainer(const mit::KWArgs & kwargs) {
+Trainer::Trainer(const mit::KWArgs& kwargs) {
   cli_param_.InitAllowUnknown(kwargs);
   // model
-  model_ = mit::PSModel::Create(kwargs);
+  model_ = mit::Model::Create(kwargs);
   // loss
   loss_ = mit::Loss::Create(cli_param_.loss);
   // metric 

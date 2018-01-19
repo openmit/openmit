@@ -17,7 +17,7 @@
 #include "openmit/common/base.h"
 #include "openmit/loss/loss.h"
 #include "openmit/metric/metric.h"
-#include "openmit/model/psmodel.h"
+#include "openmit/model/model.h"
 #include "openmit/tools/profiler/timer_stats.h"
 
 namespace mit {
@@ -33,7 +33,7 @@ class Trainer {
     /*! \brief destructor */
     ~Trainer();
 
-    /*! \brief trainer logic for ps interface */
+    /*! \brief trainer logic */
     void Run(const dmlc::RowBlock<mit_uint>& batch, 
              std::vector<ps::Key>& keys, 
              std::vector<mit_float>& weights, 
@@ -41,29 +41,29 @@ class Trainer {
              std::vector<mit_float>* grads, 
              std::vector<mit_float>& train_metric);
 
-    /*! \brief metric logic for ps interface */
-    void Metric(const dmlc::RowBlock<mit_uint> & batch, 
-                std::vector<ps::Key> & keys, 
-                std::vector<mit_float> & weights, 
-                std::vector<int> & lens, 
-                std::vector<float> & metrics_value);
+    /*! \brief metric logic */
+    void Metric(const dmlc::RowBlock<mit_uint>& batch, 
+                std::vector<ps::Key>& keys, 
+                std::vector<mit_float>& weights, 
+                std::vector<int>& lens, 
+                std::vector<float>& metrics_value);
 
-    inline std::vector<mit::Metric *> MetricInfo() const {
+    inline std::vector<mit::Metric*> MetricInfo() const {
       return metrics_;
     }
 
     /*! \brief loss */
-    void Loss(const dmlc::RowBlock<mit_uint> & batch, 
-              const std::vector<mit_float> * predict, 
-              std::vector<mit_float> * loss);
+    void Loss(const dmlc::RowBlock<mit_uint>& batch, 
+              const std::vector<mit_float>* predict, 
+              std::vector<mit_float>* loss);
 
   private:
     /*! \brief parameter */
     mit::CliParam cli_param_;
     /*! \brief model */
-    mit::PSModel* model_;
+    mit::Model* model_;
     /*! \brief metric */
-    std::vector<mit::Metric *> metrics_;
+    std::vector<mit::Metric*> metrics_;
     /*! \brief loss function object */
     mit::Loss* loss_;
 

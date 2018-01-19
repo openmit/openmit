@@ -1,34 +1,29 @@
 /*!
  *  Copyright (c) 2017 by Contributors
- *  \file parameter_server.h
+ *  \file ps.h
  *  \brief parameter server distributed computation framework
  *  \author ZhouYong
  */
-#ifndef OPENMIT_FRAMEWORK_PS_PS_H_
-#define OPENMIT_FRAMEWORK_PS_PS_H_
+#ifndef OPENMIT_FRAMEWORK_PS_H_
+#define OPENMIT_FRAMEWORK_PS_H_
 
-#include "openmit/learner.h"
-#include "openmit/framework/ps/scheduler.h"
-#include "openmit/framework/ps/server.h"
-#include "openmit/framework/ps/worker.h"
+#include "openmit/framework/scheduler.h"
+#include "openmit/framework/server.h"
+#include "openmit/framework/worker.h"
 
 namespace mit {
 /*!
  * \brief parameter server framework for
  *        distributed machine learning tasks.
  */
-class PS : public MILearner {
+class PS {
   public:
     /*! \brief constructor */
     PS(const mit::KWArgs & kwargs);
     /*! \brief destructor */
-    virtual ~PS() {}
-    /*! \brief get parameter server object */
-    static PS * Get(const mit::KWArgs & kwargs) {
-      return new PS(kwargs);
-    }
+    ~PS() {}
     /*! \brief running */
-    void Run() override;
+    void Run();
   private:
     /*! \brief scheduler launcher */
     void LaunchScheduler();
@@ -44,4 +39,4 @@ class PS : public MILearner {
 }; // class PS
 
 } // namespace mit
-#endif // OPENMIT_FRAMEWORK_PS_PS_H_
+#endif // OPENMIT_FRAMEWORK_PS_H_

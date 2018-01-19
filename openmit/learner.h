@@ -1,7 +1,7 @@
 /*!
  *  Copyright (c) 2016 by Contributors
- *  \file data.h
- *  \brief data instance set structure
+ *  \file learner.h
+ *  \brief machine intelligence learner
  *  \author ZhouYong
  */
 
@@ -10,6 +10,7 @@
 
 #include <string>
 #include "openmit/common/arg.h"
+#include "openmit/framework/ps.h"
 
 namespace mit {
 /*!
@@ -17,15 +18,30 @@ namespace mit {
  */
 class MILearner {
 public:
-  /*! brief create learner by conf args info */
-  static MILearner* Create(const mit::KWArgs& kwargs);
   /*! brief constructor */
-  MILearner() {}
+  MILearner(const mit::KWArgs& kwargs);
   /*! brief destructor */
-  virtual ~MILearner() {}
+  ~MILearner();
   /*! brief running machine intelligence task */
-  virtual void Run() = 0;
+  void Run();
+
+private:
+  mit::PS* ps_;
 }; // class MILearner 
+
+MILearner::MILearner(const mit::KWArgs& kwargs) {
+  ps_ = new mit::PS(kwargs);
+}
+
+MILearner::~MILearner() {
+  if (ps_) {
+    delete ps_; ps_ = nullptr;
+  }
+}
+
+void MILearner::Run() {
+  ps_->Run();
+}
 
 } // namespace mit
 #endif // OPENMIT_LEARNER_H_ 
