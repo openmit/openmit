@@ -7,12 +7,8 @@ FFM::FFM(const mit::KWArgs& kwargs) : Model(kwargs) {
   optimizer_v_.reset(
     mit::Optimizer::Create(kwargs, cli_param_.optimizer_v));
   CHECK(model_param_.embedding_size > 0);
-  blocksize = (model_param_.embedding_size / 4) * 4;
+  blocksize = model_param_.embedding_size / 4 * 4;
   remainder = model_param_.embedding_size % 4;
-  std::string info = "embedding_size: " + std::to_string(model_param_.embedding_size);
-  info += "(sse)blocksize: " + std::to_string(blocksize);
-  info += ", remainder: " + std::to_string(remainder);
-  LOG(INFO) << info;
 }
 
 FFM::~FFM() {}
@@ -87,16 +83,14 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
       CHECK_NOTNULL(entry);
       #pragma omp critical 
       {
-        std::lock_guard<std::mutex> lk(mu_);
         weight->insert(std::make_pair(key, entry));
       }
     } else {
       entry = (*weight)[key];
     }
     CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
-    vals_thread[threadid]->insert(vals_thread[threadid]->end(), 
-                                  entry->Data(), 
-                                  entry->Data() + entry->Size());
+    vals_thread[threadid]->insert(
+        vals_thread[threadid]->end(), entry->Data(), entry->Data() + entry->Size());
     response.lens[i] = entry->Size();
   }
 
@@ -104,10 +98,7 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   for (auto i = 0u; i < nthread; ++i) {
     ps::SArray<mit_float> sarray(vals_thread[i]->data(), vals_thread[i]->size());
     response.vals.append(sarray);
-    if (vals_thread[i]) { // free memory 
-      vals_thread[i]->clear();
-      delete vals_thread[i]; vals_thread[i] = NULL;
-    }
+    delete vals_thread[i]; vals_thread[i] = NULL;
   }
 }
  
@@ -186,8 +177,8 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
       #pragma omp critical 
       {
         // sse implementation
-        GradEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
-        GradEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
+        GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
+        GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
         /*
         //(*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
         for (auto k = 0u; k < model_param_.embedding_size; ++k) {
@@ -200,29 +191,9 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
   } 
 }
 
-void FFM::GradEmbeddingWithSSE(const float* pweight, 
-                                 float* pgrad, 
-                                 mit_float& xij_middle) {
-  __m128 mMiddle = _mm_set1_ps(xij_middle);
-  __m128 mWeight;
-  __m128 mRes;
-  for (auto i = 0u; i < blocksize; i += 4) {
-    mWeight = _mm_loadu_ps(pweight + i);
-    mRes = _mm_mul_ps(mWeight, mMiddle);
-    const float* q = (const float*)&mRes;
-    for (int j = 0; j < 4; ++j) pgrad[i + j] += q[j];  
-  }
-  
-  if (remainder > 0) {
-    for (auto j = 0u; j < remainder; ++j) {
-      pgrad[blocksize + j] = pweight[blocksize + j] * xij_middle;
-    }
-  }
-}
-
 mit_float FFM::Predict(const dmlc::Row<mit_uint>& row, 
-                         const std::vector<mit_float>& weights, 
-                         mit::key2offset_type& key2offset) {
+                       const std::vector<mit_float>& weights, 
+                       mit::key2offset_type& key2offset) {
   auto wTx = Linear(row, weights, key2offset);
   wTx += Cross(row, weights, key2offset);
   return wTx;
@@ -280,7 +251,7 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_float
       CHECK_LE(vjfi_offset + model_param_.embedding_size, weights_size);
 
       // sse acceleration
-      auto inprod = InProdWithSSE(pweights + vifj_offset, pweights + vjfi_offset);
+      auto inprod = InnerProductWithSSE(pweights + vifj_offset, pweights + vjfi_offset);
       cross += inprod * xi * xj;
 
       /*
@@ -294,25 +265,5 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_float
   }
   return cross;
 }
-
-float FFM::InProdWithSSE(const float* p1, const float* p2) {
-  float sum = 0.0f;
-  __m128 inprod = _mm_setzero_ps();
-  for (auto offset = 0u; offset < blocksize; offset += 4) {
-    __m128 v1 = _mm_loadu_ps(p1 + offset);
-    __m128 v2 = _mm_loadu_ps(p2 + offset);
-    inprod = _mm_add_ps(inprod, _mm_mul_ps(v1, v2));
-  }
-  inprod = _mm_hadd_ps(inprod, inprod);
-  inprod = _mm_hadd_ps(inprod, inprod);
-  float v;
-  _mm_store_ss(&v, inprod);
-  sum += v;
-
-  for (auto i = 0u; i < remainder; ++i) {
-    sum += p1[blocksize + i] * p2[blocksize + i];
-  }
-  return sum;
-} // FFM::InProdWithSSE
 
 } // namespace mit

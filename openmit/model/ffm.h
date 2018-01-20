@@ -33,12 +33,12 @@ class FFM : public Model {
     void Pull(ps::KVPairs<mit_float>& response, 
               mit::entry_map_type* weight) override;
  
-    /*! \brief calcuate gradient based on one instance */
+    /*! \brief calcuate gradient based one instance */
     void Gradient(const dmlc::Row<mit_uint>& row, 
                   const std::vector<mit_float>& weights,
                   mit::key2offset_type& key2offset,
                   std::vector<mit_float>* grads,
-                  const mit_float& lossgrad_value) override; 
+                  const mit_float& loss_grad) override; 
 
     /*! \brief prediction based one instance */
     mit_float Predict(const dmlc::Row<mit_uint>& row, 
@@ -62,19 +62,9 @@ class FFM : public Model {
                     const std::vector<mit_float> & weights, 
                     mit::key2offset_type & key2offset);
 
-    /*! \brief ffm cross predict acceleration using sse instructor */
-    float InProdWithSSE(const float* p1, const float* p2);
-
-    /*! \brief ffm cross gradient acceleration using sse instructor */
-    void GradEmbeddingWithSSE(const float* pweight, 
-                              float* pgrad, 
-                              mit_float& xij_middle);
   private:
     /*! \brief lr model optimizer for v */
     std::unique_ptr<mit::Optimizer> optimizer_v_;
-    /*! \brief sse instruction */
-    size_t blocksize = 0;
-    size_t remainder = 0;
 }; // class FFM 
 
 } // namespace mit

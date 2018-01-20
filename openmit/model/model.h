@@ -124,6 +124,15 @@ class Model {
     inline mit::EntryMeta* EntryMeta() { return entry_meta_.get(); }
 
   protected:
+    /*! \brief inner product with sse */
+    float InnerProductWithSSE(const float* p1, const float* p2);
+
+    /*! \brief gradient embedding with sse */
+    void GradientEmbeddingWithSSE(const float* pweight, 
+                                  float* grads, 
+                                  const float& middle);
+
+  protected:
     /*! \brief client parameter */
     mit::CliParam cli_param_;
     /*! \brief model parameter */
@@ -136,6 +145,9 @@ class Model {
     std::unique_ptr<mit::Optimizer> optimizer_;
     /*! \brief mutex for weight insert */
     std::mutex mu_;
+    /*! \brief sse instruction */
+    size_t blocksize = 0;
+    size_t remainder = 0;
 }; // class Model
 
 } // namespace mit
