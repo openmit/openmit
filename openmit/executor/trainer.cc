@@ -42,16 +42,10 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   }
   timer_stats_->stop(stats.ps_worker_map_prepare);
   
-  /* predict based on batch data */
+  /* predict model expression score based on batch data */
   timer_stats_->begin(stats.ps_worker_model_predict);
   std::vector<mit_float> preds(batch.size, 0.0);
   model_->Predict(batch, weights, key2offset, preds);
-  if (cli_param_.objective != "regression") {
-    #pragma omp parallel for num_threads(cli_param_.num_thread)
-    for (auto i = 0u; i < batch.size; ++i) {
-      preds[i] = mit::math::sigmoid(preds[i]);
-    }
-  }
   if (cli_param_.debug) {
     LOG(INFO) << "trainer model predict " << mit::DebugStr<mit_float>(preds.data(), 5);
   }

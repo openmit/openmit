@@ -9,21 +9,19 @@
 
 namespace mit {
 /*! \brief loss function type */
-typedef std::function<
-  mit_float(const mit_float &, const mit_float &)
-  > lossfunc_type;
+typedef std::function<mit_float(const mit_float &, const mit_float &)> lossfunc_type;
 
 /*!
  * \brief loss function 
  */
 struct Loss {
   /*! brief create loss object */
-  static Loss * Create(std::string type);
+  static Loss* Create(std::string type);
 
   /*! 
    * \brief constructor by register loss expr & gradient 
    */
-  Loss(const lossfunc_type & loss, const lossfunc_type & gradient) : 
+  Loss(const lossfunc_type& loss, const lossfunc_type& gradient) : 
     loss(loss), gradient(gradient) {} 
 
   /*! \brief loss function expression */
@@ -40,8 +38,8 @@ struct SquaredLoss {
   /*!
    * \brief function of squared loss 
    */
-  static mit_float LossFunc(const mit_float & target, 
-                            const mit_float & mfunc) {
+  static mit_float LossFunc(const mit_float& target, 
+                            const mit_float& mfunc) {
     return 0.5 * (mfunc - target) * (mfunc - target);
   }
 
@@ -50,8 +48,8 @@ struct SquaredLoss {
    * \param label objective value. category / real value 
    * \param mfunc model function expression
    */
-  static mit_float Gradient(const mit_float & target, 
-                            const mit_float & mfunc) {
+  static mit_float Gradient(const mit_float& target, 
+                            const mit_float& mfunc) {
     return mfunc - target;
   }
 }; // struct SquaredLoss 
@@ -63,8 +61,8 @@ struct LogitLoss {
   /*!
    * \brief function of squared loss 
    */
-  static mit_float LossFunc(const mit_float & label, 
-                            const mit_float & mfunc) { 
+  static mit_float LossFunc(const mit_float& label, 
+                            const mit_float& mfunc) { 
     auto y = label > 0 ? 1 : -1;
     return std::log(1 + std::exp(-y * mfunc));
   }
@@ -74,9 +72,9 @@ struct LogitLoss {
    * \param label it belongs to {+1, -1}
    * \param mfunc model function expression
    */
-  static mit_float Gradient(const mit_float & label, 
-                            const mit_float & mfunc) {
-    auto y = label > 0 ? 1 : -1;
+  static mit_float Gradient(const mit_float& label, 
+                            const mit_float& mfunc) {
+    mit_float y = label > 0 ? 1 : -1;
     return -y / (1 + std::exp(y * mfunc));
   }
 }; // struct LogitLoss
