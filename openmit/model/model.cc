@@ -12,6 +12,7 @@ Model::Model(const mit::KWArgs& kwargs) {
   entry_meta_.reset(new mit::EntryMeta(model_param_));
   random_.reset(mit::math::Random::Create(model_param_));
   optimizer_.reset(mit::Optimizer::Create(kwargs));
+  LOG(INFO) << "cli_param_.num_thread: " << cli_param_.num_thread;
 }
 
 Model::~Model() {}
@@ -52,8 +53,8 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch,
                        key2offset_type& key2offset, 
                        std::vector<mit_float>& loss_grads, 
                        std::vector<mit_float>* grads) {
-  auto nthread = cli_param_.num_thread;
   CHECK_EQ(weights.size(), grads->size());
+  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
   std::vector<std::vector<mit_float>*> grads_thread(nthread);
   for (size_t i = 0; i < grads_thread.size(); ++i) {
     grads_thread[i] = new std::vector<mit_float>(grads->size()); 
@@ -66,9 +67,7 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch,
     Gradient(batch[i], weights, key2offset, grads_thread[tid], loss_grads[i]);
   }
   // merge thread result to grads 
-  chunksize = grads->size() / nthread;
-  chunksize = grads->size() % nthread == 0 ? chunksize : chunksize + 1;
-  #pragma omp parallel for num_threads(nthread) schedule(static, chunksize)
+  #pragma omp parallel for num_threads(nthread)
   for (auto i = 0u; i < grads->size(); ++i) {
     for (uint32_t tid = 0; tid < nthread; ++tid) {
       (*grads)[i] += (*grads_thread[tid])[i];
