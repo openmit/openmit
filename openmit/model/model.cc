@@ -56,7 +56,7 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch,
   CHECK_EQ(weights.size(), grads->size());
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
   #pragma omp parallel for num_threads(nthread)
-  for (auto i = 0; i < batch.size; ++i) {
+  for (auto i = 0u; i < batch.size; ++i) {
     Gradient(batch[i], weights, key2offset, grads, loss_grads[i]);
   }
   #pragma omp parallel for num_threads(nthread)

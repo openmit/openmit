@@ -17,45 +17,32 @@ FFM* FFM::Get(const mit::KWArgs& kwargs) {
   return new FFM(kwargs);
 }
 
-/*
 // single thread
 void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
-  size_t keys_size = response.keys.size();
-  CHECK(keys_size > 0);
+  size_t keys_size = response.keys.size(); CHECK(keys_size > 0);
   CHECK_EQ(keys_size, response.extras.size());   // store field id
   response.lens.resize(keys_size);
   // key 
-  if (cli_param_.debug) LOG(INFO) << "FFM::Pull begin";
   for (auto i = 0u; i < keys_size; ++i) {
     ps::Key key = response.keys[i];
     mit::Entry* entry = nullptr;
     if (weight->find(key) == weight->end()) {
-      if (cli_param_.debug) LOG(INFO) << "FFM::Pull 1 key not in weight-" << key;
       auto fid = response.extras[i];
-      if (key > 0) CHECK(fid > 0) << "fid = 0, key: " << key;
       entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
       {
-        //std::lock_guard<std::mutex> lk(mu_);
-        mu_.lock();
         weight->insert(std::make_pair(key, entry));
-        mu_.unlock();
       }
     } else {
-      if (cli_param_.debug) LOG(INFO) << "FFM::Pull 1 key in weight-" << key;
       entry = (*weight)[key];
     }
-    if (cli_param_.debug) LOG(INFO) << "FFM::Pull 2 key: " << key;
     CHECK_NOTNULL(entry); CHECK_GT(entry->Size(), 0);
     for (auto i = 0u; i < entry->Size(); ++i) {
       response.vals.push_back(entry->Get(i));
     }
     response.lens[i] = entry->Size();
-    if (cli_param_.debug) LOG(INFO) << "FFM::Pull 3 key: " << key;
   }
-  if (cli_param_.debug) LOG(INFO) << "FFM::Pull done";
 }
-*/
-
+/*
 void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
   CHECK(keys_size > 0);
@@ -82,12 +69,6 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
       entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
       CHECK_NOTNULL(entry);
       weight->insert(std::make_pair(key, entry));
-      /*
-      #pragma omp critical 
-      {
-        weight->insert(std::make_pair(key, entry));
-      }
-      */
     } else {
       entry = (*weight)[key];
     }
@@ -104,6 +85,7 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
     delete vals_thread[i]; vals_thread[i] = NULL;
   }
 }
+*/
  
 void FFM::Update(const ps::SArray<mit_uint>& keys, 
                    const ps::SArray<mit_float>& vals, 
@@ -179,13 +161,14 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
       auto xij_middle = xi * xj * middle;
       // sse implementation
       //(*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
-      //GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
-      //GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
-
+      GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
+      GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
+      /*
       for (auto k = 0u; k < model_param_.embedding_size; ++k) {
         (*grads)[vifj_offset + k] += weights[vjfi_offset + k] * xij_middle;
         (*grads)[vjfi_offset + k] += weights[vifj_offset + k] * xij_middle;
       }
+      */
     }
   } 
 }

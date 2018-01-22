@@ -17,6 +17,7 @@ struct STATS {
 	std::string ps_worker_train_eval = "worker-train_eval";
 	std::string ps_worker_train_send_metric = "worker-train_send_metric";
   std::string ps_worker_pull = "worker-pull";
+  std::string ps_worker_pull_dataprepare = "worker-pull_dataprepare";
   std::string ps_worker_calc_grad = "worker-calc_grad";
   std::string ps_worker_calc_loss = "worker-loss_calc";
   std::string ps_worker_map_prepare = "worker-map_prepare";

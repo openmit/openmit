@@ -20,9 +20,12 @@ void Worker::Init(const mit::KWArgs & kwargs) {
   LOG(INFO) << "partid: " << partid << ", npart: " << npart;
   if (cli_param_.task_type == "train") {
     CHECK_NE(cli_param_.train_path, "") << " train_path empty.";
+    LOG(INFO) << "load train data: " << cli_param_.train_path;
     train_.reset(new mit::DMatrix(
       cli_param_.train_path, partid, npart, cli_param_.data_format));
+    
     CHECK_NE(cli_param_.valid_path, "") << " valid_path empty.";
+    LOG(INFO) << "load valid data: " << cli_param_.valid_path;
     valid_.reset(new mit::DMatrix(
       cli_param_.valid_path, partid, npart, cli_param_.data_format));
     
@@ -93,7 +96,7 @@ void Worker::Run() {
 void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& train_metric) {
   /* pull request */
   // sorted unique key 
-  trainer_->timer_stats_->begin(stats.ps_worker_pull);
+  trainer_->timer_stats_->begin(stats.ps_worker_pull_dataprepare);
   std::unordered_set<mit_uint> fset;
   std::unordered_map<mit_uint, int> fkv;
   bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
@@ -109,7 +112,9 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
       extras[i] = fkv[keys[i]];
     }
   }
+  trainer_->timer_stats_->stop(stats.ps_worker_pull_dataprepare);
   // pull operation 
+  trainer_->timer_stats_->begin(stats.ps_worker_pull);
   std::vector<mit_float> weights;
   std::vector<int> lens; 
   if (cli_param_.debug) LOG(INFO) << "@w[" << ps::MyRank() << "] pull before.";

@@ -63,7 +63,7 @@ void Server::KVHandle(const ps::KVMeta& req_meta,
           std::string msg = "grads from worker " + mit::DebugStr(req_data.vals.data(), 5);
           LOG(INFO) << msg;
         }
-        model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight_);
+        //model_->Update(req_data.keys, req_data.vals, req_data.lens, &weight_);
         if (cli_param_.debug) LOG(INFO) << "update done";
       } break;
       default:
