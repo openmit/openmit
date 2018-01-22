@@ -96,17 +96,18 @@ void FFM::Update(const ps::SArray<mit_uint>& keys,
     auto key = keys[i];
     CHECK(weight->find(key) != weight->end()) << key << " not in weight";
     // update_w (1-order linear item)
-    auto w = (*weight)[key]->Get(0);
+    mit::Entry* entry = (*weight)[key];
+    auto w = entry->Get(0);
     auto g = vals[offset++];
-    optimizer_->Update(key, 0, g, w, (*weight)[key]);
-    (*weight)[key]->Set(0, w);
+    optimizer_->Update(key, 0, g, w, entry);
+    entry->Set(0, w);
     // update_v (2-order cross item)
     if (lens[i] == 1) continue;
     for (int k = 1; k < lens[i]; ++k) {
-      auto v = (*weight)[key]->Get(k);
+      auto v = entry->Get(k);
       auto g = vals[offset++]; 
-      optimizer_v_->Update(key, k, g, v, (*weight)[key]);
-      (*weight)[key]->Set(k, v);
+      optimizer_v_->Update(key, k, g, v, entry);
+      entry->Set(k, v);
     }
   }
   CHECK_EQ(offset, vals.size()) << "no match between offset and vals.size";

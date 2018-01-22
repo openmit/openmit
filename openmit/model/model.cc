@@ -105,10 +105,11 @@ void Model::Update(const ps::SArray<mit_uint>& keys,
     for (auto i = 0u; i < keys.size(); ++i) {
       auto key = keys[i];
       CHECK(weight->find(key) != weight->end());
-      auto w = (*weight)[key]->Get(0);
+      mit::Entry* entry = (*weight)[key];
+      auto w = entry->Get(0);
       auto g = vals[i];
-      optimizer_->Update(key, 0, g, w, (*weight)[key]);
-      (*weight)[key]->Set(0, w);
+      optimizer_->Update(key, 0, g, w, entry);
+      entry->Set(0, w);
     }
   } else { 
     // for model that each feature has one more parameter. such as mf
@@ -116,14 +117,15 @@ void Model::Update(const ps::SArray<mit_uint>& keys,
     for (auto i = 0u; i < keys.size(); ++i) {
       auto key = keys[i];
       CHECK(weight->find(key) != weight->end());
-      auto entrysize = (*weight)[key]->Size();
+      mit::Entry* entry = (*weight)[key];
+      auto entrysize = entry->Size();
       CHECK_EQ(entrysize, (size_t)lens[i]);
       // for each entry 
       for (auto idx = 0u; idx < entrysize; ++idx) {
-        auto w = (*weight)[key]->Get(idx);
+        auto w = entry->Get(idx);
         auto g = vals[offset++];
-        optimizer_->Update(key, idx, g, w, (*weight)[key]);
-        (*weight)[key]->Set(idx, w);
+        optimizer_->Update(key, idx, g, w, entry);
+        entry->Set(idx, w);
       }
     }
     CHECK_EQ(offset, vals.size()) << "offset not match vals.size.";

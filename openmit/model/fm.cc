@@ -25,19 +25,20 @@ void FM::Update(const ps::SArray<mit_uint> & keys,
     CHECK(weight->find(key) != weight->end())
       << key << " not in model structure";
     // update_w (1-order linear item)
-    auto w = (*weight)[keys[i]]->Get();
+    mit::Entry* entry = (*weight)[keys[i]];
+    auto w = entry->Get();
     auto g = vals[offset++];
-    optimizer_->Update(key, 0, g, w, (*weight)[key]);
-    (*weight)[key]->Set(0, w);
+    optimizer_->Update(key, 0, g, w, entry);
+    entry->Set(0, w);
     if (keys[i] == 0) continue;
     CHECK_EQ(lens[i], entry_size) 
       << "lens[i] != 1+embedding_size for fm model";
     // update_v (2-order cross item)
     for (int k = 1; k < lens[i]; ++k) {
-      auto v = (*weight)[key]->Get(k);
+      auto v = entry->Get(k);
       auto g = vals[offset++];
-      optimizer_v_->Update(key, k, g, v, (*weight)[key]);
-      (*weight)[key]->Set(k, v);
+      optimizer_v_->Update(key, k, g, v, entry);
+      entry->Set(k, v);
     }
   }
   CHECK_EQ(offset, vals.size()) << "offset not match vals.size";
