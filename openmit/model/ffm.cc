@@ -81,10 +81,13 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
       if (key > 0) CHECK(fid > 0);
       entry = mit::Entry::Create(model_param_, entry_meta_.get(), random_.get(), fid);
       CHECK_NOTNULL(entry);
+      weight->insert(std::make_pair(key, entry));
+      /*
       #pragma omp critical 
       {
         weight->insert(std::make_pair(key, entry));
       }
+      */
     } else {
       entry = (*weight)[key];
     }

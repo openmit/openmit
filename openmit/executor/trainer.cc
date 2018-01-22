@@ -42,7 +42,7 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   }
   timer_stats_->stop(stats.ps_worker_map_prepare);
   
-  /* predict model expression score based on batch data */
+  /* predict model expression score */
   timer_stats_->begin(stats.ps_worker_model_predict);
   std::vector<mit_float> preds(batch.size, 0.0);
   model_->Predict(batch, weights, key2offset, preds);
