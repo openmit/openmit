@@ -136,8 +136,8 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
                      mit::key2offset_type& key2offset, 
                      std::vector<mit_float>* grads, 
                      const mit_float& loss_grad) { 
-  auto instweight = row.get_weight();
-  auto middle = loss_grad * instweight;
+  mit_float instweight = row.get_weight();
+  mit_float middle = loss_grad * instweight;
   // 0-order intercept
   if (! cli_param_.is_contain_intercept) {
     auto offset0 = key2offset[0].first;
@@ -179,8 +179,13 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
       auto xij_middle = xi * xj * middle;
       // sse implementation
       //(*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
-      GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
-      GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
+      //GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
+      //GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
+
+      for (auto k = 0u; k < model_param_.embedding_size; ++k) {
+        (*grads)[vifj_offset + k] += weights[vjfi_offset + k] * xij_middle;
+        (*grads)[vjfi_offset + k] += weights[vifj_offset + k] * xij_middle;
+      }
     }
   } 
 }
