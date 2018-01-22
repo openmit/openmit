@@ -26,8 +26,8 @@ void Server::Init(const mit::KWArgs & kwargs) {
   model_.reset(mit::Model::Create(kwargs));
 
   // thread pool 
-  CHECK_GT(cli_param_.num_thread, 0);
-  thread_pool_.reset(new mit::ThreadPool(cli_param_.num_thread));
+  //CHECK_GT(cli_param_.num_thread, 0);
+  //thread_pool_.reset(new mit::ThreadPool(cli_param_.num_thread));
 
   // parameter 
   complete_worker_number_ = 0;

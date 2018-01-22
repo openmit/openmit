@@ -107,7 +107,7 @@ class Server {
     std::shared_ptr<mit::Model> model_;
 
     /*! \brief thread pool for pull request */
-    std::shared_ptr<mit::ThreadPool> thread_pool_;
+    //std::shared_ptr<mit::ThreadPool> thread_pool_;
 
     /*! \brief finalize after all worker done */
     int complete_worker_number_;
