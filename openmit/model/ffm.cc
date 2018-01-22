@@ -16,7 +16,7 @@ FFM::~FFM() {}
 FFM* FFM::Get(const mit::KWArgs& kwargs) {
   return new FFM(kwargs);
 }
-
+/*
 // single thread
 void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size(); CHECK(keys_size > 0);
@@ -42,7 +42,7 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
     response.lens[i] = entry->Size();
   }
 }
-/*
+*/
 void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   size_t keys_size = response.keys.size();
   CHECK(keys_size > 0);
@@ -50,7 +50,7 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
   response.lens.resize(keys_size);
 
   // feature (multi-thread)
-  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+  auto nthread = cli_param_.num_thread - 1; CHECK(nthread > 0);
   int chunksize = keys_size / nthread;
   if (keys_size % nthread != 0) chunksize += 1;
   std::vector<std::vector<mit_float>* > vals_thread(nthread);
@@ -85,7 +85,6 @@ void FFM::Pull(ps::KVPairs<mit_float>& response, mit::entry_map_type* weight) {
     delete vals_thread[i]; vals_thread[i] = NULL;
   }
 }
-*/
  
 void FFM::Update(const ps::SArray<mit_uint>& keys, 
                    const ps::SArray<mit_float>& vals, 
