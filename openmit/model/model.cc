@@ -55,6 +55,15 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch,
                        std::vector<mit_float>* grads) {
   CHECK_EQ(weights.size(), grads->size());
   auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+  #pragma omp parallel for num_threads(nthread)
+  for (auto i = 0; i < batch.size; ++i) {
+    Gradient(batch[i], weights, key2offset, grads, loss_grads[i]);
+  }
+  #pragma omp parallel for num_threads(nthread)
+  for (auto i = 0u; i < grads->size(); ++i) {
+    (*grads)[i] /= batch.size;
+  }
+  /*
   std::vector<std::vector<mit_float>*> grads_thread(nthread);
   for (size_t i = 0; i < grads_thread.size(); ++i) {
     grads_thread[i] = new std::vector<mit_float>(grads->size()); 
@@ -81,6 +90,7 @@ void Model::Gradient(const dmlc::RowBlock<mit_uint>& batch,
       delete grads_thread[i]; grads_thread[i] = nullptr; 
     }
   }
+  */
 } // Model::Gradient
 
 void Model::Update(const ps::SArray<mit_uint>& keys, 
