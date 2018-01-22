@@ -53,7 +53,7 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   
   /* gradient computing */
   std::vector<mit_float> loss_grads(batch.size, 0.0);
-  auto nthread = cli_param_.num_thread; 
+  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
   int chunksize = batch.size / nthread;
   chunksize = batch.size % nthread == 0 ? chunksize : chunksize + 1;
   // gradient for loss 

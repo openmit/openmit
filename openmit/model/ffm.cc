@@ -141,7 +141,7 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
     (*grads)[offset0] += 1 * middle;
   }
   // 1-order linear item 
-  #pragma omp parallel for num_threads(cli_param_.num_thread)
+  //#pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length; ++i) {
     mit_uint key = row.index[i];
     CHECK(key2offset.find(key) != key2offset.end());
@@ -150,7 +150,7 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
     (*grads)[offset] += xi * middle;
   }
   // 2-order cross item 
-  #pragma omp parallel for num_threads(cli_param_.num_thread)
+  //#pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length - 1; ++i) {
     auto fi = row.field[i];
     auto keyi = row.index[i];
@@ -174,19 +174,10 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
       auto vjfi_offset = key2offset[keyj].first + (1 + vjfi_index * model_param_.embedding_size);
       
       auto xij_middle = xi * xj * middle;
-      #pragma omp critical 
-      {
-        // sse implementation
-        GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
-        GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
-        /*
-        //(*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
-        for (auto k = 0u; k < model_param_.embedding_size; ++k) {
-          (*grads)[vifj_offset+k] += weights[vjfi_offset+k] * xij_middle;
-          (*grads)[vjfi_offset+k] += weights[vifj_offset+k] * xij_middle;
-        }
-        */
-      }
+      // sse implementation
+      //(*grads)[vifj_offset+k] += loss_grad * (weights[vjfi_offset+k] * xi * xj) * instweight;
+      GradientEmbeddingWithSSE(weights.data() + vjfi_offset, grads->data() + vifj_offset, xij_middle);
+      GradientEmbeddingWithSSE(weights.data() + vifj_offset, grads->data() + vjfi_offset, xij_middle);
     }
   } 
 }
@@ -208,7 +199,7 @@ mit_float FFM::Linear(const dmlc::Row<mit_uint>& row,
   if (! cli_param_.is_contain_intercept) {
     wTx += weights[key2offset[keyintercept].first];
   }
-  #pragma omp parallel for reduction(+:wTx) num_threads(cli_param_.num_thread)
+  //#pragma omp parallel for reduction(+:wTx) num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length; ++i) {
     auto key = row.index[i];
     if (! cli_param_.is_contain_intercept && key == 0) continue;
@@ -224,7 +215,7 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_float
   size_t weights_size = weights.size();
   mit_float cross = 0.0f;
 
-  #pragma omp parallel for reduction(+:cross) num_threads(cli_param_.num_thread)
+  //#pragma omp parallel for reduction(+:cross) num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length - 1; ++i) {
     auto fi = row.field[i];
     auto keyi = row.index[i];
