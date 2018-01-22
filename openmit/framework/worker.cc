@@ -97,27 +97,15 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
   /* pull request */
   // sorted unique key 
   trainer_->timer_stats_->begin(stats.ps_worker_pull_dataprepare);
-  std::unordered_set<mit_uint> fset;
-  std::unordered_map<mit_uint, int> fkv;
-  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
-  KeySet(batch, fset, fkv, extra);
-  std::vector<ps::Key> keys(fset.begin(), fset.end());
-  sort(keys.begin(), keys.end());
-  
+  bool has_extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+  std::vector<ps::Key> keys;
   std::vector<int> extras;
-  if (extra) {
-    extras.resize(keys.size(), 0);
-    for (auto i = 0u; i < keys.size(); ++i) {
-      if (fkv.find(keys[i]) == fkv.end()) continue;
-      extras[i] = fkv[keys[i]];
-    }
-  }
+  KeySet(batch, keys, extras, has_extra);
   trainer_->timer_stats_->stop(stats.ps_worker_pull_dataprepare);
   // pull operation 
   trainer_->timer_stats_->begin(stats.ps_worker_pull);
   std::vector<mit_float> weights;
   std::vector<int> lens; 
-  if (cli_param_.debug) LOG(INFO) << "@w[" << ps::MyRank() << "] pull before.";
   kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
   if (cli_param_.debug) {
     LOG(INFO) << "@w[" << ps::MyRank() << "] pull done. weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
@@ -177,21 +165,11 @@ std::string Worker::MetricMsg(std::vector<float>& metrics) {
 
 
 void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>& metrics_value) {
-  std::unordered_set<mit_uint> fset;
-  std::unordered_map<mit_uint, int> fkv;
-  bool extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
-  KeySet(batch, fset, fkv, extra);
-  std::vector<ps::Key> keys(fset.begin(), fset.end());
-  sort(keys.begin(), keys.end());
-  
+  bool has_extra = cli_param_.data_format == "libfm" && cli_param_.model == "ffm" ? true : false;
+  std::vector<ps::Key> keys;
   std::vector<int> extras;
-  if (extra) {
-    extras.resize(keys.size(), 0);
-    for (auto i = 0u; i < keys.size(); ++i) {
-      if (fkv.find(keys[i]) == fkv.end()) continue;
-      extras[i] = fkv[keys[i]];
-    }
-  }
+  KeySet(batch, keys, extras, has_extra);
+  
   // pull operation 
   std::vector<mit_float> weights;
   std::vector<int> lens; 
@@ -203,18 +181,26 @@ void Worker::MetricBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<floa
 } // Worker::MetricBatch
 
 void Worker::KeySet(const dmlc::RowBlock<mit_uint>& batch, 
-                    std::unordered_set<mit_uint>& fset, 
-                    std::unordered_map<mit_uint, int>& fkv, 
-                    bool extra) {
-  fset.clear();
-  fset.insert(batch.index + batch.offset[0], batch.index + batch.offset[batch.size]); 
-  fset.insert(0);
-  if (extra) {
-    #pragma omp parallel for num_threads(cli_param_.num_thread)
+                    std::vector<mit_uint>& keys, 
+                    std::vector<int>& extras, 
+                    bool has_extra) {
+  keys.clear(); extras.clear();
+  if (has_extra) { // deduplicate by map 
+    std::map<mit_uint, int> maps;
     for (auto i = batch.offset[0]; i < batch.offset[batch.size]; ++i) {
-      #pragma omp critical
-      fkv[batch.index[i]] = (int)batch.field[i];
+      maps.insert(std::make_pair(batch.index[i], (int)batch.field[i]));
     }
+    maps.insert(std::make_pair(0, 0));
+    for (auto iter = maps.begin(); iter != maps.end(); ++iter) {
+      keys.emplace_back(iter->first);
+      extras.emplace_back(iter->second);
+    }
+  } else { // deduplicate by set
+    std::unordered_set<mit_uint> keysets;
+    keysets.insert(batch.index + batch.offset[0], batch.index + batch.offset[batch.size]); 
+    keysets.insert(0);
+    keys.insert(keys.begin(), keysets.begin(), keysets.end());
+    std::sort(keys.begin(), keys.end());
   }
 } // method Worker::KeySet 
 

@@ -51,9 +51,9 @@ class Worker {
     
     /*! \brief key set */
     void KeySet(const dmlc::RowBlock<mit_uint>& batch, 
-                std::unordered_set<mit_uint>& fset, 
-                std::unordered_map<mit_uint, int>& fkv, 
-                bool extra);   
+                std::vector<mit_uint>& keys, 
+                std::vector<int>& extras, 
+                bool has_extra);
 
   private:
     /*! \brief metric method */
