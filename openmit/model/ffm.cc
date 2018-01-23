@@ -125,24 +125,16 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
     auto offset0 = key2offset[0].first;
     (*grads)[offset0] += 1 * middle;
   }
-  // 1-order linear item 
-  //#pragma omp parallel for num_threads(cli_param_.num_thread)
-  for (auto i = 0u; i < row.length; ++i) {
-    mit_uint key = row.index[i];
-    CHECK(key2offset.find(key) != key2offset.end());
-    auto offset = key2offset[key].first;
-    auto xi = row.get_value(i);
-    (*grads)[offset] += xi * middle;
-  }
-  // 2-order cross item 
-  //#pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < row.length - 1; ++i) {
     auto fi = row.field[i];
     auto keyi = row.index[i];
     auto xi = row.get_value(i);
-    // fi not in fields_map 
+    // 1-order linear item 
+    (*grads)[key2offset[keyi].first] += xi * middle;
+    
     if (! entry_meta_->CombineInfo(fi)) continue;
 
+    // 2-order cross item
     for (auto j = i + 1; j < row.length; ++j) {
       auto fj = row.field[j];
       if (fi == fj) continue; // not cross when same field 
@@ -176,9 +168,9 @@ void FFM::Gradient(const dmlc::Row<mit_uint>& row,
 mit_float FFM::Predict(const dmlc::Row<mit_uint>& row, 
                        const std::vector<mit_float>& weights, 
                        mit::key2offset_type& key2offset) {
-  auto wTx = Linear(row, weights, key2offset);
-  wTx += Cross(row, weights, key2offset);
-  return wTx;
+  //auto wTx = Linear(row, weights, key2offset);
+  //wTx += Cross(row, weights, key2offset);
+  return Cross(row, weights, key2offset);
 }
 
 mit_float FFM::Linear(const dmlc::Row<mit_uint>& row, 
@@ -211,9 +203,11 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_float
     auto fi = row.field[i];
     auto keyi = row.index[i];
     auto xi = row.get_value(i);
-    // fi not in fields_map 
-    if (! entry_meta_->CombineInfo(fi)) continue;
+    // 1-order linear item 
+    cross += weights[key2offset[keyi].first] * xi;
 
+    // 2-order cross item
+    if (! entry_meta_->CombineInfo(fi)) continue;
     for (auto j = i + 1; j < row.length; ++j) {
       auto fj = row.field[j];
       if (fi == fj) continue; // not cross when same field 
@@ -235,14 +229,6 @@ mit_float FFM::Cross(const dmlc::Row<mit_uint>& row, const std::vector<mit_float
       // sse acceleration
       auto inprod = InnerProductWithSSE(pweights + vifj_offset, pweights + vjfi_offset);
       cross += inprod * xi * xj;
-
-      /*
-      auto inprod = 0.0f;
-      for (auto k = 0u; k < model_param_.embedding_size; ++k) {
-        inprod += weights[vifj_offset+k] * weights[vjfi_offset+k];
-      }
-      cross += inprod * xi * xj;
-      */
     }
   }
   return cross;
