@@ -32,8 +32,8 @@ cp -r $HADOOP_HOME/lib/native/* hadoop/lib
 URL=https://raw.githubusercontent.com/openmit/deps/master/build/
 
 # tbb
-#FILE=tbb-2018.tar.gz
-#DIR=tbb-2018 
+FILE=tbb-2018.tar.gz
+DIR=tbb-2018 
 #rm -rf $DIR $FILE || true 
 #wget $URL/$FILE && tar --no-same-owner -zxvf $FILE 
 #cd $DIR && make 
