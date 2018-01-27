@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 2.7)
 
 project(openmit)
 find_package(OpenMP)
@@ -6,7 +6,7 @@ find_package(OpenMP)
 message(STATUS "OpenMP_CXX_FLAGS: ${OpenMP_CXX_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -fPIC -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -O3 -fPIC -Wall -mssse3")
 set(CMAKE_CXX_FLAGS_DEBUG          "-O0 -g")
 set(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE        "-O4 -DNDEBUG")
@@ -37,7 +37,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/third_party/hadoop/include
   ${PROJECT_SOURCE_DIR}/third_party/ps-lite/deps/include
   $ENV{JAVA_HOME}/include)
-#${PROJECT_SOURCE_DIR}/third_party/ps-lite/include
 
 link_directories(
   ${PROJECT_SOURCE_DIR}/lib
@@ -51,3 +50,4 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
 
 # Add Subdirectory
 add_subdirectory(openmit)
+#add_subdirectory(test)

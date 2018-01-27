@@ -1,91 +1,83 @@
-#ifndef OPENMIT_LOSS_H_
-#define OPENMIT_LOSS_H_
+#ifndef OPENMIT_LOSS_LOSS_H_
+#define OPENMIT_LOSS_LOSS_H_ 
 
 #include <cmath>
+#include <functional>
 #include <string>
-#include <vector>
-
-#include "dmlc/data.h"
 #include "dmlc/logging.h"
-
 #include "openmit/common/base.h"
 
 namespace mit {
-
-/*! 
- * \brief loss function template for various loss metric 
- */
-class Loss {
-  public:
-    /*! \brief create a loss function */
-    static Loss * Create(std::string loss_type);
-    
-    /*! \brief destructor */
-    virtual ~Loss() {}
-
-    /*! \brief loss function */
-    virtual mit_float LossFunc(
-        const mit_float & pred, const mit_float & label) = 0;
-
-    /*! \brief calculate loss based on a batch-data */
-	mit_float CalcLoss(const dmlc::RowBlock<mit_uint>& row_block, 
-                       const std::vector<mit_float>& pred_value);
-
-    /*! \brief get loss type */
-	inline const std::string& Type() const { return type_; }
-
-protected:
-    /*! \brief loss type */
-	std::string type_;
-
-}; // class Loss
+/*! \brief loss function type */
+typedef std::function<mit_float(const mit_float &, const mit_float &)> lossfunc_type;
 
 /*!
- * \brief squared-loss function
+ * \brief loss function 
  */
-class SquaredLoss: public Loss {
-  public:
-    /*! \brief constructor */
-    SquaredLoss() { this->type_ = "squared"; }
-    
-    /*! \brief destructor */
-    virtual ~SquaredLoss() {}
-    
-    /*! \brief get square loss */
-    static SquaredLoss * Get() {
-      static SquaredLoss loss;
-      return & loss;
-    }
+struct Loss {
+  /*! brief create loss object */
+  static Loss* Create(std::string type);
 
-    /*! \brief square-loss complication */
-    mit_float LossFunc(const mit_float & pred, 
-                       const mit_float & label) override;
-}; // class SquaredLoss 
+  /*! 
+   * \brief constructor by register loss expr & gradient 
+   */
+  Loss(const lossfunc_type& loss, const lossfunc_type& gradient) : 
+    loss(loss), gradient(gradient) {} 
 
-/*! 
- * \brief logit-loss, such as lr, fm, ffm etc
+  /*! \brief loss function expression */
+  lossfunc_type loss;
+
+  /*! \brief gradient logic of loss */
+  lossfunc_type gradient;
+}; // struct Loss
+
+/*!
+ * \brief squared loss 
  */
-class LogitLoss: public Loss {
-  public:
-    /*! \brief constructor */
-    LogitLoss() { this->type_ = "logit"; }
-    
-    /*! \brief destructor */
-    virtual ~LogitLoss() {}
-    
-    /*! \brief get logit loss */
-    static LogitLoss * Get() {
-      static LogitLoss loss;
-      return & loss;
-    }
+struct SquaredLoss {
+  /*!
+   * \brief function of squared loss 
+   */
+  static mit_float LossFunc(const mit_float& target, 
+                            const mit_float& mfunc) {
+    return 0.5 * (mfunc - target) * (mfunc - target);
+  }
 
-    /*! \brief logit-loss complication */
-    mit_float LossFunc(const mit_float & pred, 
-                       const mit_float & label) override;
+  /*! 
+   * \brief gradient or sub-gradients 
+   * \param label objective value. category / real value 
+   * \param mfunc model function expression
+   */
+  static mit_float Gradient(const mit_float& target, 
+                            const mit_float& mfunc) {
+    return mfunc - target;
+  }
+}; // struct SquaredLoss 
 
-}; // class LogitLoss 
+/*!
+ * \brief logistic loss 
+ */
+struct LogitLoss {
+  /*!
+   * \brief function of squared loss 
+   */
+  static mit_float LossFunc(const mit_float& label, 
+                            const mit_float& mfunc) { 
+    auto y = label > 0 ? 1 : -1;
+    return std::log(1 + std::exp(-y * mfunc));
+  }
 
+  /*! 
+   * \brief gradient or sub-gradients 
+   * \param label it belongs to {+1, -1}
+   * \param mfunc model function expression
+   */
+  static mit_float Gradient(const mit_float& label, 
+                            const mit_float& mfunc) {
+    mit_float y = label > 0 ? 1 : -1;
+    return -y / (1 + std::exp(y * mfunc));
+  }
+}; // struct LogitLoss
 
-} // namespace mit
-
-#endif // OPENMIT_LOSS_H_
+} // namespace mit 
+#endif // OPENMIT_LOSS_LOSS_H_

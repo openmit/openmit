@@ -9,7 +9,7 @@
 *.pch
 
 # Compiled Dynamic libraries
-*.so
+*.so*
 *.dylib
 *.dll
 
@@ -27,8 +27,9 @@
 *.exe
 *.out
 *.app
-bin/
 *.tmp
+bin/ 
+lib/
 
 # CMake
 build/
@@ -36,7 +37,11 @@ build/
 # 3rd-party
 third_party/include/
 third_party/lib/
-third_party/mxnet
+third_party/mxnet/
 
 # tmp file
-test/
+out/
+test/ 
+
+# Data files
+part*

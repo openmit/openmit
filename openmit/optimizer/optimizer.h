@@ -8,25 +8,24 @@
 #define OPENMIT_OPTIMIZER_OPTIMIZER_H_
 
 #include "ps/ps.h"
-
 #include "openmit/common/arg.h"
 #include "openmit/common/base.h"
-#include "openmit/common/data/data.h"
-#include "openmit/entity/unit.h"
+#include "openmit/common/parameter.h"
+#include "openmit/entry/entry.h"
 #include "openmit/tools/dstruct/sarray.h"
 
 namespace mit {
 /*!
  * \brief optimizer template for varies optimization algorithm
  */
-class Opt {
+class Optimizer {
   public:
     /*! \brief create a optimizer */
-    static Opt * Create(const mit::KWArgs & kwargs, 
-                        std::string & optimizer);
+    static Optimizer * Create(const mit::KWArgs & kwargs, 
+                              const std::string & name = "gd");
     
     /*! \brief destructor */
-    virtual ~Opt() {}
+    virtual ~Optimizer() {}
     
     /*! 
      * \brief initialize optimizer middle variable
@@ -39,22 +38,33 @@ class Opt {
              mit::SArray<mit_float> * weight);
 
     /*! \brief parameter updater for ps */
-    void Run(PMAPT & map_grad, PMAPT * weight);
+    void Run(const ps::SArray<mit_uint> & keys, 
+             const ps::SArray<mit_float> & vals, 
+             const ps::SArray<int> & lens, 
+             std::unordered_map<mit_uint, mit::Entry *> * weight);
   
+    virtual void Update(const mit_uint & key, 
+                        const size_t & idx, 
+                        const mit_float & g, 
+                        mit_float & w, 
+                        mit::Entry * weight = nullptr) = 0;
+
   protected:
     /*! 
      * \brief model updater for parameter server interface
+     * \param param optimizer parameter
      * \param key model feature id
-     * \param idx model unit index
-     * \param size model unit max size
+     * \param idx entry data index
      * \param g gradient of unit index that computed by worker node
-     * \param w model parameter of unit index
+     * \param w model parameter of unit index 
+     * \param weight used initialize optimizer middle variable
      */
-    virtual void Update(const mit_uint key, 
-                        const uint32_t idx, 
-                        const uint32_t size, 
-                        const mit_float g, 
-                        mit_float & w) = 0;
+    virtual void Update(const mit::OptimizerParam & param, 
+                        const mit_uint & key, 
+                        const size_t & idx, 
+                        const mit_float & g,
+                        mit_float & w,
+                        mit::Entry * weight = nullptr) = 0;
 
     /*!
      * \brief parameter updater for mpi
@@ -66,7 +76,14 @@ class Opt {
                         const mit_float g, 
                         mit_float & w) = 0;
 
-}; // class Opt
-} // namespace mit
+  protected:
+    /*! \brief optimizer parameter */
+    mit::OptimizerParam param_;
+    /*! \brief optimizer parameter for w */
+    mit::OptimizerParam param_w_;
+    /*! \brief optimizer parameter for v */
+    mit::OptimizerParam param_v_;
+}; // class Optimizer
 
+} // namespace mit
 #endif // OPENMIT_OPTIMIZER_OPTIMIZER_H_
