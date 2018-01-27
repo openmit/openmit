@@ -109,6 +109,9 @@ void Worker::MiniBatch(const dmlc::RowBlock<mit_uint>& batch, std::vector<float>
   kv_worker_->Wait(kv_worker_->Pull(keys, extras, &weights, &lens));
   if (cli_param_.debug) {
     LOG(INFO) << "@w[" << ps::MyRank() << "] pull done. weights from server " << mit::DebugStr<mit_float>(weights.data(), 5);
+    //test
+    //LOG(INFO) << "@w[" << ps::MyRank() << "] pull done. keys from server " << mit::DebugStr<long unsigned int>(keys.data(), 12);
+    //LOG(INFO) << "@w[" << ps::MyRank() << "] pull done. weights from server " << mit::DebugStr<mit_float>(weights.data(), weights.size(), 12);
   }
   trainer_->timer_stats_->stop(stats.ps_worker_pull);
   
