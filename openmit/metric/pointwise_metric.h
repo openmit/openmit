@@ -8,30 +8,72 @@
 #define OPENMIT_METRIC_POINTWISE_METRIC_H_
 
 #include <cmath>
-
 #include "openmit/metric/metric.h"
 
 namespace mit {
-
 namespace metric {
-
+/*!
+ * \brief logloss metric apply to binary problem
+ */
 class LogLoss : public Metric {
   public:
-    const char * Name() const override {
+    const char* Name() const override {
       return "logloss";
     }
     
-    static LogLoss * Get() { return new LogLoss(); }
+    static LogLoss* Get() { return new LogLoss(); }
     
-    inline float Eval(const std::vector<float> & preds,
-                      const std::vector<float> & labels) const override;
+    inline float Eval(const std::vector<float>& preds,
+                      const std::vector<float>& labels) const override;
     
     inline float EvalRow(float pred, float y) const;
-
 }; // class LogLoss
 
+class MSE : public Metric {
+  public:
+    const char* Name() const override {
+      return "mse";
+    }
+    
+    static MSE* Get() { return new MSE(); }
+    
+    inline float Eval(const std::vector<float>& preds,
+                      const std::vector<float>& labels) const override;
+    
+    inline float EvalRow(float pred, float y) const;
+}; // class MSE
+
+class RMSE : public Metric {
+  public:
+    const char* Name() const override {
+      return "rmse";
+    }
+    
+    static RMSE* Get() { return new RMSE(); }
+    
+    inline float Eval(const std::vector<float>& preds,
+                      const std::vector<float>& labels) const override;
+    
+    inline float EvalRow(float pred, float y) const;
+}; // class RMSE
+
+class MAE : public Metric {
+  public:
+    const char* Name() const override {
+      return "mae";
+    }
+    
+    static MAE* Get() { return new MAE(); }
+    
+    inline float Eval(const std::vector<float>& preds,
+                      const std::vector<float>& labels) const override;
+    
+    inline float EvalRow(float pred, float y) const;
+}; // class MAE
+
 // implement
-inline float LogLoss::Eval(const std::vector<float>& preds, const std::vector<float>& labels) const {
+inline float LogLoss::Eval(const std::vector<float>& preds, 
+                           const std::vector<float>& labels) const {
   auto ndata = labels.size(); CHECK(ndata > 0);
   CHECK_EQ(labels.size(), preds.size()) << "not match size";
   float sum = 0.0;
@@ -39,12 +81,6 @@ inline float LogLoss::Eval(const std::vector<float>& preds, const std::vector<fl
   for (auto i = 0u; i < ndata; ++i) {
     sum += EvalRow(preds[i], labels[i]);
   }
-  /*
-  for (auto i = 0u; i < ndata; ++i) {
-    LOG(INFO) << "<p, y>: <" << preds[i] << ", " << labels[i] << ">";
-  }
-  LOG(INFO) << "LogLoss::Eval sum: " << sum << ", ndata: " << ndata << ", avg(sum): " << sum/ndata;
-  */
   return sum / ndata;
 }
 
@@ -63,23 +99,9 @@ inline float LogLoss::EvalRow(float pred, float y) const {
   return res;
 }
 
-class MSELoss : public Metric {
-  public:
-    const char * Name() const override {
-      return "mse_loss";
-    }
-    
-    static MSELoss * Get() { return new MSELoss(); }
-    
-    inline float Eval(const std::vector<float> & preds,
-                      const std::vector<float> & labels) const override;
-    
-    inline float EvalRow(float pred, float y) const;
-
-}; // class MSELoss
-
 // implement mse(mean squared error) loss
-inline float MSELoss::Eval(const std::vector<float> & preds, const std::vector<float> & labels) const {
+inline float MSE::Eval(const std::vector<float>& preds, 
+                       const std::vector<float>& labels) const {
   CHECK_NE(labels.size(), 0) << "label cannot be empty!";
   CHECK_NE(preds.size(), 0) << "prediction variable cannot be empty!";
   CHECK_EQ(labels.size(), preds.size()) << "label and prediction size not match, ";
@@ -94,27 +116,13 @@ inline float MSELoss::Eval(const std::vector<float> & preds, const std::vector<f
 }
 
 // squared error loss implement
-inline float MSELoss::EvalRow(float pred, float y) const {
+inline float MSE::EvalRow(float pred, float y) const {
   return (pred - y) * (pred - y);
 }
 
-class RMSELoss : public Metric {
-  public:
-    const char * Name() const override {
-      return "rmse_loss";
-    }
-    
-    static RMSELoss * Get() { return new RMSELoss(); }
-    
-    inline float Eval(const std::vector<float> & preds,
-                      const std::vector<float> & labels) const override;
-    
-    inline float EvalRow(float pred, float y) const;
-
-}; // class RMSELoss
-
 // implement rmse(root mean squared error) loss
-inline float RMSELoss::Eval(const std::vector<float> & preds, const std::vector<float> & labels) const {
+inline float RMSE::Eval(const std::vector<float>& preds, 
+                        const std::vector<float>& labels) const {
   CHECK_NE(labels.size(), 0) << "label cannot be empty!";
   CHECK_NE(preds.size(), 0) << "prediction variable cannot be empty!";
   CHECK_EQ(labels.size(), preds.size()) << "label and prediction size not match, ";
@@ -129,27 +137,13 @@ inline float RMSELoss::Eval(const std::vector<float> & preds, const std::vector<
 }
 
 // squared error loss implement
-inline float RMSELoss::EvalRow(float pred, float y) const {
+inline float RMSE::EvalRow(float pred, float y) const {
   return (pred - y) * (pred - y);
 }
 
-class MAELoss : public Metric {
-  public:
-    const char * Name() const override {
-      return "mae_loss";
-    }
-    
-    static MAELoss * Get() { return new MAELoss(); }
-    
-    inline float Eval(const std::vector<float> & preds,
-                      const std::vector<float> & labels) const override;
-    
-    inline float EvalRow(float pred, float y) const;
-
-}; // class MAELoss
-
-// implement mae(mean absolute error) loss
-inline float MAELoss::Eval(const std::vector<float> & preds, const std::vector<float> & labels) const {
+// implement MAELoss(mean absolute error) loss
+inline float MAE::Eval(const std::vector<float>& preds, 
+                       const std::vector<float>& labels) const {
   CHECK_NE(labels.size(), 0) << "label cannot be empty!";
   CHECK_NE(preds.size(), 0) << "prediction variable cannot be empty!";
   CHECK_EQ(labels.size(), preds.size()) << "label and prediction size not match, ";
@@ -164,12 +158,11 @@ inline float MAELoss::Eval(const std::vector<float> & preds, const std::vector<f
 }
 
 // squared error loss implement
-inline float MAELoss::EvalRow(float pred, float y) const {
+inline float MAE::EvalRow(float pred, float y) const {
   return fabs(pred - y);
 }
 
 } // namespace metric
-
 } // namespace mit
 
 #endif // OPENMIT_METRIC_POINTWISE_METRIC_H_

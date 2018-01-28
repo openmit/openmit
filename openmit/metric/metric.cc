@@ -9,14 +9,14 @@ Metric * Metric::Create(std::string & name) {
     return mit::metric::LogLoss::Get();
   } else if (name == "auc") {
     return mit::metric::Auc::Get();
-  } else if (name == "mseloss") {
-    return mit::metric::MSELoss::Get();
-  } else if (name == "rmseloss") {
-    return mit::metric::RMSELoss::Get();
-  } else if (name == "maeloss") {
-    return mit::metric::MAELoss::Get();
+  } else if (name == "mse") {
+    return mit::metric::MSE::Get();
+  } else if (name == "rmse") {
+    return mit::metric::RMSE::Get();
+  } else if (name == "mae") {
+    return mit::metric::MAE::Get();
   } else {
-    LOG(ERROR) << "metric method not in [logloss, auc, mseloss, rmseloss, maeloss]. " << name; 
+    LOG(ERROR) << "metric method not in [logloss, auc, mse, rmse, mae]. " << name; 
     return nullptr;
   }
 }
