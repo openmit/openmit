@@ -42,7 +42,6 @@ void Worker::Init(const mit::KWArgs & kwargs) {
 void Worker::Run() {
   CHECK_GT(cli_param_.batch_size, 0);
   std::vector<float> batch_metric;
-  size_t progress_interval = cli_param_.batch_size * cli_param_.job_progress;
   std::string msg = "@w[" + std::to_string(ps::MyRank()) + "] train <epoch, batch, inst>: <";
   for (auto epoch = 1u; epoch <= cli_param_.max_epoch; ++epoch) {
     std::vector<float> train_metric(trainer_->MetricInfo().size(), 0.0);
