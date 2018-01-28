@@ -78,6 +78,10 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
     std::vector<mit_float> labels(batch.label, batch.label + batch.size);
     for (auto i = 0u; i < train_metric.size(); ++i) {
       train_metric[i] = metrics_[i]->Eval(preds, labels);
+      if (cli_param_.debug){
+        LOG(INFO) << "train labels:" << mit::DebugStr<mit_float>(labels.data(), labels.size(), 12);
+        LOG(INFO) << "train preds:" << mit::DebugStr<mit_float>(preds.data(), preds.size(), 12);
+        LOG(INFO) << "metric:" << cli_param_.metric << " value:" << train_metric[i];      }
     }
   }
   timer_stats_->stop(stats.ps_worker_train_metric);
@@ -97,7 +101,7 @@ void Trainer::Metric(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>
   // predict 
   std::vector<mit_float> preds(batch.size);
   model_->Predict(batch, weights, key2offset, preds);
-  if (cli_param_.objective != "regression") {
+  if (cli_param_.objective != "regression" && cli_param_.model != "mf") {
     #pragma omp parallel for num_threads(cli_param_.num_thread)
     for (auto i = 0u; i < batch.size; ++i) {
       preds[i] = mit::math::sigmoid(preds[i]);
