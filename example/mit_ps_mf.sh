@@ -22,7 +22,7 @@ ${wk_dir}/tracker/dmlc-submit \
   --num-servers ${num_servers} \
   --num-workers ${num_workers} \
   ${wk_dir}/bin/openmit example/mit_ps_mf.conf \
-  train_path = example/data/libmf/mf.txt.e1 \
-  valid_path = example/data/libmf/mf.txt.e1 \
-  test_path = example/data/libmf/mf.txt.e1 \
+  train_path = example/data/libmf/mf.txt \
+  valid_path = example/data/libmf/mf.txt \
+  test_path = example/data/libmf/mf.txt \
   out_path = example/data/out/libmf

@@ -170,9 +170,23 @@ void Server::SaveModel(std::string epoch) {
 void Server::SaveTextModel(dmlc::Stream* fo) {
   mit::EntryMeta* entry_meta = model_->EntryMeta();
   dmlc::ostream oss(fo);
-  for (auto & kv : weight_) {
-    auto key = kv.first;
-    oss << key << "\t" << kv.second->String(entry_meta) << "\n";
+  if (cli_param_.model == "mf") {
+    mit_uint index_threashold = ((mit_uint)1 << cli_param_.nbit);
+    for (auto & kv : weight_) {
+      auto key = kv.first;
+      auto type = 0;
+      if ((mit_uint)kv.first >= index_threashold) {
+        key = DecodeField(key, cli_param_.nbit);
+        type = 1;
+      }
+      oss << type << "\t" << key << "\t" << kv.second->String(entry_meta) << "\n";
+    }
+  }
+  else {
+    for (auto & kv : weight_) {
+      auto key = kv.first;
+      oss << key << "\t" << kv.second->String(entry_meta) << "\n";
+    }
   }
   // force flush before fo destruct 
   oss.set_stream(nullptr);
