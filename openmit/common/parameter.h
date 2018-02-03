@@ -8,6 +8,7 @@
 #define OPENMIT_COMMON_PARAMETER_H_
 
 #include "dmlc/parameter.h"
+#include "third_party/include/liblbfgs/lbfgs.h"
 
 namespace mit {
 /*!
@@ -180,6 +181,15 @@ struct OptimizerParam : public dmlc::Parameter<OptimizerParam> {
   float gamma;
   /*! \brief epsilon avoid denominator equals to 0 */
   float epsilon;
+  /*! \brief number of corrections for lbfgs*/
+  uint32_t m;
+  /*! \brief maximum number of iterations for lbfgs*/
+  uint32_t max_iterations;
+  /*! \brief line search algorithm for lbfgs*/
+  uint32_t linesearch;
+  /*! \brief maximum number of trials for line search for lbfgs*/
+  uint32_t max_linesearch;
+  
 
   /*! \brief declare field */
   DMLC_DECLARE_PARAMETER(OptimizerParam) {
@@ -194,6 +204,11 @@ struct OptimizerParam : public dmlc::Parameter<OptimizerParam> {
     DMLC_DECLARE_FIELD(beta2).set_default(0.99);
     DMLC_DECLARE_FIELD(gamma).set_default(0.99);
     DMLC_DECLARE_FIELD(epsilon).set_default(1e-8);
+    DMLC_DECLARE_FIELD(m).set_default(6);
+    DMLC_DECLARE_FIELD(max_iterations).set_default(0);
+    DMLC_DECLARE_FIELD(linesearch).set_default(LBFGS_LINESEARCH_DEFAULT);
+    DMLC_DECLARE_FIELD(max_linesearch).set_default(20);
+
   } 
 }; // struct OptimizerParam
 

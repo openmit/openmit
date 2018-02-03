@@ -13,6 +13,7 @@
 #include "openmit/common/parameter.h"
 #include "openmit/entry/entry.h"
 #include "openmit/tools/dstruct/sarray.h"
+#include "third_party/include/liblbfgs/lbfgs.h"
 
 namespace mit {
 /*!
