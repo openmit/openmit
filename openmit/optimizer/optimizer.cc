@@ -19,6 +19,7 @@ Optimizer * Optimizer::Create(const mit::KWArgs & kwargs,
       if (kv.first != "optimizer") continue;
       optimizer = kv.second;
     }
+    LOG(INFO) << "aaaaaa:" << optimizer;
   }
   LOG(INFO) << "Optimizer optimizer: " << optimizer;
   if (optimizer == "gd" || optimizer == "sgd") {

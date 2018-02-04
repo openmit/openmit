@@ -178,24 +178,29 @@ void Model::GradientEmbeddingWithSSE(const float* pweight,
 void Model::RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
                      mit::key2offset_type* key2offset,
                      mit::Loss* loss,
-                     std::vector<mit_float>& weights
-)
+                     std::vector<mit_float>& weights,
+                     std::vector<mit_float>* grads)
 {
   batch_ = batch;
   key2offset_ = key2offset;
   loss_ = loss;
   lbfgsfloatval_t fx = 0.0;
+  CHECK(!weights.empty()); 
   lbfgsfloatval_t* weights_ = new lbfgsfloatval_t[sizeof(weights)];
-  if (!weights.empty())  
-  {  
-    memcpy(weights_, &weights[0], weights.size()*sizeof(lbfgsfloatval_t));  
-  } 
+  //memcpy(weights_, &weights[0], weights.size()*sizeof(lbfgsfloatval_t));  
+  for (auto i = 0u; i < weights.size(); ++i) {
+    weights_[i] = (lbfgsfloatval_t)weights[i];
+  }
+
   optimizer_->Run(weights.size(), 
                   weights_, 
                   &fx,
                   _LBFGSEvaluate,
                   _LBFGSProgress,
                   this);
+  for (auto i = 0u; i < weights.size(); ++i) {
+    (*grads)[i] = weights_[i];
+  }
 }
 
 lbfgsfloatval_t Model::_LBFGSEvaluate(void *instance,

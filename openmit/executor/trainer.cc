@@ -18,9 +18,6 @@ Trainer::Trainer(const mit::KWArgs& kwargs) {
     CHECK(metric) << "Metric::Create(" << metric_names[i] << ")";
     metrics_.push_back(metric);
   }
-  batch_ = NULL;
-  key2offset_ = NULL;
-
   // timer stats 
   timer_stats_ = new mit::TimerStats();
 } // Trainer::Trainer
@@ -54,7 +51,9 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   }
   timer_stats_->stop(stats.ps_worker_model_predict);
   if (cli_param_.optimizer == "lbfgs") {
-    model_->RunLBFGS(&batch, &key2offset, loss_, weights);
+    LOG(INFO) << "weights before lbfgs:" << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+    model_->RunLBFGS(&batch, &key2offset, loss_, weights, grads);
+    LOG(INFO) << "weights after lbfgs:" << mit::DebugStr<mit_float>(grads->data(), 10, 10);
   }
   else { 
     /* gradient computing */

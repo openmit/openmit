@@ -160,7 +160,8 @@ class Model {
     void RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
                   mit::key2offset_type* key2offset,
                   mit::Loss* loss,
-                  std::vector<mit_float>& weights);
+                  std::vector<mit_float>& weights,
+                  std::vector<mit_float>* grads);
   protected:
     /*! \brief inner product with sse */
     float InnerProductWithSSE(const float* p1, const float* p2);

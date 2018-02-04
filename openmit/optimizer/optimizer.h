@@ -23,7 +23,7 @@ class Optimizer {
   public:
     /*! \brief create a optimizer */
     static Optimizer * Create(const mit::KWArgs & kwargs, 
-                              const std::string & name = "gd");
+                              const std::string & name = "lbfgs");
     
     /*! \brief destructor */
     virtual ~Optimizer() {}
