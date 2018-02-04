@@ -43,7 +43,14 @@ class Optimizer {
              const ps::SArray<mit_float> & vals, 
              const ps::SArray<int> & lens, 
              std::unordered_map<mit_uint, mit::Entry *> * weight);
-  
+
+    void Run(int n,
+             lbfgsfloatval_t *x,
+             lbfgsfloatval_t *fx,
+             lbfgs_evaluate_t proc_evaluate,
+             lbfgs_progress_t proc_progress,
+             void *instance);
+ 
     virtual void Update(const mit_uint & key, 
                         const size_t & idx, 
                         const mit_float & g, 

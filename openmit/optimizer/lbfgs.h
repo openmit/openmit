@@ -129,24 +129,5 @@ void LBFGSOptimizer::Run(int n,
   LOG(INFO) << "L-BFGS optimization terminated with status code = " << ret;
 } 
 
-
-
-/*
-int LBFGSOptimizer::progress(void *instance,
-                             const lbfgsfloatval_t *x,
-                             const lbfgsfloatval_t *g,
-                             const lbfgsfloatval_t fx,
-                             const lbfgsfloatval_t xnorm,
-                             const lbfgsfloatval_t gnorm,
-                             const lbfgsfloatval_t step,
-                             int n,
-                             int k,
-                             int ls)
-{
-    LOG(INFO) << "Iteration:" << k << "  fx:" << fx << " xnorm:" << xnorm << " gnorm:" << gnorm << " step:" << step ;
-    return 0;
-}
-*/
-
 } // namespace mit
 #endif // OPENMIT_OPTIMIZER_LBFGS_H_

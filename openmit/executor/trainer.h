@@ -66,7 +66,8 @@ class Trainer {
     std::vector<mit::Metric*> metrics_;
     /*! \brief loss function object */
     mit::Loss* loss_;
-
+    dmlc::RowBlock<mit_uint>* batch_;
+    mit::key2offset_type* key2offset_;
   public:
     /*! \brief time consuming analysis */
     mit::TimerStats* timer_stats_;

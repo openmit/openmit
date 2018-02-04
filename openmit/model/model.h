@@ -22,6 +22,10 @@
 #include "openmit/optimizer/optimizer.h"
 #include "openmit/tools/math/formula.h"
 #include "openmit/tools/math/random.h"
+#include "openmit/loss/loss.h"
+
+//#include "third_party/include/liblbfgs/lbfgs.h"
+
 
 namespace mit {
 /*! \brief define variable for key to offset */
@@ -122,7 +126,41 @@ class Model {
     
     /*! \brief entry meta info */
     inline mit::EntryMeta* EntryMeta() { return entry_meta_.get(); }
-
+   static lbfgsfloatval_t _LBFGSEvaluate(void *instance,
+                                         const lbfgsfloatval_t *weights,
+                                         lbfgsfloatval_t *grads,
+                                         const int n,
+                                         const lbfgsfloatval_t step);
+    lbfgsfloatval_t LBFGSEvaluate(const lbfgsfloatval_t *weights,
+                                  lbfgsfloatval_t *grads,
+                                  const int n,
+                                  const lbfgsfloatval_t step,
+                                  const dmlc::RowBlock<mit_uint>& batch,
+                                  mit::key2offset_type& key2offset,
+                                  mit::Loss* loss_);
+    static int _LBFGSProgress(void *instance,
+                              const lbfgsfloatval_t *weights,
+                              const lbfgsfloatval_t *grads,
+                              const lbfgsfloatval_t fx,
+                              const lbfgsfloatval_t xnorm,
+                              const lbfgsfloatval_t gnorm,
+                              const lbfgsfloatval_t step,
+                              int n,
+                              int k,
+                              int ls);
+    int LBFGSProgress(const lbfgsfloatval_t *x,
+                      const lbfgsfloatval_t *g,
+                      const lbfgsfloatval_t fx,
+                      const lbfgsfloatval_t xnorm,
+                      const lbfgsfloatval_t gnorm,
+                      const lbfgsfloatval_t step,
+                      int n,
+                      int k,
+                      int ls);
+    void RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
+                  mit::key2offset_type* key2offset,
+                  mit::Loss* loss,
+                  std::vector<mit_float>& weights);
   protected:
     /*! \brief inner product with sse */
     float InnerProductWithSSE(const float* p1, const float* p2);
@@ -148,6 +186,9 @@ class Model {
     /*! \brief sse instruction */
     size_t blocksize = 0;
     size_t remainder = 0;
+    const dmlc::RowBlock<mit_uint>* batch_;
+    mit::key2offset_type* key2offset_;
+    mit::Loss* loss_;
 }; // class Model
 
 } // namespace mit
