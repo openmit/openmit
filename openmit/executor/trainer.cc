@@ -47,13 +47,13 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   std::vector<mit_float> preds(batch.size, 0.0);
   model_->Predict(batch, weights, key2offset, preds);
   if (cli_param_.debug) {
-    LOG(INFO) << "trainer model predict " << mit::DebugStr<mit_float>(preds.data(), 5);
+    LOG(INFO) << "trainer model predict " << mit::DebugStr<mit_float>(preds.data(), preds.size(), 10);
   }
   timer_stats_->stop(stats.ps_worker_model_predict);
   if (cli_param_.optimizer == "lbfgs") {
-    LOG(INFO) << "weights before lbfgs:" << mit::DebugStr<mit_float>(weights.data(), 10, 10);
+    LOG(INFO) << "weights before lbfgs:" << mit::DebugStr<mit_float>(weights.data(), weights.size(), 10);
     model_->RunLBFGS(&batch, &key2offset, loss_, weights, grads);
-    LOG(INFO) << "weights after lbfgs:" << mit::DebugStr<mit_float>(grads->data(), 10, 10);
+    LOG(INFO) << "weights after lbfgs:" << mit::DebugStr<mit_float>(grads->data(), grads->size(), 10);
   }
   else { 
     /* gradient computing */

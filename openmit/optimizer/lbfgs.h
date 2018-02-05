@@ -125,7 +125,8 @@ void LBFGSOptimizer::Run(int n,
 {
   CHECK_NOTNULL(x);
   CHECK_NOTNULL(fx);
-  int ret = lbfgs(n, x, fx, proc_evaluate, proc_progress, instance, &lbfgs_param_);
+  //int ret = lbfgs(n, x, fx, proc_evaluate, proc_progress, instance, &lbfgs_param_);
+  int ret = lbfgs(n, x, fx, proc_evaluate, proc_progress, instance, NULL);
   LOG(INFO) << "L-BFGS optimization terminated with status code = " << ret;
 } 
 

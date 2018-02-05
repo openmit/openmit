@@ -186,8 +186,7 @@ void Model::RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
   loss_ = loss;
   lbfgsfloatval_t fx = 0.0;
   CHECK(!weights.empty()); 
-  lbfgsfloatval_t* weights_ = new lbfgsfloatval_t[sizeof(weights)];
-  //memcpy(weights_, &weights[0], weights.size()*sizeof(lbfgsfloatval_t));  
+  lbfgsfloatval_t* weights_ = new lbfgsfloatval_t[weights.size()];
   for (auto i = 0u; i < weights.size(); ++i) {
     weights_[i] = (lbfgsfloatval_t)weights[i];
   }
@@ -199,7 +198,7 @@ void Model::RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
                   _LBFGSProgress,
                   this);
   for (auto i = 0u; i < weights.size(); ++i) {
-    (*grads)[i] = weights_[i];
+    (*grads)[i] = (mit_float)weights_[i];
   }
 }
 
@@ -226,8 +225,13 @@ lbfgsfloatval_t Model::LBFGSEvaluate(const lbfgsfloatval_t *weights,
 {
   lbfgsfloatval_t fx = 0.0;
   mit_float loss_grad = 0.0;
-  std::vector<mit_float> weights_vec(weights, weights + n);
-  std::vector<mit_float> grads_vec(grads, grads + n);
+  std::vector<mit_float> weights_vec;
+  std::vector<mit_float> grads_vec;
+  for (int i = 0u; i < n; ++i){
+    weights_vec.push_back(weights[i]);
+    grads_vec.push_back(grads[i]);
+  }
+  
   #pragma omp parallel for num_threads(cli_param_.num_thread)
   for (auto i = 0u; i < batch.size; ++i) {
     mit_float pred = Predict(batch[i], weights_vec, key2offset);
@@ -237,6 +241,9 @@ lbfgsfloatval_t Model::LBFGSEvaluate(const lbfgsfloatval_t *weights,
     Gradient(batch[i], weights_vec, key2offset, &grads_vec, loss_grad);
   }
   fx = fx / batch.size;
+  for (int i = 0; i < n; ++i){
+    grads[i] = grads_vec[i];
+  }
   return fx;
 }
 
