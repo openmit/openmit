@@ -146,6 +146,7 @@ void Server::SaveModel(std::string epoch) {
       cli_param_.out_path.compare(0, 6, "viewfs") != 0 && 
       cli_param_.out_path.compare(0, 2, "s3") != 0) {
     LOG(INFO) << "local dir " << cli_param_.out_path;
+    LOG(INFO) << "local dump dir " << dump_out;
     std::string cmd = "rm -rf " + dump_out + " || true"; 
     CHECK_EQ(system(cmd.c_str()), 0);
     cmd = "mkdir -p " + dump_out; 

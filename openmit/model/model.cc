@@ -11,7 +11,7 @@ Model::Model(const mit::KWArgs& kwargs) {
   model_param_.InitAllowUnknown(kwargs);
   entry_meta_.reset(new mit::EntryMeta(model_param_));
   random_.reset(mit::math::Random::Create(model_param_));
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
+  optimizer_.reset(mit::Optimizer::Create(kwargs, cli_param_.optimizer));
   batch_ = NULL;
   key2offset_ = NULL;
   loss_ = NULL;
@@ -191,12 +191,15 @@ void Model::RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
     weights_[i] = (lbfgsfloatval_t)weights[i];
   }
 
-  optimizer_->Run(weights.size(), 
-                  weights_, 
-                  &fx,
-                  _LBFGSEvaluate,
-                  _LBFGSProgress,
-                  this);
+  int ret = optimizer_->Run(weights.size(), 
+                            weights_, 
+                            &fx,
+                            _LBFGSEvaluate,
+                            _LBFGSProgress,
+                            this);
+  if (cli_param_.debug) {
+    LOG(INFO) << "L-BFGS optimization terminated with status code = " << ret;
+  }
   for (auto i = 0u; i < weights.size(); ++i) {
     (*grads)[i] = (mit_float)weights_[i];
   }
@@ -270,9 +273,11 @@ int Model::LBFGSProgress(const lbfgsfloatval_t *x,
                          int n,
                          int k,
                          int ls)
-{
+{   
+  if (cli_param_.debug) {
     LOG(INFO) << "Iteration:" << k << "  fx:" << fx << " xnorm:" << xnorm << " gnorm:" << gnorm << " step:" << step ;
-    return 0;
+  }
+  return 0;
 }
 
 } // namespace mit

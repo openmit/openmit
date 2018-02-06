@@ -81,17 +81,14 @@ void Optimizer::Run(mit::SArray<mit_float> & grad,
   }
 } // Optimizer::Run
 
-void Optimizer::Run(int n,
-                    lbfgsfloatval_t *x,
-                    lbfgsfloatval_t *fx,
-                    lbfgs_evaluate_t proc_evaluate,
-                    lbfgs_progress_t proc_progress,
-                    void *instance)
+int Optimizer::Run(int n,
+                   lbfgsfloatval_t *x,
+                   lbfgsfloatval_t *fx,
+                   lbfgs_evaluate_t proc_evaluate,
+                   lbfgs_progress_t proc_progress,
+                   void *instance)
 {
-  //CHECK_NOTNULL(x);
-  //CHECK_NOTNULL(fx);      
-  //int ret = lbfgs(n, x, fx, proc_evaluate, proc_progress, instance, &lbfgs_param_);                       
-  //LOG(INFO) << "L-BFGS optimization terminated with status code = " << ret;
+  return 0;
 } 
 
 

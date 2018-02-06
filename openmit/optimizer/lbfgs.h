@@ -63,12 +63,12 @@ class LBFGSOptimizer : public Optimizer {
                 mit_float & w, 
                 mit::Entry * weight = nullptr) override;
 
-    void Run(int n,
-             lbfgsfloatval_t *x,
-             lbfgsfloatval_t *fx,
-             lbfgs_evaluate_t proc_evaluate,
-             lbfgs_progress_t proc_progress,
-             void *instance);
+    int Run(int n,
+            lbfgsfloatval_t *x,
+            lbfgsfloatval_t *fx,
+            lbfgs_evaluate_t proc_evaluate,
+            lbfgs_progress_t proc_progress,
+            void *instance);
 
   private:
     /*! \brief lbfgs parameter */
@@ -116,18 +116,18 @@ void LBFGSOptimizer::Update(const mit_uint& key, const size_t& idx, const mit_fl
   w = g;
 } 
 
-void LBFGSOptimizer::Run(int n,
-                         lbfgsfloatval_t *x,
-                         lbfgsfloatval_t *fx,
-                         lbfgs_evaluate_t proc_evaluate,
-                         lbfgs_progress_t proc_progress,
-                         void *instance)
+int LBFGSOptimizer::Run(int n,
+                        lbfgsfloatval_t *x,
+                        lbfgsfloatval_t *fx,
+                        lbfgs_evaluate_t proc_evaluate,
+                        lbfgs_progress_t proc_progress,
+                        void *instance)
 {
   CHECK_NOTNULL(x);
   CHECK_NOTNULL(fx);
   //int ret = lbfgs(n, x, fx, proc_evaluate, proc_progress, instance, &lbfgs_param_);
   int ret = lbfgs(n, x, fx, proc_evaluate, proc_progress, instance, NULL);
-  LOG(INFO) << "L-BFGS optimization terminated with status code = " << ret;
+  return ret;
 } 
 
 } // namespace mit
