@@ -31,7 +31,7 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   CHECK_EQ(weights.size(), grads->size());
   size_t nfeature = keys.size();
 
-  /* key -> (offset, count) */
+  /* key->(offset, count) */
   timer_stats_->begin(stats.ps_worker_map_prepare);
   std::unordered_map<mit_uint, std::pair<size_t, int> > key2offset;
   size_t offset = 0;
@@ -47,30 +47,39 @@ void Trainer::Run(const dmlc::RowBlock<mit_uint>& batch, std::vector<ps::Key>& k
   std::vector<mit_float> preds(batch.size, 0.0);
   model_->Predict(batch, weights, key2offset, preds);
   if (cli_param_.debug) {
-    LOG(INFO) << "trainer model predict " << mit::DebugStr<mit_float>(preds.data(), 5);
+    LOG(INFO) << "trainer model predict " << mit::DebugStr<mit_float>(preds.data(), preds.size(), 10);
   }
   timer_stats_->stop(stats.ps_worker_model_predict);
-  
-  /* gradient computing */
-  std::vector<mit_float> loss_grads(batch.size, 0.0);
-  auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
-  int chunksize = batch.size / nthread;
-  chunksize = batch.size % nthread == 0 ? chunksize : chunksize + 1;
-  // gradient for loss 
-  timer_stats_->begin(stats.ps_worker_calc_loss);
-  #pragma omp parallel for num_threads(nthread)
-  for (auto i = 0u; i < batch.size; ++i) {
-    loss_grads[i] = loss_->gradient(batch[i].get_label(), preds[i]);
+  if (cli_param_.optimizer == "lbfgs") {
+    if (cli_param_.debug) {
+      LOG(INFO) << "weights before lbfgs:" << mit::DebugStr<mit_float>(weights.data(), weights.size(), 10);
+    }
+    model_->RunLBFGS(&batch, &key2offset, loss_, weights, grads);
+    if (cli_param_.debug) {
+      LOG(INFO) << "weights after lbfgs:" << mit::DebugStr<mit_float>(grads->data(), grads->size(), 10);
+    }
   }
-  timer_stats_->stop(stats.ps_worker_calc_loss);
-  // gradient for model
-  timer_stats_->begin(stats.ps_worker_model_gradient);
-  model_->Gradient(batch, weights, key2offset, loss_grads, grads);
-  if (cli_param_.debug) {
-    LOG(INFO) << "trainer model gradient " << mit::DebugStr<mit_float>(grads->data(), 5);
+  else { 
+    /* gradient computing */
+    std::vector<mit_float> loss_grads(batch.size, 0.0);
+    auto nthread = cli_param_.num_thread; CHECK(nthread > 0);
+    int chunksize = batch.size / nthread;
+    chunksize = batch.size % nthread == 0 ? chunksize : chunksize + 1;
+    // gradient for loss 
+    timer_stats_->begin(stats.ps_worker_calc_loss);
+    #pragma omp parallel for num_threads(nthread)
+    for (auto i = 0u; i < batch.size; ++i) {
+      loss_grads[i] = loss_->gradient(batch[i].get_label(), preds[i]);
+    }
+    timer_stats_->stop(stats.ps_worker_calc_loss);
+    // gradient for model
+    timer_stats_->begin(stats.ps_worker_model_gradient);
+    model_->Gradient(batch, weights, key2offset, loss_grads, grads);
+    if (cli_param_.debug) {
+      LOG(INFO) << "trainer model gradient " << mit::DebugStr<mit_float>(grads->data(), 5);
+    }
+    timer_stats_->stop(stats.ps_worker_model_gradient);
   }
-  timer_stats_->stop(stats.ps_worker_model_gradient);
-  
   /* metric train based on batch data */
   timer_stats_->begin(stats.ps_worker_train_metric);
   train_metric.resize(metrics_.size(), 0.0);

@@ -13,6 +13,7 @@
 #include "openmit/common/parameter.h"
 #include "openmit/entry/entry.h"
 #include "openmit/tools/dstruct/sarray.h"
+#include "third_party/include/liblbfgs/lbfgs.h"
 
 namespace mit {
 /*!
@@ -22,7 +23,7 @@ class Optimizer {
   public:
     /*! \brief create a optimizer */
     static Optimizer * Create(const mit::KWArgs & kwargs, 
-                              const std::string & name = "gd");
+                              const std::string & name = "lbfgs");
     
     /*! \brief destructor */
     virtual ~Optimizer() {}
@@ -42,7 +43,14 @@ class Optimizer {
              const ps::SArray<mit_float> & vals, 
              const ps::SArray<int> & lens, 
              std::unordered_map<mit_uint, mit::Entry *> * weight);
-  
+
+    virtual int Run(int n,
+                    lbfgsfloatval_t *x,
+                    lbfgsfloatval_t *fx,
+                    lbfgs_evaluate_t proc_evaluate,
+                    lbfgs_progress_t proc_progress,
+                    void *instance);
+ 
     virtual void Update(const mit_uint & key, 
                         const size_t & idx, 
                         const mit_float & g, 

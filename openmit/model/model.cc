@@ -11,7 +11,10 @@ Model::Model(const mit::KWArgs& kwargs) {
   model_param_.InitAllowUnknown(kwargs);
   entry_meta_.reset(new mit::EntryMeta(model_param_));
   random_.reset(mit::math::Random::Create(model_param_));
-  optimizer_.reset(mit::Optimizer::Create(kwargs));
+  optimizer_.reset(mit::Optimizer::Create(kwargs, cli_param_.optimizer));
+  batch_ = NULL;
+  key2offset_ = NULL;
+  loss_ = NULL;
   LOG(INFO) << "cli_param_.num_thread: " << cli_param_.num_thread;
 }
 
@@ -171,5 +174,110 @@ void Model::GradientEmbeddingWithSSE(const float* pweight,
     }
   }
 } // GradientEmbeddingWithSSE
+
+void Model::RunLBFGS(const dmlc::RowBlock<mit_uint>* batch,
+                     mit::key2offset_type* key2offset,
+                     mit::Loss* loss,
+                     std::vector<mit_float>& weights,
+                     std::vector<mit_float>* grads)
+{
+  batch_ = batch;
+  key2offset_ = key2offset;
+  loss_ = loss;
+  lbfgsfloatval_t fx = 0.0;
+  CHECK(!weights.empty()); 
+  lbfgsfloatval_t* weights_ = new lbfgsfloatval_t[weights.size()];
+  for (auto i = 0u; i < weights.size(); ++i) {
+    weights_[i] = (lbfgsfloatval_t)weights[i];
+  }
+
+  int ret = optimizer_->Run(weights.size(), 
+                            weights_, 
+                            &fx,
+                            _LBFGSEvaluate,
+                            _LBFGSProgress,
+                            this);
+  if (cli_param_.debug) {
+    LOG(INFO) << "L-BFGS optimization terminated with status code = " << ret;
+  }
+  for (auto i = 0u; i < weights.size(); ++i) {
+    (*grads)[i] = (mit_float)weights_[i];
+  }
+}
+
+lbfgsfloatval_t Model::_LBFGSEvaluate(void *instance,
+                                      const lbfgsfloatval_t *weights,
+                                      lbfgsfloatval_t *grads,
+                                      const int n,
+                                      const lbfgsfloatval_t step)
+{
+  return reinterpret_cast<Model*>(instance)->LBFGSEvaluate(weights,
+    grads, n, step,
+    *(reinterpret_cast<Model*>(instance)->batch_),
+    *(reinterpret_cast<Model*>(instance)->key2offset_),
+    reinterpret_cast<Model*>(instance)->loss_);
+}
+
+lbfgsfloatval_t Model::LBFGSEvaluate(const lbfgsfloatval_t *weights,
+                                     lbfgsfloatval_t *grads,
+                                     const int n,
+                                     const lbfgsfloatval_t step,
+                                     const dmlc::RowBlock<mit_uint>& batch,
+                                     mit::key2offset_type& key2offset,
+                                     mit::Loss* loss_)
+{
+  lbfgsfloatval_t fx = 0.0;
+  mit_float loss_grad = 0.0;
+  std::vector<mit_float> weights_vec;
+  std::vector<mit_float> grads_vec;
+  for (int i = 0u; i < n; ++i){
+    weights_vec.push_back(weights[i]);
+    grads_vec.push_back(grads[i]);
+  }
+  
+  #pragma omp parallel for num_threads(cli_param_.num_thread)
+  for (auto i = 0u; i < batch.size; ++i) {
+    mit_float pred = Predict(batch[i], weights_vec, key2offset);
+    mit_float loss = loss_->loss(batch[i].get_label(), pred);
+    fx += loss;
+    loss_grad = loss_-> gradient(batch[i].get_label(), pred);
+    Gradient(batch[i], weights_vec, key2offset, &grads_vec, loss_grad);
+  }
+  fx = fx / batch.size;
+  for (int i = 0; i < n; ++i){
+    grads[i] = grads_vec[i];
+  }
+  return fx;
+}
+
+int Model::_LBFGSProgress(void *instance,
+                          const lbfgsfloatval_t *weights,
+                          const lbfgsfloatval_t *grads,
+                          const lbfgsfloatval_t fx,
+                          const lbfgsfloatval_t xnorm,
+                          const lbfgsfloatval_t gnorm,
+                          const lbfgsfloatval_t step,
+                          int n,
+                          int k,
+                          int ls)
+{
+  return reinterpret_cast<Model*>(instance)->LBFGSProgress(weights, grads, fx, xnorm, gnorm, step, n, k, ls);
+}
+
+int Model::LBFGSProgress(const lbfgsfloatval_t *x,
+                         const lbfgsfloatval_t *g,
+                         const lbfgsfloatval_t fx,
+                         const lbfgsfloatval_t xnorm,
+                         const lbfgsfloatval_t gnorm,
+                         const lbfgsfloatval_t step,
+                         int n,
+                         int k,
+                         int ls)
+{   
+  if (cli_param_.debug) {
+    LOG(INFO) << "Iteration:" << k << "  fx:" << fx << " xnorm:" << xnorm << " gnorm:" << gnorm << " step:" << step ;
+  }
+  return 0;
+}
 
 } // namespace mit
