@@ -14,8 +14,8 @@
 namespace mit {
 namespace string {
 
-inline void Split(const std::string & str, 
-                  std::vector<std::string> * ret,
+inline void Split(const std::string& str, 
+                  std::vector<std::string>* ret,
                   const char delimeter = ' ') {
   std::string item;
   std::istringstream is(str);

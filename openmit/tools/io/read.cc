@@ -1,4 +1,5 @@
-#include "openmit/tools/io/read.h"
+//#include "openmit/tools/io/read.h"
+#include "./read.h"
 
 namespace mit {
 // Read
