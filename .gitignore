@@ -42,6 +42,8 @@ build/
 third_party/include/
 third_party/lib/
 third_party/mxnet/
+third_party/makefile/downloads/
+third_party/makefile/gen/
 
 # tmp file
 out/
