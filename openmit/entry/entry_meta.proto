@@ -1,0 +1,22 @@
+syntax="proto3";
+
+option cc_enable_arenas = true;
+option java_outer_classname = "EntryMetaProtos";
+option java_multiple_files = true;
+option java_package = "org.openmit.entry";
+
+package mit.protobuf;
+
+message FieldIdArray {
+  // Lists of id for field 
+  repeated uint32 field_id_array = 1;
+}
+
+message EntryMeta {
+  // Maps of between fieldid name and related fieldid list
+  map<string, FieldIdArray> entry_meta_map = 1;
+  // embedding size 
+  uint32 embedding_size = 2;
+  // model name 
+  string model = 3;
+}

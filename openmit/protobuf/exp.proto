@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+option cc_enable_arenas = true;
+option java_outer_classname = "PersonProtos";
+option java_multiple_files = true;
+option java_package = "org.openmit.test";
+
+package openmit;
+
+message Person {
+  string name = 1;
+  int32 id = 2;
+}
