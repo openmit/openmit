@@ -15,7 +15,8 @@ export LD_LIBRARY_PATH=$protoc_lib
 export DYLD_LIBRARY_PATH=$protoc_lib
 
 cpp_out=$1
-java_out=$wk_dir/message/java_out
+java_out=$PROJECT_DIR/jvm-packages
+python_out=$PROJECT_DIR/python-package
 
 # compile proto recursive
 function compile_proto_recursive() {
@@ -32,7 +33,7 @@ function compile_proto_recursive() {
     fi
     
     if [[ "${dir_or_file: -6}" == "$postfix" ]]; then 
-      $protoc -I=$1 --cpp_out=$1 $dir_or_file
+      $protoc -I=$1 --cpp_out=$1 --java_out=$java_out --python_out=$python_out $dir_or_file
     fi
   done
 }

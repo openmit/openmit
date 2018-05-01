@@ -10,4 +10,6 @@ package openmit;
 message Person {
   string name = 1;
   int32 id = 2;
+  string xxxx = 3;
+  repeated string strs = 4;
 }

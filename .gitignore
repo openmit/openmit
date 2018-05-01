@@ -38,6 +38,9 @@ build/
 *.pb.cc
 *.pb.h
 
+# Python
+*.pyc
+
 # 3rd-party
 third_party/include/
 third_party/lib/
