@@ -34,10 +34,19 @@ lib/
 # CMake
 build/
 
+# Protobuf
+*.pb.cc
+*.pb.h
+
+# Python
+*.pyc
+
 # 3rd-party
 third_party/include/
 third_party/lib/
 third_party/mxnet/
+third_party/makefile/downloads/
+third_party/makefile/gen/
 
 # tmp file
 out/
