@@ -35,7 +35,9 @@ include_directories(
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/third_party/include
   ${PROJECT_SOURCE_DIR}/third_party/hadoop/include
-  ${PROJECT_SOURCE_DIR}/third_party/ps-lite/deps/include
+  ${PROJECT_SOURCE_DIR}/third_party/ps-lite/deps/include 
+  ${PROJECT_SOURCE_DIR}/third_party/makefile/gen/grpc/include 
+  ${PROJECT_SOURCE_DIR}/tools/grpc/helloworld
   $ENV{JAVA_HOME}/include)
 
 link_directories(
@@ -43,11 +45,14 @@ link_directories(
   ${PROJECT_SOURCE_DIR}/third_party/lib
   ${PROJECT_SOURCE_DIR}/third_party/hadoop/lib
   ${PROJECT_SOURCE_DIR}/third_party/ps-lite/deps/lib
+  ${PROJECT_SOURCE_DIR}/third_party/makefile/gen/grpc/lib
   $ENV{JAVA_HOME}/jre/lib/amd64/server)
+  #${PROJECT_SOURCE_DIR}/third_party/makefile/grpc/libs/opt
 
 set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/lib")
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
 
 # Add Subdirectory
-add_subdirectory(openmit)
-add_subdirectory(test)
+#add_subdirectory(openmit)
+#add_subdirectory(test)
+add_subdirectory(tools/grpc)
