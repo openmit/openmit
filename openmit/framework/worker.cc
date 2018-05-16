@@ -195,6 +195,22 @@ void Worker::KeySet(const dmlc::RowBlock<mit_uint>& batch,
       keys.emplace_back(iter->first);
       extras.emplace_back(iter->second);
     }
+  } else if (cli_param_.model == "mf") {
+    std::unordered_set<mit_uint> keysets;
+    mit_uint index_threashold = ((mit_uint)1 << cli_param_.nbit);
+    for (size_t i = 0; i < batch.size; i++) {
+      mit_uint userkey = batch.index[batch.offset[i]];
+      mit_uint itemkey = batch.index[batch.offset[i] + 1];
+      CHECK_LT(userkey, index_threashold);
+      CHECK_LT(itemkey, index_threashold); 
+      keysets.insert(userkey);
+      keysets.insert(NewKey(1, itemkey, cli_param_.nbit));
+      if (cli_param_.debug) {
+        LOG(INFO) << "user_key:" << userkey << " item_key:" << itemkey << " encode_item_key:" << NewKey(1, itemkey, cli_param_.nbit) << " decode_item_key:" << DecodeField(NewKey(1, itemkey, cli_param_.nbit), cli_param_.nbit);
+      }  
+    }
+    keys.insert(keys.begin(), keysets.begin(), keysets.end());
+    std::sort(keys.begin(), keys.end());
   } else { // deduplicate by set
     std::unordered_set<mit_uint> keysets;
     keysets.insert(batch.index + batch.offset[0], batch.index + batch.offset[batch.size]); 

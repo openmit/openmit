@@ -23,7 +23,7 @@ inline mit_uint NewKey(mit_uint featid, size_t fieldid, size_t nbit) {
 }
 
 inline mit_uint DecodeField(mit_uint new_key, size_t nbit) {
-  return new_key % (1 << nbit);
+  return new_key % ((mit_uint)1 << nbit);
 }
 
 inline mit_uint DecodeFeature(mit_uint new_key, size_t nbit) {

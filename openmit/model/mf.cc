@@ -62,10 +62,13 @@ void MF::Gradient(const dmlc::Row<mit_uint>& row,
                   const mit_float& loss_grad) {
   CHECK_EQ(row.length, 2) << "row format error. rating key1 key2";
   auto middle = loss_grad * row.get_weight();
-  auto key1 = row.index[0];
-  auto key2 = row.index[1];
-  auto key1_offset = key2offset[key1].first;
-  auto key2_offset = key2offset[key2].first;
+  mit_uint index_threashold = ((mit_uint)1 << cli_param_.nbit);
+  mit_uint userkey = row.index[0];
+  mit_uint itemkey = row.index[1];
+  CHECK_LT(userkey, index_threashold);
+  CHECK_LT(itemkey, index_threashold);
+  auto key1_offset = key2offset[userkey].first;
+  auto key2_offset = key2offset[NewKey(1, itemkey, cli_param_.nbit)].first;
   // gradient for key2
   GradientEmbeddingWithSSE(weights.data() + key1_offset, grads->data() + key2_offset, middle);
   // gradient for key1
@@ -77,9 +80,17 @@ mit_float MF::Predict(const dmlc::Row<mit_uint>& row,
                       mit::key2offset_type& key2offset) {
   mit_float wTx = 0.0f;
   CHECK_EQ(row.length, 2) << "row format error. rating key1 key2";
-  auto key1_offset = key2offset[row.index[0]].first;
-  auto key2_offset = key2offset[row.index[1]].first;
+  mit_uint index_threashold = ((mit_uint)1 << cli_param_.nbit);
+  mit_uint userkey = row.index[0];
+  mit_uint itemkey = row.index[1];
+  CHECK_LT(userkey, index_threashold);
+  CHECK_LT(itemkey, index_threashold);
+  auto key1_offset = key2offset[userkey].first;
+  auto key2_offset = key2offset[NewKey(1, itemkey, cli_param_.nbit)].first;
   wTx = InnerProductWithSSE(weights.data() + key1_offset, weights.data() + key2_offset);
+  if (cli_param_.debug) {
+    LOG(INFO) << "key1_offset:" << key1_offset << " key2_offset:" << key2_offset << " res:" << wTx;
+  }
   return wTx;
 }
 

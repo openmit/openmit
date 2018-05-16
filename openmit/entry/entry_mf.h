@@ -50,7 +50,12 @@ MFEntry::MFEntry(const mit::ModelParam& model_param,
 std::string MFEntry::String(mit::EntryMeta* entry_meta) {
   std::string info = "";
   for (auto k = 0u; k < embedding_size; ++k) {
-    info += " " + std::to_string(wv[k]);
+    if (k == 0u) {
+      info += std::to_string(wv[k]);
+    }
+    else {
+      info += " " + std::to_string(wv[k]);
+    }
   }
   return info;
 } // MFEntry::String 

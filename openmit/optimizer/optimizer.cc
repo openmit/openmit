@@ -5,6 +5,7 @@
 //#include "openmit/optimizer/ftrl.h"
 //#include "openmit/optimizer/rmsprop.h"
 #include "openmit/optimizer/sgd.h"
+#include "openmit/optimizer/lbfgs.h"
 
 namespace mit {
 
@@ -18,6 +19,7 @@ Optimizer * Optimizer::Create(const mit::KWArgs & kwargs,
       if (kv.first != "optimizer") continue;
       optimizer = kv.second;
     }
+    LOG(INFO) << "aaaaaa:" << optimizer;
   }
   LOG(INFO) << "Optimizer optimizer: " << optimizer;
   if (optimizer == "gd" || optimizer == "sgd") {
@@ -37,10 +39,12 @@ Optimizer * Optimizer::Create(const mit::KWArgs & kwargs,
   } else if (optimizer == "rmsprop") {
     return mit::SGDOptimizer::Get(kwargs);
     //return mit::RMSPropOptimizer::Get(kwargs);
+  } else if (optimizer == "lbfgs") {
+    return mit::LBFGSOptimizer::Get(kwargs);
   } else {
     LOG(ERROR) << 
       "optimizer not in [gd, sgd, adagrad, rmsprop, adadelta, adam, " << 
-      "ftrl lbfgs, als, ...]. " << 
+      "ftrl lbfgs, als, lbfgs, ...]. " << 
       "optimizer: " << optimizer;
     return nullptr;
   }
@@ -76,5 +80,17 @@ void Optimizer::Run(mit::SArray<mit_float> & grad,
     Update(i, grad[i], (*weight)[i]);
   }
 } // Optimizer::Run
+
+int Optimizer::Run(int n,
+                   lbfgsfloatval_t *x,
+                   lbfgsfloatval_t *fx,
+                   lbfgs_evaluate_t proc_evaluate,
+                   lbfgs_progress_t proc_progress,
+                   void *instance)
+{
+  return 0;
+} 
+
+
 
 } // namespace mit
